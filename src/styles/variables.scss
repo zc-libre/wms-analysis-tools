@@ -1,0 +1,72 @@
+/// 全局 Sass 变量
+/// 所有全局使用的变量集中在此文件中定义
+/// 变量命名规则: $类别-修饰词-状态
+
+// 主题颜色
+$color-primary: #409EFF;
+$color-success: #67C23A;
+$color-warning: #E6A23C;
+$color-danger: #F56C6C;
+$color-info: #909399;
+
+// 文本颜色
+$color-text-primary: #303133;
+$color-text-regular: #606266;
+$color-text-secondary: #909399;
+$color-text-placeholder: #C0C4CC;
+
+// 边框颜色
+$color-border-base: #DCDFE6;
+$color-border-light: #E4E7ED;
+$color-border-lighter: #EBEEF5;
+$color-border-extra-light: #F2F6FC;
+
+// 背景颜色
+$color-bg-base: #F5F7FA;
+$color-bg-light: #FAFAFA;
+$color-bg-white: #FFFFFF;
+
+// 字体大小
+$font-size-extra-large: 20px;
+$font-size-large: 18px;
+$font-size-medium: 16px;
+$font-size-base: 14px;
+$font-size-small: 13px;
+$font-size-extra-small: 12px;
+
+// 字体粗细
+$font-weight-bold: 700;
+$font-weight-semi-bold: 600;
+$font-weight-medium: 500;
+$font-weight-regular: 400;
+$font-weight-light: 300;
+
+// 间距
+$spacing-extra-small: 4px;
+$spacing-small: 8px;
+$spacing-base: 16px;
+$spacing-large: 24px;
+$spacing-extra-large: 32px;
+
+// 边框圆角
+$border-radius-small: 2px;
+$border-radius-base: 4px;
+$border-radius-large: 8px;
+$border-radius-circle: 50%;
+
+// 阴影
+$shadow-base: 0 2px 4px rgba(0, 0, 0, 0.12), 0 0 6px rgba(0, 0, 0, 0.04);
+$shadow-light: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+$shadow-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.2);
+
+// 断点
+$breakpoint-xs: 576px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 992px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1400px;
+
+// 过渡时间
+$transition-fast: 0.15s;
+$transition-normal: 0.3s;
+$transition-slow: 0.5s; 

@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单数据管理 - 流通行业智能仓储管理系统分析工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        .sidebar {
+            background-color: #fff;
+            border-right: 1px solid #dee2e6;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .main-content {
+            height: 100vh;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .project-card {
+            margin-bottom: 20px;
+            border-left: 4px solid #0d6efd;
+            transition: all 0.2s;
+        }
+        .project-card:hover {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+        }
+        .project-card.active {
+            border-left: 4px solid #198754;
+            background-color: #f0f8ff;
+        }
+        .file-drawer {
+            padding-left: 15px;
+            margin-top: 10px;
+            border-left: 1px dashed #dee2e6;
+        }
+        .file-item {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            background-color: #fbfbfb;
+        }
+        .file-item:hover {
+            background-color: #f0f8ff;
+        }
+        .file-item.active {
+            background-color: #e9f7fe;
+            border-left: 3px solid #0d6efd;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+            border-bottom: 2px solid #0d6efd;
+        }
+        .table th {
+            background-color: #f8f9fa;
+        }
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .top-bar {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 20px;
+            position: relative;
+            z-index: 1030;
+        }
+        .system-title {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .drawer-toggle {
+            cursor: pointer;
+            color: #6c757d;
+        }
+        .drawer-toggle:hover {
+            color: #0d6efd;
+        }
+        .card-body {
+            padding: 1rem;
+        }
+        .project-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 170px;
+        }
+        
+        /* AI助手样式 */
+        .ai-assistant-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1050;
+            transition: all 0.3s;
+        }
+        .ai-assistant-toggle:hover {
+            transform: scale(1.1);
+        }
+        .ai-assistant-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 380px;
+            height: 100vh;
+            background-color: #fff;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1040;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .ai-assistant-panel.collapsed {
+            transform: translateX(100%);
+        }
+        .ai-assistant-header {
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ai-assistant-title {
+            font-weight: 600;
+            margin: 0;
+        }
+        .ai-assistant-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .ai-assistant-footer {
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            background-color: #f8f9fa;
+        }
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .chat-message {
+            margin-bottom: 15px;
+            max-width: 85%;
+        }
+        .chat-message.user {
+            align-self: flex-end;
+            text-align: right;
+        }
+        .chat-message.assistant {
+            align-self: flex-start;
+            text-align: left;
+        }
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 18px;
+            display: inline-block;
+            margin-top: 5px;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+        .user .message-bubble {
+            background-color: #0d6efd;
+            color: white;
+            border-top-right-radius: 4px;
+        }
+        .assistant .message-bubble {
+            background-color: #f1f1f1;
+            color: #333;
+            border-top-left-radius: 4px;
+        }
+        .message-sender {
+            font-size: 0.85rem;
+            margin-bottom: 3px;
+            color: #6c757d;
+        }
+        .input-message {
+            resize: none;
+            border-radius: 20px;
+            padding-right: 40px;
+        }
+        .send-button {
+            position: absolute;
+            right: 25px;
+            bottom: 23px;
+            background: none;
+            border: none;
+            color: #0d6efd;
+            cursor: pointer;
+        }
+        .send-button:disabled {
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+        .retry-button {
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 0.875rem;
+            margin-left: 10px;
+        }
+        .retry-button:hover {
+            color: #0d6efd;
+        }
+        .model-select {
+            font-size: 0.875rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            margin-top: 5px;
+        }
+        .chat-thread {
+            margin-bottom: 20px;
+            border-left: 3px solid #dee2e6;
+            padding-left: 10px;
+        }
+        .thread-toggle {
+            background: none;
+            border: none;
+            color: #0d6efd;
+            cursor: pointer;
+            padding: 5px 0;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+        }
+        .thread-toggle i {
+            transition: transform 0.3s;
+        }
+        .thread-toggle.collapsed i {
+            transform: rotate(-90deg);
+        }
+        .ai-response-variation {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #6c757d;
+        }
+        .variation-active {
+            border-left-color: #0d6efd;
+            background-color: #e9f7fe;
+        }
+        .page-content-wrapper {
+            display: flex;
+            width: 100%;
+        }
+        .model-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background-color: #e9ecef;
+            color: #495057;
+            margin-left: 8px;
+        }
+        
+        /* 批量删除相关样式 */
+        .batch-actions {
+            display: none;
+            margin-bottom: 10px;
+        }
+        .file-checkbox {
+            margin-right: 8px;
+        }
+        
+        /* 导出下拉菜单样式 */
+        .export-dropdown {
+            min-width: 8rem;
+        }
+        .export-dropdown .dropdown-item {
+            padding: 0.25rem 1rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar d-flex justify-content-between align-items-center">
+        <div class="system-title">流通行业智能仓储管理系统分析工具</div>
+        <div>
+            <span class="me-3">欢迎，管理员</span>
+            <a href="#" class="text-decoration-none"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧边栏 -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="mb-0">项目管理</h5>
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newProjectModal">
+                        <i class="fas fa-plus"></i> 新建
+                    </button>
+                </div>
+                
+                <!-- 项目列表 -->
+                <div class="project-list mb-4">
+                    <!-- 项目1（默认激活，文件抽屉展开） -->
+                    <div class="project-card card active">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-1 project-title" title="南京物流中心项目">南京物流中心项目</h6>
+                                <div>
+                                    <button class="btn btn-sm btn-link drawer-toggle p-0 me-1" data-bs-toggle="collapse" data-bs-target="#fileDrawer1" aria-expanded="true">
+                                        <i class="fas fa-folder-open"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-primary p-0 me-1" data-bs-toggle="modal" data-bs-target="#editProjectModal" data-project-id="1" data-project-name="南京物流中心项目" data-project-company="江苏分公司" data-project-location="南京市江宁区">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger p-0" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-muted small">
+                                <div>江苏分公司 | 南京市江宁区</div>
+                            </div>
+                            
+                            <!-- 文件抽屉（默认展开） -->
+                            <div class="collapse show" id="fileDrawer1">
+                                <div class="file-drawer mt-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted">文件列表</small>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-danger py-0 px-1 batch-actions" id="batchDeleteBtn1">
+                                                <i class="fas fa-trash"></i> 批量删除
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success py-0 px-1" data-bs-toggle="modal" data-bs-target="#uploadFileModal" data-project-id="1">
+                                                <i class="fas fa-upload"></i> 上传
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="file-item active">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file1">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202503.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-03-20 | 3.4MB</div>
+                                    </div>
+                                    
+                                    <div class="file-item">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file2">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202502.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-02-15 | 2.8MB</div>
+                                    </div>
+                                    
+                                    <div class="file-item">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file3">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202501.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-01-10 | 3.1MB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目2（文件抽屉折叠） -->
+                    <div class="project-card card">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-1 project-title" title="上海配送中心项目">上海配送中心项目</h6>
+                                <div>
+                                    <button class="btn btn-sm btn-link drawer-toggle p-0 me-1" data-bs-toggle="collapse" data-bs-target="#fileDrawer2" aria-expanded="false">
+                                        <i class="fas fa-folder"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-primary p-0 me-1" data-bs-toggle="modal" data-bs-target="#editProjectModal" data-project-id="2" data-project-name="上海配送中心项目" data-project-company="上海分公司" data-project-location="上海市嘉定区">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger p-0" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-muted small">
+                                <div>上海分公司 | 上海市嘉定区</div>
+                            </div>
+                            
+                            <!-- 文件抽屉（默认折叠） -->
+                            <div class="collapse" id="fileDrawer2">
+                                <div class="file-drawer mt-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted">文件列表</small>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-danger py-0 px-1 batch-actions" id="batchDeleteBtn2">
+                                                <i class="fas fa-trash"></i> 批量删除
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success py-0 px-1" data-bs-toggle="modal" data-bs-target="#uploadFileModal" data-project-id="2">
+                                                <i class="fas fa-upload"></i> 上传
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="file-item">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file4">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202503_SH.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-03-18 | 4.2MB</div>
+                                    </div>
+                                    
+                                    <div class="file-item">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file5">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202502_SH.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-02-12 | 3.5MB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 项目3（文件抽屉折叠） -->
+                    <div class="project-card card">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="card-title mb-1 project-title" title="广州配送中心项目">广州配送中心项目</h6>
+                                <div>
+                                    <button class="btn btn-sm btn-link drawer-toggle p-0 me-1" data-bs-toggle="collapse" data-bs-target="#fileDrawer3" aria-expanded="false">
+                                        <i class="fas fa-folder"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-primary p-0 me-1" data-bs-toggle="modal" data-bs-target="#editProjectModal" data-project-id="3" data-project-name="广州配送中心项目" data-project-company="广东分公司" data-project-location="广州市番禺区">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger p-0" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="text-muted small">
+                                <div>广东分公司 | 广州市番禺区</div>
+                            </div>
+                            
+                            <!-- 文件抽屉（默认折叠） -->
+                            <div class="collapse" id="fileDrawer3">
+                                <div class="file-drawer mt-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted">文件列表</small>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-danger py-0 px-1 batch-actions" id="batchDeleteBtn3">
+                                                <i class="fas fa-trash"></i> 批量删除
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-success py-0 px-1" data-bs-toggle="modal" data-bs-target="#uploadFileModal" data-project-id="3">
+                                                <i class="fas fa-upload"></i> 上传
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="file-item">
+                                        <div class="d-flex align-items-center">
+                                            <input type="checkbox" class="form-check-input file-checkbox me-2" data-file-id="file6">
+                                            <i class="fas fa-file-excel text-success me-2"></i>
+                                            <div class="text-truncate">销售出库订单_202503_GZ.xlsx</div>
+                                        </div>
+                                        <div class="small text-muted mt-1">2025-03-19 | 3.8MB</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧主内容区域 -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">订单数据管理</h5>
+                            <div>
+                                <!-- 修改导出数据按钮为下拉菜单 -->
+                                <div class="dropdown d-inline-block me-2">
+                                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-download"></i> 导出数据
+                                    </button>
+                                    <ul class="dropdown-menu export-dropdown" aria-labelledby="exportDropdown">
+                                        <li><a class="dropdown-item" href="#" id="exportExcel"><i class="fas fa-file-excel me-2 text-success"></i>导出Excel</a></li>
+                                        <li><a class="dropdown-item" href="#" id="exportCSV"><i class="fas fa-file-csv me-2 text-primary"></i>导出CSV</a></li>
+                                    </ul>
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-sync-alt"></i> 刷新
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- 选项卡导航 -->
+                        <ul class="nav nav-tabs mb-3" id="dataTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="sales-orders-tab" data-bs-toggle="tab" data-bs-target="#sales-orders" type="button" role="tab" aria-controls="sales-orders" aria-selected="true">
+                                    销售出库订单
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="material-data-tab" data-bs-toggle="tab" data-bs-target="#material-data" type="button" role="tab" aria-controls="material-data" aria-selected="false">
+                                    物料主数据
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="inbound-orders-tab" data-bs-toggle="tab" data-bs-target="#inbound-orders" type="button" role="tab" aria-controls="inbound-orders" aria-selected="false">
+                                    入库单据
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="inventory-records-tab" data-bs-toggle="tab" data-bs-target="#inventory-records" type="button" role="tab" aria-controls="inventory-records" aria-selected="false">
+                                    库存记录
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <!-- 选项卡内容 -->
+                        <div class="tab-content" id="dataTabContent">
+                            <!-- 销售出库订单 选项卡 -->
+                            <div class="tab-pane fade show active" id="sales-orders" role="tabpanel" aria-labelledby="sales-orders-tab">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control form-control-sm" placeholder="搜索单据编号/SKU">
+                                        <button class="btn btn-sm btn-primary">搜索</button>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-success">
+                                            <i class="fas fa-plus"></i> 新增订单
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>单据编号</th>
+                                                <th>SKU</th>
+                                                <th>单据类型</th>
+                                                <th>单据项</th>
+                                                <th>单据时间</th>
+                                                <th>物料编号</th>
+                                                <th>需求数量</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>123456789</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-25 16:10:40</td>
+                                                <td>3456789</td>
+                                                <td>678</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456782</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-24 15:20:40</td>
+                                                <td>3456789</td>
+                                                <td>645</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456783</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-23 10:30:40</td>
+                                                <td>3456789</td>
+                                                <td>532</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456784</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-22 09:15:40</td>
+                                                <td>3456789</td>
+                                                <td>421</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456785</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-21 14:20:40</td>
+                                                <td>3456789</td>
+                                                <td>398</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456786</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-20 11:45:40</td>
+                                                <td>3456789</td>
+                                                <td>357</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456787</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>销售出库</td>
+                                                <td>项目1</td>
+                                                <td>2025-03-19 13:25:40</td>
+                                                <td>3456789</td>
+                                                <td>289</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456790</td>
+                                                <td>DD_EE_FF</td>
+                                                <td>销售出库</td>
+                                                <td>项目2</td>
+                                                <td>2025-03-24 15:20:30</td>
+                                                <td>3456790</td>
+                                                <td>780.5</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456791</td>
+                                                <td>GG_HH_II</td>
+                                                <td>销售出库</td>
+                                                <td>项目3</td>
+                                                <td>2025-03-23 09:45:20</td>
+                                                <td>3456791</td>
+                                                <td>350.75</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action" data-bs-toggle="modal" data-bs-target="#orderDetailModal">
+                                                        查看详情
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-end">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="#">下一页</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            
+                            <!-- 物料主数据 选项卡 -->
+                            <div class="tab-pane fade" id="material-data" role="tabpanel" aria-labelledby="material-data-tab">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control form-control-sm" placeholder="搜索物料编号/SKU">
+                                        <button class="btn btn-sm btn-primary">搜索</button>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-success">
+                                            <i class="fas fa-plus"></i> 新增物料
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>物料编号</th>
+                                                <th>SKU</th>
+                                                <th>物料冷热度</th>
+                                                <th>包装长度</th>
+                                                <th>包装宽度</th>
+                                                <th>包装高度</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>3456789</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>热</td>
+                                                <td>30 cm</td>
+                                                <td>25 cm</td>
+                                                <td>20 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456782</td>
+                                                <td>DD_BB_AA</td>
+                                                <td>热</td>
+                                                <td>28 cm</td>
+                                                <td>23 cm</td>
+                                                <td>18 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456783</td>
+                                                <td>EE_BB_AA</td>
+                                                <td>热</td>
+                                                <td>32 cm</td>
+                                                <td>27 cm</td>
+                                                <td>22 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456784</td>
+                                                <td>FF_BB_AA</td>
+                                                <td>热</td>
+                                                <td>29 cm</td>
+                                                <td>24 cm</td>
+                                                <td>19 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456785</td>
+                                                <td>GG_BB_AA</td>
+                                                <td>温</td>
+                                                <td>31 cm</td>
+                                                <td>26 cm</td>
+                                                <td>21 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456786</td>
+                                                <td>HH_BB_AA</td>
+                                                <td>温</td>
+                                                <td>33 cm</td>
+                                                <td>28 cm</td>
+                                                <td>23 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456787</td>
+                                                <td>II_BB_AA</td>
+                                                <td>温</td>
+                                                <td>27 cm</td>
+                                                <td>22 cm</td>
+                                                <td>17 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456790</td>
+                                                <td>DD_EE_FF</td>
+                                                <td>温</td>
+                                                <td>40 cm</td>
+                                                <td>35 cm</td>
+                                                <td>30 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>3456791</td>
+                                                <td>GG_HH_II</td>
+                                                <td>冷</td>
+                                                <td>25 cm</td>
+                                                <td>20 cm</td>
+                                                <td>15 cm</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-end">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="#">下一页</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            
+                            <!-- 入库单据 选项卡 -->
+                            <div class="tab-pane fade" id="inbound-orders" role="tabpanel" aria-labelledby="inbound-orders-tab">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control form-control-sm" placeholder="搜索单据编号/SKU">
+                                        <button class="btn btn-sm btn-primary">搜索</button>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-success">
+                                            <i class="fas fa-plus"></i> 新增入库单
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>单据编号</th>
+                                                <th>SKU</th>
+                                                <th>单据时间</th>
+                                                <th>待入库数量</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>987654321</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>2025-03-25 10:30:45</td>
+                                                <td>500</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>987654322</td>
+                                                <td>DD_EE_FF</td>
+                                                <td>2025-03-24 09:15:30</td>
+                                                <td>750.5</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>987654323</td>
+                                                <td>GG_HH_II</td>
+                                                <td>2025-03-23 14:25:10</td>
+                                                <td>300.25</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1">
+                                                        编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action">
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-end">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="#">下一页</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            
+                            <!-- 库存记录 选项卡 -->
+                            <div class="tab-pane fade" id="inventory-records" role="tabpanel" aria-labelledby="inventory-records-tab">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <div class="d-flex gap-2">
+                                        <input type="text" class="form-control form-control-sm" placeholder="搜索库存记录编号/SKU/容器编号">
+                                        <button class="btn btn-sm btn-primary">搜索</button>
+                                    </div>
+                                    <div>
+                                        <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                                            <i class="fas fa-plus"></i> 新增库存记录
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>库存记录编号</th>
+                                                <th>SKU</th>
+                                                <th>容器编号</th>
+                                                <th>可用数量</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>123456789</td>
+                                                <td>CC_BB_AA</td>
+                                                <td>ertyui</td>
+                                                <td>56789</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1" data-bs-toggle="modal" data-bs-target="#editInventoryModal" 
+                                                            data-inventory-id="123456789" data-inventory-sku="CC_BB_AA" data-inventory-container="ertyui" data-inventory-quantity="56789">
+                                                        <i class="fas fa-edit"></i> 编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteInventoryModal" 
+                                                            data-inventory-id="123456789" data-inventory-sku="CC_BB_AA">
+                                                        <i class="fas fa-trash-alt"></i> 删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456790</td>
+                                                <td>DD_EE_FF</td>
+                                                <td>asdfgh</td>
+                                                <td>43210.5</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1" data-bs-toggle="modal" data-bs-target="#editInventoryModal" 
+                                                            data-inventory-id="123456790" data-inventory-sku="DD_EE_FF" data-inventory-container="asdfgh" data-inventory-quantity="43210.5">
+                                                        <i class="fas fa-edit"></i> 编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteInventoryModal" 
+                                                            data-inventory-id="123456790" data-inventory-sku="DD_EE_FF">
+                                                        <i class="fas fa-trash-alt"></i> 删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>123456791</td>
+                                                <td>GG_HH_II</td>
+                                                <td>qwerty</td>
+                                                <td>98765.25</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary btn-action me-1" data-bs-toggle="modal" data-bs-target="#editInventoryModal" 
+                                                            data-inventory-id="123456791" data-inventory-sku="GG_HH_II" data-inventory-container="qwerty" data-inventory-quantity="98765.25">
+                                                        <i class="fas fa-edit"></i> 编辑
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger btn-action" data-bs-toggle="modal" data-bs-target="#deleteInventoryModal" 
+                                                            data-inventory-id="123456791" data-inventory-sku="GG_HH_II">
+                                                        <i class="fas fa-trash-alt"></i> 删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-end">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="#">下一页</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI助手浮动按钮 -->
+    <div class="ai-assistant-toggle">
+        <i class="fas fa-robot"></i>
+    </div>
+    
+    <!-- AI助手面板 -->
+    <div class="ai-assistant-panel collapsed">
+        <div class="ai-assistant-header">
+            <h5 class="ai-assistant-title">AI智能助手 <span class="model-badge">deepseek</span></h5>
+            <div>
+                <select class="model-select">
+                    <option value="deepseek" selected>deepseek模型</option>
+                    <option value="llama3">llama3模型</option>
+                    <option value="qwen">qwen模型</option>
+                </select>
+                <button class="btn btn-sm btn-outline-secondary ms-2" id="closeAssistant">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="ai-assistant-body">
+            <!-- 对话容器 -->
+            <div class="chat-container d-flex flex-column">
+                <!-- 示例对话线程 -->
+                <div class="chat-thread mb-4">
+                    <button class="thread-toggle mb-2">
+                        <i class="fas fa-caret-down me-2"></i>
+                        <span>对话 1</span>
+                    </button>
+                    
+                    <div class="thread-content">
+                        <!-- 用户消息 -->
+                        <div class="chat-message user d-flex flex-column align-items-end">
+                            <div class="message-sender">用户</div>
+                            <div class="message-bubble">销售出库订单如何分析SKU的热销程度?</div>
+                        </div>
+                        
+                        <!-- 助手消息 - 多个回答变体 -->
+                        <div class="chat-message assistant d-flex flex-column">
+                            <div class="message-sender">AI助手</div>
+                            <div class="message-bubble">
+                                分析SKU热销程度可以从以下几个维度:
+                                
+                                1. 销售频率: 统计单位时间内SKU被订购的次数
+                                2. 销售数量: 计算SKU的总销售量
+                                3. 销售金额: 计算SKU贡献的总收入
+                                4. 毛利率: 结合成本分析利润表现
+                                5. ABC分类: 将SKU按销售额占比分为A/B/C类
+
+                                您可以在系统中导出销售数据进行这些分析，或者使用我来帮您处理数据并提供见解。
+                            </div>
+                            
+                            <div class="mt-2 d-flex align-items-center">
+                                <button class="retry-button">
+                                    <i class="fas fa-redo"></i> 重试
+                                </button>
+                                <span class="ms-2 text-muted small">其他回答:</span>
+                            </div>
+                            
+                            <div class="ai-response-variation">
+                                SKU热销程度分析通常基于以下指标:
+                                
+                                - 销售量与频率
+                                - 库存周转率
+                                - 贡献利润
+                                - 季节性波动
+                                
+                                建议使用系统导出3个月数据建立基准分析。
+                            </div>
+                            
+                            <div class="ai-response-variation">
+                                您可以通过出库订单数据分析SKU热度:
+                                1) 导出销售出库订单报表
+                                2) 按SKU分组汇总销量
+                                3) 设定时间窗口(30/60/90天)
+                                4) 使用帕累托法则(20/80原则)筛选热门品
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 当前对话 -->
+                <div class="chat-thread active">
+                    <button class="thread-toggle mb-2">
+                        <i class="fas fa-caret-down me-2"></i>
+                        <span>对话 2</span>
+                    </button>
+                    
+                    <div class="thread-content">
+                        <!-- 用户消息 -->
+                        <div class="chat-message user d-flex flex-column align-items-end">
+                            <div class="message-sender">用户</div>
+                            <div class="message-bubble">如何优化仓库的拣货路径?</div>
+                        </div>
+                        
+                        <!-- 助手消息 -->
+                        <div class="chat-message assistant d-flex flex-column">
+                            <div class="message-sender">AI助手</div>
+                            <div class="message-bubble">
+                                仓库拣货路径优化有多种方法:
+
+                                1. S形拣货路径: 沿着过道S形移动，适合高密度存储
+                                2. 回返式路径: 在每个过道进出，适合窄通道仓库
+                                3. 中点法: 从中间进入过道再返回，减少总行程
+                                4. 最优路径法: 使用算法动态计算最短路径
+                                
+                                系统可以基于物料位置数据和订单信息，自动规划最优拣货顺序。您还需要考虑商品分区、热销品靠前放置等策略。
+                            </div>
+                            
+                            <div class="mt-2">
+                                <button class="retry-button">
+                                    <i class="fas fa-redo"></i> 重试
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ai-assistant-footer">
+            <div class="position-relative">
+                <textarea class="form-control input-message" rows="2" placeholder="输入您的问题..."></textarea>
+                <button class="send-button" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模态框 - 订单详情 -->
+    <div class="modal fade" id="orderDetailModal" tabindex="-1" aria-labelledby="orderDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="orderDetailModalLabel">订单详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>基本信息</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>单据编号:</strong> 123456789</div>
+                        <div class="col-md-4"><strong>SKU:</strong> CC_BB_AA</div>
+                        <div class="col-md-4"><strong>单据类型:</strong> 销售出库</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>单据时间:</strong> 2025-03-25 16:10:40</div>
+                        <div class="col-md-4"><strong>物料编号:</strong> 3456789</div>
+                        <div class="col-md-4"><strong>需求数量:</strong> 678</div>
+                    </div>
+                    
+                    <h6 class="mt-4">相关信息</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>客户名称:</strong> 江苏ABC贸易有限公司</div>
+                        <div class="col-md-4"><strong>交货地点:</strong> 南京市江宁区</div>
+                        <div class="col-md-4"><strong>交货日期:</strong> 2025-03-28</div>
+                    </div>
+                    
+                    <h6 class="mt-4">物料信息</h6>
+                    <table class="table table-sm table-bordered">
+                        <thead>
+                            <tr class="table-light">
+                                <th>物料属性</th>
+                                <th>值</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>物料名称</td>
+                                <td>高强度纸箱 A类</td>
+                            </tr>
+                            <tr>
+                                <td>物料规格</td>
+                                <td>30×25×20 cm</td>
+                            </tr>
+                            <tr>
+                                <td>物料冷热度</td>
+                                <td>热</td>
+                            </tr>
+                            <tr>
+                                <td>单位重量</td>
+                                <td>0.5 kg</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary">打印</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建项目模态框 -->
+    <div class="modal fade" id="newProjectModal" tabindex="-1" aria-labelledby="newProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newProjectModalLabel">新建项目</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newProjectForm">
+                        <div class="mb-3">
+                            <label for="projectName" class="form-label">项目名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="projectName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectCompany" class="form-label">所属分公司 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="projectCompany" required>
+                                <option value="" selected disabled>请选择分公司</option>
+                                <option value="江苏分公司">江苏分公司</option>
+                                <option value="上海分公司">上海分公司</option>
+                                <option value="广东分公司">广东分公司</option>
+                                <option value="北京分公司">北京分公司</option>
+                                <option value="浙江分公司">浙江分公司</option>
+                                <option value="四川分公司">四川分公司</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="projectLocation" class="form-label">项目所在地 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="projectLocation" required placeholder="例如：南京市江宁区">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveNewProject">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑项目模态框 -->
+    <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProjectModalLabel">编辑项目</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProjectForm">
+                        <input type="hidden" id="editProjectId">
+                        <div class="mb-3">
+                            <label for="editProjectName" class="form-label">项目名称 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editProjectName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProjectCompany" class="form-label">所属分公司 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editProjectCompany" required>
+                                <option value="" disabled>请选择分公司</option>
+                                <option value="江苏分公司">江苏分公司</option>
+                                <option value="上海分公司">上海分公司</option>
+                                <option value="广东分公司">广东分公司</option>
+                                <option value="北京分公司">北京分公司</option>
+                                <option value="浙江分公司">浙江分公司</option>
+                                <option value="四川分公司">四川分公司</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProjectLocation" class="form-label">项目所在地 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editProjectLocation" required placeholder="例如：南京市江宁区">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveEditProject">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 删除项目确认模态框 -->
+    <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteProjectModalLabel">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除这个项目吗？该操作无法撤销，项目下的所有文件也将被删除。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteProject">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件上传模态框 -->
+    <div class="modal fade" id="uploadFileModal" tabindex="-1" aria-labelledby="uploadFileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="uploadFileModalLabel">上传文件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadFileForm">
+                        <input type="hidden" id="uploadProjectId">
+                        <div class="mb-3">
+                            <label for="fileType" class="form-label">文件类型 <span class="text-danger">*</span></label>
+                            <select class="form-select" id="fileType" required>
+                                <option value="" selected disabled>请选择文件类型</option>
+                                <option value="sales">销售出库订单</option>
+                                <option value="material">物料主数据</option>
+                                <option value="inbound">入库单据</option>
+                                <option value="inventory">库存记录</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fileInput" class="form-label">选择文件 <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="fileInput" accept=".xlsx,.xls,.csv" required>
+                            <div class="form-text">支持的文件格式: .xlsx, .xls, .csv</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="fileDescription" class="form-label">文件描述</label>
+                            <textarea class="form-control" id="fileDescription" rows="2" placeholder="可选，添加文件说明"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="confirmUpload">上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 批量删除确认模态框 -->
+    <div class="modal fade" id="batchDeleteModal" tabindex="-1" aria-labelledby="batchDeleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="batchDeleteModalLabel">确认批量删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除选中的 <span id="selectedFileCount">0</span> 个文件吗？该操作无法撤销。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmBatchDelete">确认删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS 和 Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 页面交互脚本 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // AI助手相关
+            const aiToggle = document.querySelector('.ai-assistant-toggle');
+            const aiPanel = document.querySelector('.ai-assistant-panel');
+            const closeBtn = document.getElementById('closeAssistant');
+            const inputMessage = document.querySelector('.input-message');
+            const sendButton = document.querySelector('.send-button');
+            const modelSelect = document.querySelector('.model-select');
+            const modelBadge = document.querySelector('.model-badge');
+            
+            // 文件复选框
+            const fileCheckboxes = document.querySelectorAll('.file-checkbox');
+            const batchDeleteBtns = document.querySelectorAll('.batch-actions');
+            
+            // 导出按钮
+            const exportExcelBtn = document.getElementById('exportExcel');
+            const exportCSVBtn = document.getElementById('exportCSV');
+            
+            // 打开/关闭AI助手面板
+            aiToggle.addEventListener('click', function() {
+                aiPanel.classList.toggle('collapsed');
+            });
+            
+            closeBtn.addEventListener('click', function() {
+                aiPanel.classList.add('collapsed');
+            });
+            
+            // 输入监听
+            inputMessage.addEventListener('input', function() {
+                sendButton.disabled = !this.value.trim();
+            });
+            
+            // 模型切换
+            modelSelect.addEventListener('change', function() {
+                modelBadge.textContent = this.options[this.selectedIndex].text.split('模型')[0];
+            });
+            
+            // 线程切换逻辑
+            document.querySelectorAll('.thread-toggle').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    this.classList.toggle('collapsed');
+                    const content = this.nextElementSibling;
+                    if (this.classList.contains('collapsed')) {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
+            });
+            
+            // 重试按钮逻辑
+            document.querySelectorAll('.retry-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const messageGroup = this.closest('.chat-message');
+                    
+                    // 模拟重新生成回答
+                    const originalText = messageGroup.querySelector('.message-bubble').innerHTML;
+                    
+                    // 显示加载状态
+                    messageGroup.querySelector('.message-bubble').innerHTML = 
+                        '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> 重新生成回答中...</div>';
+                    
+                    // 模拟API调用延迟
+                    setTimeout(() => {
+                        // 实际应用中这里会调用API生成新回答
+                        messageGroup.querySelector('.message-bubble').innerHTML = originalText;
+                    }, 1500);
+                });
+            });
+            
+            // 发送消息逻辑
+            sendButton.addEventListener('click', sendMessage);
+            inputMessage.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            function sendMessage() {
+                const message = inputMessage.value.trim();
+                if (!message) return;
+                
+                const chatContainer = document.querySelector('.chat-container');
+                
+                // 添加用户消息
+                const userMessage = document.createElement('div');
+                userMessage.className = 'chat-message user d-flex flex-column align-items-end';
+                userMessage.innerHTML = `
+                    <div class="message-sender">用户</div>
+                    <div class="message-bubble">${message}</div>
+                `;
+                chatContainer.appendChild(userMessage);
+                
+                // 清空输入框
+                inputMessage.value = '';
+                sendButton.disabled = true;
+                
+                // 模拟AI正在思考
+                const thinking = document.createElement('div');
+                thinking.className = 'chat-message assistant d-flex flex-column';
+                thinking.innerHTML = `
+                    <div class="message-sender">AI助手</div>
+                    <div class="message-bubble">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                            <span>正在生成回答...</span>
+                        </div>
+                    </div>
+                `;
+                chatContainer.appendChild(thinking);
+                
+                // 滚动到底部
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                // 模拟延迟后生成回答
+                setTimeout(() => {
+                    // 移除思考状态
+                    chatContainer.removeChild(thinking);
+                    
+                    // 添加AI回答
+                    const aiMessage = document.createElement('div');
+                    aiMessage.className = 'chat-message assistant d-flex flex-column';
+                    
+                    // 根据不同问题生成不同回答
+                    let responseText = '';
+                    if (message.includes('订单') || message.includes('销售')) {
+                        responseText = `
+                            根据您的问题，以下是关于订单管理的建议：
+                            
+                            1. 您可以在销售出库订单页面查看所有订单信息
+                            2. 通过右上角的导出功能，可以导出Excel或CSV格式的数据进行进一步分析
+                            3. 通过批量上传功能，您可以快速导入大量订单数据
+                            4. 系统支持按SKU、单据编号等条件进行搜索和筛选
+                            
+                            您需要了解更具体的订单管理功能吗？
+                        `;
+                    } else if (message.includes('项目') || message.includes('新建')) {
+                        responseText = `
+                            项目管理功能位于左侧边栏，您可以：
+                            
+                            1. 点击"新建"按钮创建新项目，需填写项目名称、所属分公司和项目所在地
+                            2. 通过编辑按钮修改现有项目信息
+                            3. 每个项目下可以上传和管理不同类型的文件
+                            4. 文件支持批量选择和删除操作
+                            
+                            项目创建后，您可以开始上传相关的数据文件进行管理和分析。
+                        `;
+                    } else {
+                        responseText = `
+                            感谢您的问题。作为智能仓储管理系统的AI助手，我可以帮助您解答关于系统功能、数据分析和仓储管理的各类问题。
+                            
+                            系统主要功能包括：项目管理、订单管理、物料管理、库存管理等。您可以通过左侧的项目管理面板创建和管理项目，通过右侧的功能选项卡查看和操作具体数据。
+                            
+                            您有任何具体的问题或需求，都可以随时向我咨询。
+                        `;
+                    }
+                    
+                    aiMessage.innerHTML = `
+                        <div class="message-sender">AI助手</div>
+                        <div class="message-bubble">${responseText}</div>
+                        <div class="mt-2">
+                            <button class="retry-button">
+                                <i class="fas fa-redo"></i> 重试
+                            </button>
+                        </div>
+                    `;
+                    
+                    chatContainer.appendChild(aiMessage);
+                    
+                    // 绑定重试按钮事件
+                    aiMessage.querySelector('.retry-button').addEventListener('click', function() {
+                        const messageBubble = this.parentElement.previousElementSibling;
+                        const originalText = messageBubble.innerHTML;
+                        
+                        // 显示加载状态
+                        messageBubble.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> 重新生成回答中...</div>';
+                        
+                        // 模拟API调用延迟
+                        setTimeout(() => {
+                            messageBubble.innerHTML = originalText;
+                        }, 1500);
+                    });
+                    
+                    // 滚动到底部
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }, 2000);
+            }
+            
+            // 监听文件复选框变化
+            fileCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const drawer = this.closest('.file-drawer');
+                    const projectId = drawer.closest('.collapse').id.replace('fileDrawer', '');
+                    const batchDeleteBtn = document.getElementById(`batchDeleteBtn${projectId}`);
+                    const checkedBoxes = drawer.querySelectorAll('.file-checkbox:checked');
+                    
+                    // 显示/隐藏批量删除按钮
+                    if (batchDeleteBtn) {
+                        batchDeleteBtn.style.display = checkedBoxes.length > 0 ? 'inline-block' : 'none';
+                    }
+                });
+            });
+            
+            // 批量删除按钮点击事件
+            batchDeleteBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const projectId = this.id.replace('batchDeleteBtn', '');
+                    const drawer = document.getElementById(`fileDrawer${projectId}`);
+                    const checkedBoxes = drawer.querySelectorAll('.file-checkbox:checked');
+                    
+                    document.getElementById('selectedFileCount').textContent = checkedBoxes.length;
+                    
+                    // 显示确认删除模态框
+                    const batchDeleteModal = new bootstrap.Modal(document.getElementById('batchDeleteModal'));
+                    batchDeleteModal.show();
+                });
+            });
+            
+            // 确认批量删除
+            document.getElementById('confirmBatchDelete').addEventListener('click', function() {
+                // 获取所有选中的文件复选框
+                const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+                
+                // 移除选中的文件项
+                checkedBoxes.forEach(checkbox => {
+                    const fileItem = checkbox.closest('.file-item');
+                    fileItem.remove();
+                });
+                
+                // 隐藏批量删除按钮
+                batchDeleteBtns.forEach(btn => {
+                    btn.style.display = 'none';
+                });
+                
+                // 关闭模态框
+                const batchDeleteModal = bootstrap.Modal.getInstance(document.getElementById('batchDeleteModal'));
+                batchDeleteModal.hide();
+                
+                // 显示成功提示
+                alert('选中的文件已成功删除！');
+            });
+            
+            // 确认删除项目
+            document.getElementById('confirmDeleteProject').addEventListener('click', function() {
+                // 获取当前激活的项目
+                const activeProject = document.querySelector('.project-card.active');
+                if (activeProject) {
+                    // 删除项目
+                    activeProject.remove();
+                    
+                    // 激活第一个项目（如果存在）
+                    const firstProject = document.querySelector('.project-card');
+                    if (firstProject) {
+                        firstProject.classList.add('active');
+                    }
+                }
+                
+                // 关闭模态框
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteProjectModal'));
+                deleteModal.hide();
+                
+                // 显示成功提示
+                alert('项目已成功删除！');
+            });
+            
+            // 文件上传模态框打开时设置项目ID
+            document.getElementById('uploadFileModal').addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const projectId = button.getAttribute('data-project-id');
+                document.getElementById('uploadProjectId').value = projectId;
+            });
+            
+            // 确认上传文件
+            document.getElementById('confirmUpload').addEventListener('click', function() {
+                const fileType = document.getElementById('fileType').value;
+                const fileInput = document.getElementById('fileInput');
+                
+                if (fileType && fileInput.files.length > 0) {
+                    const fileName = fileInput.files[0].name;
+                    const fileSize = Math.round(fileInput.files[0].size / 1024); // KB
+                    const projectId = document.getElementById('uploadProjectId').value;
+                    
+                    // 找到对应的项目抽屉
+                    const fileDrawer = document.querySelector(`#fileDrawer${projectId} .file-drawer`);
+                    if (fileDrawer) {
+                        // 创建新文件项
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        fileItem.innerHTML = `
+                            <div class="d-flex align-items-center">
+                                <input type="checkbox" class="form-check-input file-checkbox me-2">
+                                <i class="fas fa-file-excel text-success me-2"></i>
+                                <div class="text-truncate">${fileName}</div>
+                            </div>
+                            <div class="small text-muted mt-1">${new Date().toLocaleString()} | ${fileSize}KB</div>
+                        `;
+                        
+                        // 为新文件的复选框添加事件
+                        const checkbox = fileItem.querySelector('.file-checkbox');
+                        checkbox.addEventListener('change', function() {
+                            const drawer = this.closest('.file-drawer');
+                            const projectId = drawer.closest('.collapse').id.replace('fileDrawer', '');
+                            const batchDeleteBtn = document.getElementById(`batchDeleteBtn${projectId}`);
+                            const checkedBoxes = drawer.querySelectorAll('.file-checkbox:checked');
+                            
+                            // 显示/隐藏批量删除按钮
+                            if (batchDeleteBtn) {
+                                batchDeleteBtn.style.display = checkedBoxes.length > 0 ? 'inline-block' : 'none';
+                            }
+                        });
+                        
+                        // 添加到文件列表
+                        fileDrawer.appendChild(fileItem);
+                        
+                        // 移除"暂无文件"的提示（如果存在）
+                        const emptyText = fileDrawer.querySelector('.text-center');
+                        if (emptyText) {
+                            emptyText.remove();
+                        }
+                    }
+                    
+                    // 重置表单
+                    document.getElementById('uploadFileForm').reset();
+                    
+                    // 关闭模态框
+                    const uploadModal = bootstrap.Modal.getInstance(document.getElementById('uploadFileModal'));
+                    uploadModal.hide();
+                    
+                    // 显示成功提示
+                    alert(`文件上传成功！类型: ${getFileTypeName(fileType)}`);
+                } else {
+                    alert('请选择文件类型和上传文件');
+                }
+            });
+            
+            // 导出数据按钮点击事件
+            const exportDataButton = document.querySelector('.btn-outline-secondary:not([title])');
+            if (exportDataButton) {
+                exportDataButton.addEventListener('click', function() {
+                    alert('正在导出数据，请稍候...');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

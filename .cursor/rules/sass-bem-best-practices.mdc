@@ -1,0 +1,267 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Sass & BEM 最佳实践规范
+
+本规范提供了在 Vue 3 + TypeScript 项目中使用 Sass 和 BEM 方法论的最佳实践指南。遵循这些规范可确保样式代码的一致性、可维护性和可扩展性。
+
+## 文件结构
+
+项目使用以下 Sass 文件组织结构：
+
+```
+src/styles/
+├── variables.scss      # 全局变量定义
+├── element-variables.scss  # Element Plus 主题变量
+├── mixins/             # 混合宏文件夹
+│   ├── _responsive.scss   # 响应式相关混合宏
+│   ├── _typography.scss   # 排版相关混合宏
+│   └── ...
+├── base/               # 基础样式
+│   ├── _reset.scss     # 重置默认样式
+│   ├── _typography.scss  # 排版基础样式
+│   └── ...
+├── components/         # 组件相关样式
+│   ├── _buttons.scss   # 按钮样式
+│   ├── _forms.scss     # 表单样式
+│   └── ...
+└── main.scss           # 主样式文件，导入所有部分
+```
+
+## BEM 命名规范
+
+项目严格遵循 BEM (Block-Element-Modifier) 命名规范：
+
+- **Block**: 独立实体，有意义的独立组件（例如：`.card`, `.navbar`, `.button`）
+- **Element**: Block 的一部分，无法独立使用（例如：`.card__title`, `.navbar__logo`）
+- **Modifier**: 改变 Block 或 Element 外观或行为的标记（例如：`.button--primary`, `.card__title--large`）
+
+### 命名规则
+
+- 使用连字符 `-` 分隔单词（例如：`.main-menu`）
+- 使用双下划线 `__` 连接 Element（例如：`.main-menu__item`）
+- 使用双连字符 `--` 连接 Modifier（例如：`.main-menu__item--active`）
+
+### 示例
+
+```scss
+.card {
+  &__header {
+    // ...
+    
+    &--highlighted {
+      // ...
+    }
+  }
+  
+  &__body {
+    // ...
+  }
+  
+  &--featured {
+    // ...
+  }
+}
+```
+
+## Sass 变量使用
+
+变量应该遵循以下命名和使用规范：
+
+- 使用连字符分隔单词（例如：`$primary-color`）
+- 按类型分组变量（颜色、尺寸、断点等）
+- 使用有意义的名称，避免魔术数字
+
+```scss
+// 推荐
+$primary-color: #409EFF;
+$spacing-base: 16px;
+
+// 不推荐
+$blue: #409EFF;
+$space: 16px;
+```
+
+## 混合宏和函数
+
+- 混合宏（包含 CSS 规则）使用 `kebab-case` 并以动词开头
+- 函数（返回值）使用 `kebab-case` 并描述其返回内容
+
+```scss
+// 混合宏示例
+@mixin create-flex-container($direction: row) {
+  display: flex;
+  flex-direction: $direction;
+}
+
+// 函数示例
+@function calculate-rem($size-in-px) {
+  @return $size-in-px / 16px * 1rem;
+}
+```
+
+## 嵌套规则
+
+为保持代码可读性和避免性能问题：
+
+- 嵌套不超过 3 层
+- 使用 `&` 符号进行 BEM 嵌套
+- 将媒体查询嵌套在选择器内部
+
+```scss
+// 推荐的 BEM 嵌套
+.block {
+  // block 样式
+  
+  &__element {
+    // element 样式
+    
+    &--modifier {
+      // modifier 样式
+    }
+    
+    @media (min-width: $breakpoint-md) {
+      // 响应式样式
+    }
+  }
+}
+```
+
+## 响应式设计
+
+- 使用变量存储断点值
+- 优先使用 `min-width` 媒体查询（移动优先）
+- 使用混合宏封装常用的媒体查询
+
+```scss
+// 断点变量
+$breakpoints: (
+  "sm": 768px,
+  "md": 992px,
+  "lg": 1200px
+);
+
+// 媒体查询混合宏
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @error "无效的断点: #{$breakpoint}";
+  }
+}
+
+// 使用方式
+.my-component {
+  // 移动样式
+  
+  @include respond-to("md") {
+    // 平板及以上样式
+  }
+}
+```
+
+## Element Plus 集成
+
+- 使用 Sass 变量覆盖 Element Plus 主题
+- 在 `element-variables.scss` 文件中集中管理所有 Element Plus 相关变量
+- 使用特定的命名空间避免与 Element Plus 类名冲突
+
+```scss
+// element-variables.scss
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      'base': $primary-color,
+    ),
+    // 其他颜色变量...
+  ),
+  $font-size: (
+    'base': $font-size-base,
+    // 其他字体大小...
+  )
+);
+```
+
+## 性能优化
+
+- 避免过度使用 `@extend`，优先使用 `@mixin`
+- 避免在选择器中使用 ID
+- 优先使用类选择器而非标签选择器
+- 保持选择器简短，减少嵌套层级
+
+## 引用示例
+
+以下是我们项目中的正确示例：
+
+- 变量定义 [variables.scss](mdc:src/styles/variables.scss)
+- 主样式文件 [main.scss](mdc:src/styles/main.scss)
+- Element Plus 主题定制 [element-variables.scss](mdc:src/styles/element-variables.scss)
+
+## 组件样式示例
+
+Vue 组件中的 Sass 样式应遵循以下格式：
+
+```vue
+<template>
+  <div class="product-card">
+    <div class="product-card__image">
+      <!-- 内容 -->
+    </div>
+    <h3 class="product-card__title">{{ title }}</h3>
+    <div class="product-card__price">{{ price }}</div>
+    <button class="product-card__button product-card__button--primary">
+      添加到购物车
+    </button>
+  </div>
+</template>
+
+<script setup lang="ts">
+// TypeScript 代码
+</script>
+
+<style lang="scss" scoped>
+@use '@/styles/variables.scss' as *;
+
+.product-card {
+  border-radius: $border-radius-base;
+  padding: $spacing-base;
+  
+  &__image {
+    width: 100%;
+    height: 200px;
+  }
+  
+  &__title {
+    font-size: $font-size-medium;
+    margin: $spacing-small 0;
+  }
+  
+  &__price {
+    color: $text-primary;
+    font-weight: bold;
+  }
+  
+  &__button {
+    padding: $spacing-small $spacing-base;
+    border-radius: $border-radius-small;
+    
+    &--primary {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+  
+  @include respond-to('md') {
+    padding: $spacing-large;
+    
+    &__image {
+      height: 250px;
+    }
+  }
+}
+</style>
+```

@@ -1,0 +1,47 @@
+/// 排版基础样式
+/// 定义应用中的字体、文本颜色和基础排版规则
+
+// 引入变量
+@use '../variables' as *;
+
+// 基础字体设置
+html, body {
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  font-size: $font-size-base;
+  color: $color-text-primary;
+  line-height: 1.5;
+}
+
+// 链接样式
+a {
+  color: $color-primary;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: lighten($color-primary, 10%);
+  }
+}
+
+// 标题样式
+h1, h2, h3, h4, h5, h6 {
+  margin-bottom: $spacing-base;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: $font-size-extra-large;
+}
+
+h2 {
+  font-size: $font-size-large;
+}
+
+h3 {
+  font-size: $font-size-medium;
+}
+
+// 段落样式
+p {
+  margin-bottom: $spacing-base;
+} 

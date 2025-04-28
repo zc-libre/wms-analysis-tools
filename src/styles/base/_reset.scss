@@ -1,0 +1,26 @@
+/// 全局样式重置
+/// 确保默认样式一致性
+
+// 移除默认边距和内边距
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+// 设置根元素和主体样式
+html, body {
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// 确保应用容器占满高度
+#app {
+  height: 100%;
+}
+
+// 链接样式重置
+a {
+  text-decoration: none;
+} 

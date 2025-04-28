@@ -1,0 +1,87 @@
+/// 视图组件共享样式
+/// 提供所有视图组件通用的样式类
+
+@use '../variables' as *;
+@use '../mixins/responsive' as *;
+
+// 视图容器基础样式
+.view-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+// 操作栏样式
+.action-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: $spacing-base;
+  margin-bottom: $spacing-base;
+  
+  @include respond-to("sm") {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+// 搜索区域样式
+.search-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-small;
+  align-items: center;
+}
+
+// 操作按钮区域
+.operation-buttons {
+  display: flex;
+  gap: $spacing-small;
+  
+  @include respond-to("sm") {
+    margin-top: $spacing-small;
+  }
+}
+
+// 表格区域
+.table-container {
+  flex: 1;
+  overflow: auto;
+}
+
+// 分页容器
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $spacing-base;
+}
+
+// 卡片标题样式
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  @include respond-to("sm") {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-small;
+  }
+}
+
+// 标签页样式
+.view-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  
+  :deep(.el-tabs__header) {
+    margin-bottom: $spacing-base;
+  }
+  
+  :deep(.el-tabs__content) {
+    flex: 1;
+    overflow: auto;
+  }
+} 

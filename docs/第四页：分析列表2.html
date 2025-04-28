@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每时段EIQ分析 - 流通行业智能仓储管理系统分析工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js 图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Flatpickr日期选择器 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
+    <style>
+        body {
+            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .top-bar {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .system-title {
+            font-weight: 600;
+            color: #0d6efd;
+            font-size: 1.1rem;
+        }
+        .sidebar {
+            background-color: #fff;
+            border-right: 1px solid #dee2e6;
+            height: calc(100vh - 50px);
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .main-content {
+            height: calc(100vh - 50px);
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .project-card {
+            margin-bottom: 15px;
+            border-left: 4px solid #0d6efd;
+            transition: all 0.2s;
+        }
+        .project-card:hover {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+        }
+        .project-card.active {
+            border-left: 4px solid #198754;
+            background-color: #f0f8ff;
+        }
+        .analysis-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s;
+            background-color: #fff;
+        }
+        .analysis-item:hover {
+            background-color: #f0f8ff;
+            border-color: #bee5eb;
+        }
+        .analysis-item.active {
+            background-color: #e9f7fe;
+            border-left: 3px solid #0d6efd;
+        }
+        .analysis-item .status-badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+        }
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,.125);
+            padding: 15px 20px;
+        }
+        .form-select, .form-control {
+            border-radius: 4px;
+        }
+        .badge {
+            padding: 6px 10px;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+            border-bottom: 2px solid #0d6efd;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .table-sm th, .table-sm td {
+            padding: 0.5rem;
+        }
+        .conclusion-table th, .conclusion-table td {
+            text-align: center;
+            white-space: nowrap;
+        }
+        .chart-container {
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            height: 200px; /* 限制图表容器高度为200px */
+        }
+        .chart-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #495057;
+            text-align: center;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-xs {
+            padding: 0.1rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .analysis-actions {
+            gap: 5px;
+        }
+        .tab-content {
+            padding-top: 20px;
+        }
+        .table-responsive {
+            max-height: 500px;
+        }
+        /* 添加的下拉菜单样式 */
+        .more-dropdown-menu {
+            min-width: 200px;
+        }
+        .more-dropdown-item {
+            padding: 8px 16px;
+        }
+        .more-dropdown-item:hover {
+            background-color: #f0f7ff;
+        }
+        .more-dropdown-item.active {
+            background-color: #e6f2ff;
+            color: #0d6efd;
+            font-weight: 500;
+        }
+        /* 下拉菜单位置 */
+        .nav-tabs .dropdown-menu {
+            margin-top: 0;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        }
+        /* 日期选择器样式 */
+        .date-picker-container {
+            position: relative;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        .date-picker-container .form-control {
+            width: 200px;
+            padding-right: 35px;
+        }
+        .date-picker-container .input-group-text {
+            background-color: transparent;
+            border-left: none;
+            cursor: pointer;
+        }
+        .date-picker-container .input-group-text i {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar d-flex justify-content-between align-items-center">
+        <div class="system-title">流通行业智能仓储管理系统分析工具</div>
+        <div>
+            <span class="me-3">欢迎，管理员</span>
+            <a href="#" class="text-decoration-none"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        </div>
+    </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 左侧边栏 -->
+            <div class="col-md-3 col-lg-2 sidebar">
+                <!-- 项目信息区域 -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">项目信息</h5>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newAnalysisModal">
+                            <i class="fas fa-plus"></i> 新建分析
+                        </button>
+                    </div>
+                    <!-- 项目列表 -->
+                    <div class="project-list">
+                        <div class="project-card card active">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-1" title="南京物流中心项目">南京物流中心项目</h6>
+                                    <div>
+                                        <button class="btn btn-sm btn-link text-primary p-0" title="展开分析记录">
+                                            <i class="fas fa-chevron-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-muted small">
+                                    <div>江苏分公司 | 南京市江宁区</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-card card">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-1" title="上海配送中心项目">上海配送中心项目</h6>
+                                    <div>
+                                        <button class="btn btn-sm btn-link text-primary p-0" title="展开分析记录">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-muted small">
+                                    <div>上海分公司 | 上海市嘉定区</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="project-card card">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="card-title mb-1" title="广州配送中心项目">广州配送中心项目</h6>
+                                    <div>
+                                        <button class="btn btn-sm btn-link text-primary p-0" title="展开分析记录">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="text-muted small">
+                                    <div>广东分公司 | 广州市番禺区</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 分析记录区域 -->
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">分析记录</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-danger" title="批量删除">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 分析记录列表 -->
+                    <div class="analysis-list">
+                        <div class="analysis-item active">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-truncate">南京3月销售订单分析</span>
+                                <span class="badge bg-success status-badge">已完成</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">2025-03-27 14:30</small>
+                                <div class="d-flex analysis-actions">
+                                    <button class="btn btn-outline-primary btn-xs" title="查看" data-analysis-id="1">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-xs" title="删除" data-analysis-id="1">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-truncate">南京2月销售订单分析</span>
+                                <span class="badge bg-success status-badge">已完成</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">2025-02-15 10:20</small>
+                                <div class="d-flex analysis-actions">
+                                    <button class="btn btn-outline-primary btn-xs" title="查看" data-analysis-id="2">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-xs" title="删除" data-analysis-id="2">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="analysis-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="text-truncate">南京1月销售订单分析</span>
+                                <span class="badge bg-warning status-badge">分析中</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">2025-01-20 09:15</small>
+                                <div class="d-flex analysis-actions">
+                                    <button class="btn btn-outline-secondary btn-xs" title="暂停" data-analysis-id="3">
+                                        <i class="fas fa-pause"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-xs" title="删除" data-analysis-id="3">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 右侧主内容区域 -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- 分析结果头部 -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>南京3月销售订单分析</h4>
+                    <div class="action-buttons">
+                        <button class="btn btn-outline-secondary">
+                            <i class="fas fa-redo me-1"></i> 重新分析
+                        </button>
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-download me-1"></i> 导出
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-table me-2"></i> 导出分析明细</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-file-word me-2"></i> 导出分析报告(Word)</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-file-powerpoint me-2"></i> 导出分析报告(PPT)</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 命中率分析结论 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">命中率分析结论</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm conclusion-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th rowspan="2">日期类型</th>
+                                        <th rowspan="2">日期</th>
+                                        <th rowspan="2">时效模式</th>
+                                        <th rowspan="2">全天总订单行</th>
+                                        <th rowspan="2">全天总容器搬运次数</th>
+                                        <th colspan="3">全天平均</th>
+                                        <th colspan="3">建议规划产能</th>
+                                    </tr>
+                                    <tr>
+                                        <th>订单行/h</th>
+                                        <th>容器搬运次数/h</th>
+                                        <th>平均命中率(行)</th>
+                                        <th>订单行/h</th>
+                                        <th>容器搬运次数/h</th>
+                                        <th>平均命中率(行)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>中值日</td>
+                                        <td>2023-10-16</td>
+                                        <td>天</td>
+                                        <td>1436</td>
+                                        <td>762</td>
+                                        <td>120</td>
+                                        <td>63</td>
+                                        <td>1.90</td>
+                                        <td>359</td>
+                                        <td>191</td>
+                                        <td>1.88</td>
+                                    </tr>
+                                    <tr>
+                                        <td>均值日</td>
+                                        <td>2023-10-16</td>
+                                        <td>天</td>
+                                        <td>1436</td>
+                                        <td>762</td>
+                                        <td>120</td>
+                                        <td>63</td>
+                                        <td>1.90</td>
+                                        <td>359</td>
+                                        <td>191</td>
+                                        <td>1.88</td>
+                                    </tr>
+                                    <tr>
+                                        <td>峰值日</td>
+                                        <td>2023-10-16</td>
+                                        <td>天</td>
+                                        <td>1436</td>
+                                        <td>762</td>
+                                        <td>120</td>
+                                        <td>63</td>
+                                        <td>1.90</td>
+                                        <td>359</td>
+                                        <td>191</td>
+                                        <td>1.88</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分析数据选项卡 -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <ul class="nav nav-tabs card-header-tabs" id="analysisTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="daily-eiq-tab" data-bs-toggle="tab" data-bs-target="#daily-eiq" type="button" role="tab" aria-controls="daily-eiq" aria-selected="false">每日EIQ分析</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="hourly-eiq-tab" data-bs-toggle="tab" data-bs-target="#hourly-eiq" type="button" role="tab" aria-controls="hourly-eiq" aria-selected="true">每时段EIQ分析</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="order-structure-tab" data-bs-toggle="tab" data-bs-target="#order-structure" type="button" role="tab" aria-controls="order-structure" aria-selected="false">订单结构分析</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="ei-analysis-tab" data-bs-toggle="tab" data-bs-target="#ei-analysis" type="button" role="tab" aria-controls="ei-analysis" aria-selected="false">EI分析</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="eq-analysis-tab" data-bs-toggle="tab" data-bs-target="#eq-analysis" type="button" role="tab" aria-controls="eq-analysis" aria-selected="false">EQ分析</button>
+                            </li>
+                            <!-- 更多下拉菜单 -->
+                            <li class="nav-item dropdown" role="presentation">
+                                <button class="nav-link dropdown-toggle" id="more-analysis-tab" data-bs-toggle="dropdown" aria-expanded="false">
+                                    更多 <i class="fas fa-caret-down ms-1"></i>
+                                </button>
+                                <ul class="dropdown-menu more-dropdown-menu" aria-labelledby="more-analysis-tab">
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="single-product-tab" data-bs-toggle="tab" data-bs-target="#single-product" role="tab">
+                                            <i class="fas fa-box me-2"></i> 单品分析
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="sales-movement-tab" data-bs-toggle="tab" data-bs-target="#sales-movement" role="tab">
+                                            <i class="fas fa-chart-line me-2"></i> 动销分析
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="hit-rate-conclusion-tab" data-bs-toggle="tab" data-bs-target="#hit-rate-conclusion" role="tab">
+                                            <i class="fas fa-bullseye me-2"></i> 命中率分析结论
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="overall-hit-rate-tab" data-bs-toggle="tab" data-bs-target="#overall-hit-rate" role="tab">
+                                            <i class="fas fa-chart-bar me-2"></i> 整体命中率
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="overall-hit-rate-detail-tab" data-bs-toggle="tab" data-bs-target="#overall-hit-rate-detail" role="tab">
+                                            <i class="fas fa-list-ul me-2"></i> 整体命中率明细
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="workstation-hit-rate-tab" data-bs-toggle="tab" data-bs-target="#workstation-hit-rate" role="tab">
+                                            <i class="fas fa-desktop me-2"></i> 工作站命中率
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item more-dropdown-item" id="workstation-hit-rate-detail-tab" data-bs-toggle="tab" data-bs-target="#workstation-hit-rate-detail" role="tab">
+                                            <i class="fas fa-clipboard-list me-2"></i> 工作站命中率明细
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="analysisTabContent">
+                            <!-- 每日EIQ分析选项卡 -->
+                            <div class="tab-pane fade" id="daily-eiq" role="tabpanel" aria-labelledby="daily-eiq-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-calendar-day fa-3x text-primary mb-3"></i>
+                                    <h5>每日EIQ分析</h5>
+                                    <p class="text-muted">请切换到"每时段EIQ分析"选项卡查看详细数据</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 每时段EIQ分析选项卡 -->
+                            <div class="tab-pane fade show active" id="hourly-eiq" role="tabpanel" aria-labelledby="hourly-eiq-tab">
+                                <!-- 日期选择 -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="input-group date-picker-container">
+                                            <input type="text" class="form-control" id="datePicker" placeholder="选择日期" value="2023-10-16" readonly>
+                                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8 text-end">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-primary active view-toggle" data-view="table">表格视图</button>
+                                            <button type="button" class="btn btn-outline-primary view-toggle" data-view="chart">图表视图</button>
+                                        </div>
+                                        <button class="btn btn-outline-secondary ms-2">
+                                            <i class="fas fa-download me-1"></i> 导出数据
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 表格视图 -->
+                                <div class="table-responsive table-view">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>日期</th>
+                                                <th>时间</th>
+                                                <th>订单类型</th>
+                                                <th>单据数量</th>
+                                                <th>订单行数</th>
+                                                <th>需求数量</th>
+                                                <th>发货体积(cm³)</th>
+                                                <th>单均行</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>09</td>
+                                                <td>1</td>
+                                                <td>2</td>
+                                                <td>3</td>
+                                                <td>4</td>
+                                                <td>4</td>
+                                                <td>1.50</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>10</td>
+                                                <td>1</td>
+                                                <td>10</td>
+                                                <td>10</td>
+                                                <td>19</td>
+                                                <td>19</td>
+                                                <td>1.00</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>11</td>
+                                                <td>1</td>
+                                                <td>4</td>
+                                                <td>4</td>
+                                                <td>9</td>
+                                                <td>9</td>
+                                                <td>1.00</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>12</td>
+                                                <td>1</td>
+                                                <td>5</td>
+                                                <td>6</td>
+                                                <td>15</td>
+                                                <td>15</td>
+                                                <td>1.20</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>13</td>
+                                                <td>1</td>
+                                                <td>7</td>
+                                                <td>10</td>
+                                                <td>23</td>
+                                                <td>23</td>
+                                                <td>1.43</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>14</td>
+                                                <td>1</td>
+                                                <td>34</td>
+                                                <td>155</td>
+                                                <td>245</td>
+                                                <td>245</td>
+                                                <td>4.56</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>15</td>
+                                                <td>1</td>
+                                                <td>262</td>
+                                                <td>344</td>
+                                                <td>599</td>
+                                                <td>599</td>
+                                                <td>1.31</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>16</td>
+                                                <td>1</td>
+                                                <td>55</td>
+                                                <td>324</td>
+                                                <td>870</td>
+                                                <td>870</td>
+                                                <td>5.89</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>17</td>
+                                                <td>1</td>
+                                                <td>2</td>
+                                                <td>2</td>
+                                                <td>2</td>
+                                                <td>2</td>
+                                                <td>1.00</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>19</td>
+                                                <td>1</td>
+                                                <td>71</td>
+                                                <td>366</td>
+                                                <td>838</td>
+                                                <td>838</td>
+                                                <td>5.15</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>20</td>
+                                                <td>1</td>
+                                                <td>39</td>
+                                                <td>185</td>
+                                                <td>388</td>
+                                                <td>388</td>
+                                                <td>4.74</td>
+                                            </tr>
+                                            <tr>
+                                                <td>2023-10-16</td>
+                                                <td>21</td>
+                                                <td>1</td>
+                                                <td>4</td>
+                                                <td>27</td>
+                                                <td>150</td>
+                                                <td>150</td>
+                                                <td>6.75</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- 图表视图 -->
+                                <div class="chart-view" style="display: none;">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="chart-container">
+                                                <div class="chart-title">订单行数分布</div>
+                                                <canvas id="orderLinesHourlyChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="chart-container">
+                                                <div class="chart-title">单据数量分布</div>
+                                                <canvas id="orderCountHourlyChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="chart-container">
+                                                <div class="chart-title">需求数量分布</div>
+                                                <canvas id="demandQuantityHourlyChart"></canvas>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="chart-container">
+                                                <div class="chart-title">单均行分布</div>
+                                                <canvas id="avgLinesPerOrderHourlyChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 订单结构分析选项卡 -->
+                            <div class="tab-pane fade" id="order-structure" role="tabpanel" aria-labelledby="order-structure-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-sitemap fa-3x text-primary mb-3"></i>
+                                    <h5>订单结构分析</h5>
+                                    <p class="text-muted">此选项卡将显示订单结构分析数据</p>
+                                </div>
+                            </div>
+                            
+                            <!-- EI分析选项卡 -->
+                            <div class="tab-pane fade" id="ei-analysis" role="tabpanel" aria-labelledby="ei-analysis-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-chart-pie fa-3x text-primary mb-3"></i>
+                                    <h5>EI分析</h5>
+                                    <p class="text-muted">此选项卡将显示EI分析数据</p>
+                                </div>
+                            </div>
+                            
+                            <!-- EQ分析选项卡 -->
+                            <div class="tab-pane fade" id="eq-analysis" role="tabpanel" aria-labelledby="eq-analysis-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-chart-area fa-3x text-primary mb-3"></i>
+                                    <h5>EQ分析</h5>
+                                    <p class="text-muted">此选项卡将显示EQ分析数据</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 更多下拉菜单选项卡 -->
+                            <div class="tab-pane fade" id="single-product" role="tabpanel" aria-labelledby="single-product-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-box fa-3x text-primary mb-3"></i>
+                                    <h5>单品分析</h5>
+                                    <p class="text-muted">此选项卡将显示单品分析数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="sales-movement" role="tabpanel" aria-labelledby="sales-movement-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                                    <h5>动销分析</h5>
+                                    <p class="text-muted">此选项卡将显示动销分析数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="hit-rate-conclusion" role="tabpanel" aria-labelledby="hit-rate-conclusion-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-bullseye fa-3x text-primary mb-3"></i>
+                                    <h5>命中率分析结论</h5>
+                                    <p class="text-muted">此选项卡将显示命中率分析结论数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="overall-hit-rate" role="tabpanel" aria-labelledby="overall-hit-rate-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-chart-bar fa-3x text-primary mb-3"></i>
+                                    <h5>整体命中率</h5>
+                                    <p class="text-muted">此选项卡将显示整体命中率数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="overall-hit-rate-detail" role="tabpanel" aria-labelledby="overall-hit-rate-detail-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-list-ul fa-3x text-primary mb-3"></i>
+                                    <h5>整体命中率明细</h5>
+                                    <p class="text-muted">此选项卡将显示整体命中率详细数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="workstation-hit-rate" role="tabpanel" aria-labelledby="workstation-hit-rate-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-desktop fa-3x text-primary mb-3"></i>
+                                    <h5>工作站命中率</h5>
+                                    <p class="text-muted">此选项卡将显示工作站命中率数据</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="workstation-hit-rate-detail" role="tabpanel" aria-labelledby="workstation-hit-rate-detail-tab">
+                                <div class="text-center py-4">
+                                    <i class="fas fa-clipboard-list fa-3x text-primary mb-3"></i>
+                                    <h5>工作站命中率明细</h5>
+                                    <p class="text-muted">此选项卡将显示工作站命中率详细数据</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 新建分析模态框 -->
+    <div class="modal fade" id="newAnalysisModal" tabindex="-1" aria-labelledby="newAnalysisModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newAnalysisModalLabel">新建分析</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="analysisName" class="form-label">分析名称</label>
+                        <input type="text" class="form-control" id="analysisName" placeholder="请输入分析名称" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectSelect" class="form-label">选择项目</label>
+                        <select class="form-select" id="projectSelect" required>
+                            <option value="" selected disabled>请选择项目</option>
+                            <option value="1">南京物流中心项目</option>
+                            <option value="2">上海配送中心项目</option>
+                            <option value="3">广州配送中心项目</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">分析范围</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="analysisScope" id="scopeProject" checked>
+                            <label class="form-check-label" for="scopeProject">
+                                按项目分析（分析该项目下的所有订单数据）
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="analysisScope" id="scopeFiles">
+                            <label class="form-check-label" for="scopeFiles">
+                                选择特定文件分析
+                            </label>
+                        </div>
+                    </div>
+                    <div id="fileSelectionArea" class="mb-3" style="display: none;">
+                        <label class="form-label">选择文件</label>
+                        <div class="list-group">
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="">
+                                销售出库订单_202310.xlsx
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="">
+                                销售出库订单_202309.xlsx
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" value="">
+                                销售出库订单_202308.xlsx
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary">提交分析</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS 和 Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化日期选择器
+            flatpickr("#datePicker", {
+                locale: "zh",
+                dateFormat: "Y-m-d",
+                defaultDate: "2023-10-16",
+                maxDate: "today",
+                onChange: function(selectedDates, dateStr, instance) {
+                    // 这里可以添加日期更改时的操作，例如重新加载数据
+                    console.log("日期已更改为: ", dateStr);
+                    // 实际项目中应该在这里重新请求数据
+                }
+            });
+            
+            // 模拟每时段EIQ分析数据
+            const hourlyEiqData = [
+                { date: '2023-10-16', hour: '09', orderType: 1, orderCount: 2, orderLines: 3, demandQuantity: 4, shippingVolume: 4, avgLinesPerOrder: 1.50 },
+                { date: '2023-10-16', hour: '10', orderType: 1, orderCount: 10, orderLines: 10, demandQuantity: 19, shippingVolume: 19, avgLinesPerOrder: 1.00 },
+                { date: '2023-10-16', hour: '11', orderType: 1, orderCount: 4, orderLines: 4, demandQuantity: 9, shippingVolume: 9, avgLinesPerOrder: 1.00 },
+                { date: '2023-10-16', hour: '12', orderType: 1, orderCount: 5, orderLines: 6, demandQuantity: 15, shippingVolume: 15, avgLinesPerOrder: 1.20 },
+                { date: '2023-10-16', hour: '13', orderType: 1, orderCount: 7, orderLines: 10, demandQuantity: 23, shippingVolume: 23, avgLinesPerOrder: 1.43 },
+                { date: '2023-10-16', hour: '14', orderType: 1, orderCount: 34, orderLines: 155, demandQuantity: 245, shippingVolume: 245, avgLinesPerOrder: 4.56 },
+                { date: '2023-10-16', hour: '15', orderType: 1, orderCount: 262, orderLines: 344, demandQuantity: 599, shippingVolume: 599, avgLinesPerOrder: 1.31 },
+                { date: '2023-10-16', hour: '16', orderType: 1, orderCount: 55, orderLines: 324, demandQuantity: 870, shippingVolume: 870, avgLinesPerOrder: 5.89 },
+                { date: '2023-10-16', hour: '17', orderType: 1, orderCount: 2, orderLines: 2, demandQuantity: 2, shippingVolume: 2, avgLinesPerOrder: 1.00 },
+                { date: '2023-10-16', hour: '19', orderType: 1, orderCount: 71, orderLines: 366, demandQuantity: 838, shippingVolume: 838, avgLinesPerOrder: 5.15 },
+                { date: '2023-10-16', hour: '20', orderType: 1, orderCount: 39, orderLines: 185, demandQuantity: 388, shippingVolume: 388, avgLinesPerOrder: 4.74 },
+                { date: '2023-10-16', hour: '21', orderType: 1, orderCount: 4, orderLines: 27, demandQuantity: 150, shippingVolume: 150, avgLinesPerOrder: 6.75 }
+            ];
+
+            // 提取数据用于图表
+            const hours = hourlyEiqData.map(item => item.hour + '时');
+            const orderLines = hourlyEiqData.map(item => item.orderLines);
+            const orderCounts = hourlyEiqData.map(item => item.orderCount);
+            const demandQuantities = hourlyEiqData.map(item => item.demandQuantity);
+            const avgLinesPerOrder = hourlyEiqData.map(item => item.avgLinesPerOrder);
+
+            // 图表公共配置 - 优化以适应高度限制
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 10
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            font: {
+                                size: 10
+                            },
+                            callback: function(value, index, values) {
+                                return value.toLocaleString();
+                            }
+                        },
+                        // 自适应最小值，只保留底部5%的空白
+                        afterDataLimits: (scale) => {
+                            const min = scale.min;
+                            const max = scale.max;
+                            const range = max - min;
+                            scale.min = min - (range * 0.05); // 底部留5%的空白
+                            scale.max = max + (range * 0.05); // 顶部留5%的空白
+                        }
+                    }
+                },
+                // 减小内边距以最大化图表区域
+                layout: {
+                    padding: {
+                        left: 5,
+                        right: 10,
+                        top: 10,
+                        bottom: 5
+                    }
+                }
+            };
+
+            // 创建订单行数图表
+            const orderLinesHourlyCtx = document.getElementById('orderLinesHourlyChart').getContext('2d');
+            const orderLinesHourlyChart = new Chart(orderLinesHourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '订单行数',
+                        data: orderLines,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 11 },
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return '2023-10-16 ' + tooltipItems[0].label;
+                                },
+                                label: function(context) {
+                                    return '订单行数: ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 创建单据数量图表
+            const orderCountHourlyCtx = document.getElementById('orderCountHourlyChart').getContext('2d');
+            const orderCountHourlyChart = new Chart(orderCountHourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '单据数量',
+                        data: orderCounts,
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 11 },
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return '2023-10-16 ' + tooltipItems[0].label;
+                                },
+                                label: function(context) {
+                                    return '单据数量: ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 创建需求数量图表
+            const demandQuantityHourlyCtx = document.getElementById('demandQuantityHourlyChart').getContext('2d');
+            const demandQuantityHourlyChart = new Chart(demandQuantityHourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '需求数量',
+                        data: demandQuantities,
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 11 },
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return '2023-10-16 ' + tooltipItems[0].label;
+                                },
+                                label: function(context) {
+                                    return '需求数量: ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 创建单均行图表
+            const avgLinesPerOrderHourlyCtx = document.getElementById('avgLinesPerOrderHourlyChart').getContext('2d');
+            const avgLinesPerOrderHourlyChart = new Chart(avgLinesPerOrderHourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '单均行',
+                        data: avgLinesPerOrder,
+                        backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 11 },
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    return '2023-10-16 ' + tooltipItems[0].label;
+                                },
+                                label: function(context) {
+                                    return '单均行: ' + context.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 视图切换功能
+            const viewToggleButtons = document.querySelectorAll('.view-toggle');
+            viewToggleButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const viewType = this.getAttribute('data-view');
+                    const tabPane = this.closest('.tab-pane');
+                    
+                    // 切换按钮状态
+                    const toggleGroup = this.closest('.btn-group').querySelectorAll('.view-toggle');
+                    toggleGroup.forEach(btn => {
+                        btn.classList.remove('active', 'btn-primary');
+                        btn.classList.add('btn-outline-primary');
+                    });
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('active', 'btn-primary');
+                    
+                    // 切换视图
+                    const tableView = tabPane.querySelector('.table-view');
+                    const chartView = tabPane.querySelector('.chart-view');
+                    
+                    if (viewType === 'table') {
+                        tableView.style.display = 'block';
+                        chartView.style.display = 'none';
+                    } else {
+                        tableView.style.display = 'none';
+                        chartView.style.display = 'block';
+                        
+                        // 当切换到图表视图时重新渲染图表以确保正确显示
+                        setTimeout(() => {
+                            orderLinesHourlyChart.update();
+                            orderCountHourlyChart.update();
+                            demandQuantityHourlyChart.update();
+                            avgLinesPerOrderHourlyChart.update();
+                        }, 50);
+                    }
+                });
+            });
+            
+            // 其他交互功能
+            // 项目卡片点击事件
+            const projectCards = document.querySelectorAll('.project-card');
+            projectCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    projectCards.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 切换展开/折叠图标
+                    const icon = this.querySelector('.fa-chevron-right, .fa-chevron-down');
+                    if (icon) {
+                        if (icon.classList.contains('fa-chevron-right')) {
+                            icon.classList.remove('fa-chevron-right');
+                            icon.classList.add('fa-chevron-down');
+                        } else {
+                            // 如果当前已经是展开状态，则保持不变
+                        }
+                    }
+                    
+                    // 其他项目折叠
+                    projectCards.forEach(c => {
+                        if (c !== this) {
+                            const otherIcon = c.querySelector('.fa-chevron-down');
+                            if (otherIcon) {
+                                otherIcon.classList.remove('fa-chevron-down');
+                                otherIcon.classList.add('fa-chevron-right');
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // 分析记录点击事件
+            const analysisItems = document.querySelectorAll('.analysis-item');
+            analysisItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    // 如果点击的是按钮，不触发选择事件
+                    if (e.target.closest('.btn-xs')) {
+                        return;
+                    }
+                    
+                    analysisItems.forEach(i => i.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // 分析范围单选按钮切换文件选择区域显示
+            const scopeRadios = document.querySelectorAll('input[name="analysisScope"]');
+            const fileSelectionArea = document.getElementById('fileSelectionArea');
+            
+            scopeRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.id === 'scopeFiles') {
+                        fileSelectionArea.style.display = 'block';
+                    } else {
+                        fileSelectionArea.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 删除按钮点击事件
+            const deleteButtons = document.querySelectorAll('.btn-outline-danger[title="删除"]');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (confirm('确定要删除此分析记录吗？')) {
+                        const analysisItem = this.closest('.analysis-item');
+                        analysisItem.remove();
+                    }
+                });
+            });
+            
+            // 导出数据按钮点击事件
+            const exportDataButton = document.querySelector('.btn-outline-secondary:not([title])');
+            if (exportDataButton) {
+                exportDataButton.addEventListener('click', function() {
+                    alert('正在导出数据，请稍候...');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

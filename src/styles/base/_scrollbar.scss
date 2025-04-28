@@ -1,0 +1,30 @@
+/// 滚动条样式
+/// 自定义滚动条外观，提升用户体验
+
+// 引入变量
+@use '../variables' as *;
+
+// 滚动条轨道和滑块
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #BDBDBD;
+  border-radius: 3px;
+  
+  &:hover {
+    background-color: darken(#BDBDBD, 10%);
+  }
+}
+
+::-webkit-scrollbar-track {
+  background-color: #F5F5F5;
+}
+
+// Firefox 滚动条样式 (使用 CSS 变量)
+html {
+  scrollbar-color: #BDBDBD #F5F5F5;
+  scrollbar-width: thin;
+} 

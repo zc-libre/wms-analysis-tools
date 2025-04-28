@@ -1,0 +1,50 @@
+// 断点映射，使用与变量文件相同的值
+$breakpoints: (
+  "xs": 576px,
+  "sm": 768px,
+  "md": 992px,
+  "lg": 1200px,
+  "xl": 1400px
+);
+
+/// 响应式断点混合宏
+/// @param {String} $breakpoint - 断点名称（xs, sm, md, lg, xl）
+/// @example
+///   .my-element {
+///     // 移动样式
+///     
+///     @include respond-to("md") {
+///       // 平板及以上样式
+///     }
+///   }
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @error "无效的断点: #{$breakpoint}";
+  }
+}
+
+/// 创建弹性布局容器的混合宏
+/// @param {String} $direction [row] - 弹性布局方向
+/// @param {String} $justify [flex-start] - 水平对齐方式
+/// @param {String} $align [stretch] - 垂直对齐方式
+/// @param {String} $wrap [nowrap] - 是否换行
+@mixin create-flex-container($direction: row, $justify: flex-start, $align: stretch, $wrap: nowrap) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  flex-wrap: $wrap;
+}
+
+/// 创建网格布局容器的混合宏
+/// @param {Number} $columns [1] - 列数
+/// @param {String} $gap [$spacing-base] - 间距
+@mixin create-grid-container($columns: 1, $gap: $spacing-base) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: $gap;
+} 

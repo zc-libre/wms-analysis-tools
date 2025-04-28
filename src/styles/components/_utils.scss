@@ -1,0 +1,81 @@
+/// 通用工具类
+/// 提供常用的布局和格式化辅助类
+
+// 引入变量和混合宏
+@use '../variables' as *;
+@use '../mixins/responsive' as *;
+
+// 尺寸相关
+.u-full-height {
+  height: 100%;
+}
+
+.u-full-width {
+  width: 100%;
+}
+
+// 文本对齐
+.u-text-center {
+  text-align: center;
+}
+
+.u-text-right {
+  text-align: right;
+}
+
+.u-text-left {
+  text-align: left;
+}
+
+// 弹性布局工具类
+.u-flex {
+  display: flex;
+}
+
+.u-flex-center {
+  @include create-flex-container(row, center, center);
+}
+
+.u-flex-between {
+  @include create-flex-container(row, space-between, center);
+}
+
+.u-flex-column {
+  @include create-flex-container(column);
+}
+
+.u-flex-wrap {
+  flex-wrap: wrap;
+}
+
+// 间距工具类
+.u-mt-sm { margin-top: $spacing-small; }
+.u-mt-md { margin-top: $spacing-base; }
+.u-mt-lg { margin-top: $spacing-large; }
+
+.u-mb-sm { margin-bottom: $spacing-small; }
+.u-mb-md { margin-bottom: $spacing-base; }
+.u-mb-lg { margin-bottom: $spacing-large; }
+
+.u-mx-auto { 
+  margin-left: auto;
+  margin-right: auto;
+}
+
+// 显示工具类
+.u-hidden {
+  display: none !important;
+}
+
+// 响应式显示工具类
+@media screen and (max-width: $breakpoint-sm) {
+  .u-hidden-sm-down {
+    display: none !important;
+  }
+}
+
+@media screen and (min-width: $breakpoint-sm) {
+  .u-hidden-sm-up {
+    display: none !important;
+  }
+} 

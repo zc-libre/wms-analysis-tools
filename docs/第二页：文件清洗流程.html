@@ -1,0 +1,1985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>销售出库单据导入 - 流通行业智能仓储管理系统分析工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .top-bar {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 20px;
+        }
+        .system-title {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .import-container {
+            max-width: 1000px;
+            margin: 30px auto;
+        }
+        .step-header {
+            display: flex;
+            margin-bottom: 30px;
+        }
+        .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        .step-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            right: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #dee2e6;
+            z-index: 1;
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #dee2e6;
+            color: #6c757d;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 2;
+        }
+        .step-title {
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .step-active .step-number {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+        .step-active .step-title {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+        .step-completed .step-number {
+            background-color: #198754;
+            color: #fff;
+        }
+        .step-completed .step-number::after {
+            content: '\f00c';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+        }
+        .step-completed .step-title {
+            color: #198754;
+        }
+        .step-completed:not(:last-child)::after {
+            background-color: #198754;
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background-color: #fff;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: #f0f7ff;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #6c757d;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            margin-bottom: 20px;
+        }
+        .upload-btn {
+            display: inline-block;
+        }
+        .import-result {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .result-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .total-stat { color: #0d6efd; }
+        .success-stat { color: #198754; }
+        .failure-stat { color: #dc3545; }
+        .partial-stat { color: #fd7e14; }
+        .mapping-table {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+        }
+        .import-tips {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .import-tips ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        .btn-step {
+            min-width: 100px;
+        }
+        .mapping-example {
+            font-style: italic;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .hidden {
+            display: none;
+        }
+        .progress-area {
+            margin-top: 30px;
+        }
+        .error-summary {
+            margin-top: 20px;
+        }
+        .action-buttons {
+            gap: 10px;
+        }
+        .rule-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .rule-item:hover {
+            background-color: #f0f7ff;
+            border-left: 3px solid #0d6efd;
+        }
+        .file-info {
+            background-color: #f0f7ff;
+            border: 1px solid #cfe2ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-info .file-name {
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .file-info .file-time {
+            color: #6c757d;
+            font-size: 14px;
+        }
+        .file-info .delete-btn {
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .error-message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            color: #842029;
+        }
+        .add-mapping-btn {
+            margin-bottom: 15px;
+        }
+        .original-field-multi {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .add-field-btn {
+            color: #0d6efd;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .remove-mapping-btn {
+            color: #dc3545;
+            cursor: pointer;
+        }
+        /* 多选字段样式 */
+        .multi-select-container {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .multi-select-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .multi-select-item:last-child {
+            margin-bottom: 0;
+        }
+        .multi-select-add {
+            color: #198754;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .select-container {
+            position: relative;
+        }
+        .required-toggle {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sku-highlight {
+            background-color: #e8f4fd;
+            border-left: 3px solid #0d6efd;
+        }
+        .scheme-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .scheme-save-container {
+            display: flex;
+            align-items: center;
+        }
+        .scheme-delete {
+            color: #dc3545;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .save-scheme-form {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .instruction-list {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .instruction-list li {
+            margin-bottom: 8px;
+        }
+        .instruction-list li:last-child {
+            margin-bottom: 0;
+        }
+        /* 新增字段处理规则样式 */
+        .field-rule-header {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .field-rule-content {
+            margin-top: 10px;
+            padding-left: 15px;
+        }
+        .special-char-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .special-char-item {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 5px 10px;
+        }
+        .help-text {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .attribute-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .attribute-item {
+            display: flex;
+            align-items: center;
+            margin-right: 10px;
+        }
+        .radio-options {
+            margin-top: 10px;
+        }
+        .option-item {
+            margin-bottom: 8px;
+        }
+        .default-value-container {
+            margin-top: 10px;
+            margin-left: 25px;
+        }
+        .collapse-icon {
+            transition: transform 0.3s ease;
+        }
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar d-flex justify-content-between align-items-center">
+        <div class="system-title">流通行业智能仓储管理系统分析工具</div>
+        <div>
+            <span class="me-3">欢迎，管理员</span>
+            <a href="#" class="text-decoration-none"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        </div>
+    </div>
+
+    <div class="import-container">
+        <!-- 步骤指示器 - 增加第三步 -->
+        <div class="step-header">
+            <div class="step-item step-completed" id="step-1">
+                <div class="step-number">1</div>
+                <div class="step-title">导入文件</div>
+            </div>
+            <div class="step-item step-completed" id="step-2">
+                <div class="step-number">2</div>
+                <div class="step-title">字段映射</div>
+            </div>
+            <div class="step-item step-active" id="step-3">
+                <div class="step-number">3</div>
+                <div class="step-title">字段处理规则</div>
+            </div>
+        </div>
+
+        <!-- 第一步：导入文件 -->
+        <div id="import-step-1" class="hidden">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">导入销售出库单据</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 导入说明提示 -->
+                    <div class="import-tips">
+                        <h6><i class="fas fa-info-circle me-2"></i>导入说明</h6>
+                        <ul>
+                            <li>文件仅支持xls、xlsx、csv格式。</li>
+                            <li>必填项提供默认值，支持用户修改。</li>
+                            <li>请不要更改或者合并单元格操作！</li>
+                            <li>请不要删除首行标题！</li>
+                            <li>请不要更改时间和日期格式！</li>
+                            <li>注意单个Excel文件最大支持100W行。</li>
+                            <li>注意单个Excel文件最大支持200M。</li>
+                            <li>物料体积可选择立方厘米（cm³），立方分米（dm³），立方米（m³），默认立方厘米。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 上传区域 -->
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="fileInput" accept=".xls,.xlsx,.csv" class="d-none">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">
+                            <h5>拖拽文件到此处或点击上传</h5>
+                            <p class="text-muted">支持 .xls, .xlsx, .csv 格式文件</p>
+                        </div>
+                        <div class="upload-btn">
+                            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-file-upload me-2"></i>选择文件
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 上传成功的文件信息展示区域 (新增) -->
+                    <div class="file-info hidden" id="uploadedFileInfo">
+                        <div>
+                            <span class="file-name">销售出库订单_202503.xlsx</span>
+                            <span class="file-time ms-3">2025-03-15 14:30:45</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-trash-alt delete-btn" id="deleteFileBtn" title="删除文件"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- 错误信息区域 (新增) -->
+                    <div class="error-message hidden" id="errorMessage">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        <span id="errorText">上传失败：缺失首行标题！请确保Excel文件包含完整的表头信息。</span>
+                    </div>
+
+                    <!-- 上传进度区域（初始隐藏） -->
+                    <div class="progress-area hidden" id="progressArea">
+                        <div class="card mb-3">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                                <h5 class="mb-3">正在处理文件数据</h5>
+                                <div class="progress mb-3" style="height: 15px;">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>解析数据</span>
+                                    <span>验证字段</span>
+                                    <span>准备导入</span>
+                                    <span>完成</span>
+                                </div>
+                                <p class="text-muted mt-3 mb-0">文件较大时处理可能需要几分钟，请耐心等待...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 导入结果区域（初始隐藏） -->
+                    <div class="hidden" id="importResult">
+                        <div class="card">
+                            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">导入结果</h5>
+                                <span class="badge bg-primary" id="uploadedFileName">销售出库订单_202503.xlsx</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="result-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-number total-stat" id="totalCount">1200</div>
+                                        <div class="stat-label">总计数据</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number success-stat" id="successCount">1000</div>
+                                        <div class="stat-label">成功数据</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number failure-stat" id="failureCount">200</div>
+                                        <div class="stat-label">失败数据</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-number partial-stat" id="importStatus">部分失败</div>
+                                        <div class="stat-label">导入状态</div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning mt-3" role="alert" id="importAlert">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    检测到部分数据未能成功导入，请检查数据格式是否正确。
+                                </div>
+                                <div class="error-summary">
+                                    <h6>错误详情</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover border">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>错误类型</th>
+                                                    <th>影响行数</th>
+                                                    <th>错误描述</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>数据格式</td>
+                                                    <td>78</td>
+                                                    <td>单据时间格式不正确</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>数据缺失</td>
+                                                    <td>56</td>
+                                                    <td>缺少必填字段SKU</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>数据越界</td>
+                                                    <td>66</td>
+                                                    <td>需求数量超出系统限制</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 按钮区域 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <div>
+                            <a href="./index.html" class="btn btn-outline-secondary btn-step">
+                                <i class="fas fa-arrow-left me-2"></i>返回
+                            </a>
+                        </div>
+                        <div class="d-flex flex-wrap action-buttons hidden" id="resultButtons">
+                            <!-- 删除"继续上传"和"重新上传"按钮 -->
+                            <!-- 删除"下载异常数据"按钮 -->
+                            <a class="btn btn-outline-info" id="btnViewDetails" href="./myUploads.html" target="_blank">
+                                <i class="fas fa-list me-1"></i> 查看明细
+                            </a>
+                            <button class="btn btn-primary btn-step" id="btnNextStep1">
+                                下一步 <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" id="btnCancel">
+                                取消操作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第二步：字段映射 -->
+        <div id="import-step-2" class="hidden">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">字段映射处理</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 增加更详细的映射说明 -->
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>映射说明</h6>
+                        <ul class="instruction-list mb-0">
+                            <li>请将上传文件中的原始字段与系统销售出库订单字段进行映射，以确保数据正确导入。</li>
+                            <li>可以选择已保存的映射方案快速完成配置。</li>
+                            <li>支持将多个原始字段组合映射到一个目标字段。</li>
+                            <li>必填字段（单据编号，SKU，单据时间，物料编号，需求数量）必须完成映射。</li>
+                            <li>点击保存后，映射方案将被保存并可在下次导入时使用。</li>
+                        </ul>
+                    </div>
+
+                    <!-- 方案管理区域 -->
+                    <div class="scheme-actions">
+                        <div class="scheme-select">
+                            <div class="input-group" style="width: 350px;">
+                                <span class="input-group-text">选择映射方案</span>
+                                <select class="form-select" id="mappingSchemeSelect">
+                                    <option value="">-- 请选择 --</option>
+                                    <option value="scheme1">物流中心映射方案</option>
+                                    <option value="scheme2">XXX项目映射方案</option>
+                                    <option value="scheme3">标准销售映射方案</option>
+                                    <option value="scheme4">电商渠道映射方案 <i class="fas fa-times text-danger"></i></option>
+                                </select>
+                                <button class="btn btn-outline-danger" id="deleteSchemeBtn" title="删除当前方案">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="scheme-save">
+                            <button class="btn btn-outline-success" id="saveSchemeBtn">
+                                <i class="fas fa-save me-1"></i> 保存当前方案
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 保存方案表单（初始隐藏） -->
+                    <div class="save-scheme-form hidden" id="saveSchemeForm">
+                        <div class="mb-3">
+                            <label for="schemeName" class="form-label">方案名称</label>
+                            <input type="text" class="form-control" id="schemeName" placeholder="输入方案名称，例如：物流中心映射方案">
+                        </div>
+                        <div class="mb-3">
+                            <label for="schemeDesc" class="form-label">方案描述（选填）</label>
+                            <textarea class="form-control" id="schemeDesc" rows="2" placeholder="简要描述该方案的用途或特点"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-secondary me-2" id="cancelSaveScheme">取消</button>
+                            <button class="btn btn-success" id="confirmSaveScheme">保存</button>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-outline-primary add-mapping-btn" id="addMappingBtn">
+                        <i class="fas fa-plus me-1"></i> 添加映射字段
+                    </button>
+
+                    <div class="mapping-table">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="mappingTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 35%">文件原始字段</th>
+                                        <th style="width: 35%">系统目标字段</th>
+                                        <th style="width: 20%">是否必填</th>
+                                        <th style="width: 10%">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- SKU字段（特殊处理，支持多个源字段） -->
+                                    <tr class="sku-highlight">
+                                        <td>
+                                            <div class="multi-select-container">
+                                                <div class="multi-select-item">
+                                                    <select class="form-select">
+                                                        <option value="">请选择</option>
+                                                        <option value="商品编码" selected>商品编码</option>
+                                                        <option value="物料编号">物料编号</option>
+                                                        <option value="产品编码">产品编码</option>
+                                                        <option value="SKU号">SKU号</option>
+                                                        <option value="货号">货号</option>
+                                                        <option value="条形码">条形码</option>
+                                                    </select>
+                                                    <i class="fas fa-times-circle ms-2 text-danger remove-field-btn"></i>
+                                                </div>
+                                                <div class="multi-select-add">
+                                                    <i class="fas fa-plus-circle me-1"></i> 添加源字段
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <select class="form-select" disabled>
+                                                <option value="SKU" selected>SKU</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">必填</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <!-- SKU字段不可删除 -->
+                                            <i class="fas fa-lock text-secondary"></i>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- 单据编号 - 必填 -->
+                                    <tr>
+                                        <td>
+                                            <select class="form-select original-field">
+                                                <option value="">请选择</option>
+                                                <option value="客户订单号" selected>客户订单号</option>
+                                                <option value="订单编号">订单编号</option>
+                                                <option value="出库单号">出库单号</option>
+                                                <option value="销售单号">销售单号</option>
+                                                <option value="供应商订单号">供应商订单号</option>
+                                                <option value="客户PO号">客户PO号</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select target-field">
+                                                <option value="单据编号" selected>单据编号</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">必填</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <i class="fas fa-trash-alt remove-mapping-btn"></i>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- 单据时间 - 必填 -->
+                                    <tr>
+                                        <td>
+                                            <select class="form-select original-field">
+                                                <option value="">请选择</option>
+                                                <option value="下单时间" selected>下单时间</option>
+                                                <option value="订单日期">订单日期</option>
+                                                <option value="创建时间">创建时间</option>
+                                                <option value="制单日期">制单日期</option>
+                                                <option value="出库日期">出库日期</option>
+                                                <option value="交期">交期</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select target-field">
+                                                <option value="单据时间" selected>单据时间</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">必填</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <i class="fas fa-trash-alt remove-mapping-btn"></i>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- 物料编号 - 必填 -->
+                                    <tr>
+                                        <td>
+                                            <select class="form-select original-field">
+                                                <option value="">请选择</option>
+                                                <option value="物料编号" selected>物料编号</option>
+                                                <option value="产品编号">产品编号</option>
+                                                <option value="物料代码">物料代码</option>
+                                                <option value="产品代码">产品代码</option>
+                                                <option value="货品编号">货品编号</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select target-field">
+                                                <option value="物料编号" selected>物料编号</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">必填</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <i class="fas fa-trash-alt remove-mapping-btn"></i>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- 需求数量 - 必填 -->
+                                    <tr>
+                                        <td>
+                                            <select class="form-select original-field">
+                                                <option value="">请选择</option>
+                                                <option value="订购数量" selected>订购数量</option>
+                                                <option value="数量">数量</option>
+                                                <option value="发货数量">发货数量</option>
+                                                <option value="出库数量">出库数量</option>
+                                                <option value="件数">件数</option>
+                                                <option value="实发数量">实发数量</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select target-field">
+                                                <option value="需求数量" selected>需求数量</option>
+                                            </select>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-danger">必填</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <i class="fas fa-trash-alt remove-mapping-btn"></i>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- 可选映射字段选择器（初始隐藏） -->
+                    <div class="card mt-3 hidden" id="availableFieldsCard">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">可选映射字段</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="单据类型" id="field1">
+                                        <label class="form-check-label" for="field1">单据类型</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="单据项" id="field2">
+                                        <label class="form-check-label" for="field2">单据项</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="物料编号" id="field3">
+                                        <label class="form-check-label" for="field3">物料编号</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="订单优先级" id="field4">
+                                        <label class="form-check-label" for="field4">订单优先级</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="上级波次编号" id="field5">
+                                        <label class="form-check-label" for="field5">上级波次编号</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" value="物料冷热度" id="field6">
+                                        <label class="form-check-label" for="field6">物料冷热度</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3">
+                                <button class="btn btn-secondary me-2" id="cancelAddFieldBtn">取消</button>
+                                <button class="btn btn-primary" id="confirmAddFieldBtn">确认添加</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 按钮区域 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <button class="btn btn-outline-secondary btn-step" id="btnPrevStep2">
+                            <i class="fas fa-arrow-left me-2"></i>上一步
+                        </button>
+                        <button class="btn btn-primary btn-step" id="btnNextStep2">
+                            下一步 <i class="fas fa-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 第三步：字段处理规则 -->
+        <div id="import-step-3">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">字段处理规则</h5>
+                </div>
+                <div class="card-body">
+                    <!-- 增加更详细的规则说明 -->
+                    <div class="alert alert-info" role="alert">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>处理规则说明</h6>
+                        <ul class="instruction-list mb-0">
+                            <li>请配置各个字段的处理规则，以确保数据导入过程中能够正确处理异常情况。</li>
+                            <li>可以选择已保存的规则方案快速完成配置。</li>
+                            <li>不同类型的字段有不同的规则选项，可以根据需要开启或关闭。</li>
+                            <li>开启必填校验规则的字段，如有缺失数据将被标记为异常。</li>
+                            <li>点击保存后，规则方案将被保存并可在下次导入时使用。</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- 规则方案管理区域 -->
+                    <div class="scheme-actions">
+                        <div class="scheme-select">
+                            <div class="input-group" style="width: 350px;">
+                                <span class="input-group-text">选择规则方案</span>
+                                <select class="form-select" id="ruleSchemeSelect">
+                                    <option value="">-- 请选择 --</option>
+                                    <option value="rule1">标准处理规则</option>
+                                    <option value="rule2">严格校验规则</option>
+                                    <option value="rule3">宽松处理规则</option>
+                                </select>
+                                <button class="btn btn-outline-danger" id="deleteRuleSchemeBtn" title="删除当前方案">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="scheme-save">
+                            <button class="btn btn-outline-success" id="saveRuleSchemeBtn">
+                                <i class="fas fa-save me-1"></i> 保存当前方案
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 保存规则方案表单（初始隐藏） -->
+                    <div class="save-scheme-form hidden" id="saveRuleSchemeForm">
+                        <div class="mb-3">
+                            <label for="ruleSchemeeName" class="form-label">方案名称</label>
+                            <input type="text" class="form-control" id="ruleSchemeeName" placeholder="输入方案名称，例如：标准处理规则">
+                        </div>
+                        <div class="mb-3">
+                            <label for="ruleSchemeDesc" class="form-label">方案描述（选填）</label>
+                            <textarea class="form-control" id="ruleSchemeDesc" rows="2" placeholder="简要描述该方案的用途或特点"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-secondary me-2" id="cancelSaveRuleScheme">取消</button>
+                            <button class="btn btn-success" id="confirmSaveRuleScheme">保存</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 1. 单据编号 - 特殊字符校验 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleDocNumber">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="docNumberValidation">
+                                <label class="form-check-label fw-bold" for="docNumberValidation">单据编号 - 特殊字符校验</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse show" id="ruleDocNumber">
+                            <p class="text-muted small">支持开启特殊字符校验，支持允许部分特殊字符存在</p>
+                            <div class="special-char-list">
+                                <div class="special-char-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="char1" checked>
+                                        <label class="form-check-label" for="char1">@</label>
+                                    </div>
+                                </div>
+                                <div class="special-char-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="char2" checked>
+                                        <label class="form-check-label" for="char2">%</label>
+                                    </div>
+                                </div>
+                                <div class="special-char-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="char3" checked>
+                                        <label class="form-check-label" for="char3">-</label>
+                                    </div>
+                                </div>
+                                <div class="special-char-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="char4" checked>
+                                        <label class="form-check-label" for="char4">—</label>
+                                    </div>
+                                </div>
+                                <div class="special-char-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="char5" checked>
+                                        <label class="form-check-label" for="char5">_</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2. SKU合并规则 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleSKU">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="skuMergeRule">
+                                <label class="form-check-label fw-bold" for="skuMergeRule">SKU合并规则</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleSKU">
+                            <p class="text-muted small">支持开启或关闭，默认关闭</p>
+                            <div class="help-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>说明：</strong>开启后，在SKU相同的情况下，选择哪些属性的值一致的情况下才会进行合并。例如：属性有外部批次、包装代码、质检状态等，假设选了质检状态（未检测、合格、不合格），就意味着未检测的行进行合并，合格的进行合并，不合格的进行合并。
+                            </div>
+                            <div class="attribute-list">
+                                <div class="attribute-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="attr1">
+                                        <label class="form-check-label" for="attr1">外部批次</label>
+                                    </div>
+                                </div>
+                                <div class="attribute-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="attr2">
+                                        <label class="form-check-label" for="attr2">包装代码</label>
+                                    </div>
+                                </div>
+                                <div class="attribute-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="attr3">
+                                        <label class="form-check-label" for="attr3">质检状态</label>
+                                    </div>
+                                </div>
+                                <div class="attribute-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="attr4">
+                                        <label class="form-check-label" for="attr4">生产日期</label>
+                                    </div>
+                                </div>
+                                <div class="attribute-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="attr5">
+                                        <label class="form-check-label" for="attr5">保质期</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 3. 单据类型 - 默认值 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleDocType">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="docTypeDefaultValue">
+                                <label class="form-check-label fw-bold" for="docTypeDefaultValue">单据类型 - 默认值</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleDocType">
+                            <p class="text-muted small">系统支持填充默认值</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">默认值</span>
+                                        <input type="text" class="form-control" value="销售出库" placeholder="例如：销售出库">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 4. 单据项 - 默认值 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleDocItem">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="docItemDefaultValue">
+                                <label class="form-check-label fw-bold" for="docItemDefaultValue">单据项 - 默认值</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleDocItem">
+                            <p class="text-muted small">系统支持填充默认值</p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text">默认值</span>
+                                        <input type="text" class="form-control" value="标准项" placeholder="例如：标准项">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 5. 物料编号 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleMaterialNumber">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="materialNumberProcess">
+                                <label class="form-check-label fw-bold" for="materialNumberProcess">物料编号 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleMaterialNumber">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialNumberMethod" id="materialNumberMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="materialNumberMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialNumberMethod" id="materialNumberMethod2" value="replace">
+                                        <label class="form-check-label" for="materialNumberMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="input-group" style="max-width: 350px;">
+                                            <span class="input-group-text">默认值</span>
+                                            <input type="text" class="form-control" placeholder="输入默认物料编号">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialNumberMethod" id="materialNumberMethod3" value="random">
+                                        <label class="form-check-label" for="materialNumberMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 6. 需求数量 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleDemandQuantity">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="demandQuantityProcess">
+                                <label class="form-check-label fw-bold" for="demandQuantityProcess">需求数量 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleDemandQuantity">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="demandQuantityMethod" id="demandQuantityMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="demandQuantityMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="demandQuantityMethod" id="demandQuantityMethod2" value="average">
+                                        <label class="form-check-label" for="demandQuantityMethod2">
+                                            平均值替换
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="demandQuantityMethod" id="demandQuantityMethod3" value="median">
+                                        <label class="form-check-label" for="demandQuantityMethod3">
+                                            中位数替换
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="demandQuantityMethod" id="demandQuantityMethod4" value="default">
+                                        <label class="form-check-label" for="demandQuantityMethod4">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="input-group" style="max-width: 350px;">
+                                            <span class="input-group-text">默认值</span>
+                                            <input type="number" class="form-control" placeholder="输入默认数量" value="1">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 7. 订单优先级 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleOrderPriority">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="orderPriorityProcess">
+                                <label class="form-check-label fw-bold" for="orderPriorityProcess">订单优先级 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleOrderPriority">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="orderPriorityMethod" id="orderPriorityMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="orderPriorityMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="orderPriorityMethod" id="orderPriorityMethod2" value="default">
+                                        <label class="form-check-label" for="orderPriorityMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="input-group" style="max-width: 350px;">
+                                            <span class="input-group-text">默认值</span>
+                                            <input type="number" class="form-control" placeholder="输入默认优先级(0-255)" value="128" min="0" max="255">
+                                        </div>
+                                        <div class="form-text">数值越小优先级越高，范围0-255</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 8. 上级波次编号 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleWaveNumber">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="waveNumberProcess">
+                                <label class="form-check-label fw-bold" for="waveNumberProcess">上级波次编号 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleWaveNumber">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="waveNumberMethod" id="waveNumberMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="waveNumberMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="waveNumberMethod" id="waveNumberMethod2" value="default">
+                                        <label class="form-check-label" for="waveNumberMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="input-group" style="max-width: 350px;">
+                                            <span class="input-group-text">默认值</span>
+                                            <input type="text" class="form-control" placeholder="输入默认波次编号">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="waveNumberMethod" id="waveNumberMethod3" value="random">
+                                        <label class="form-check-label" for="waveNumberMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 9. 单个体积 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleItemVolume">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="itemVolumeProcess">
+                                <label class="form-check-label fw-bold" for="itemVolumeProcess">单个体积 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleItemVolume">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="itemVolumeMethod" id="itemVolumeMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="itemVolumeMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="itemVolumeMethod" id="itemVolumeMethod2" value="default">
+                                        <label class="form-check-label" for="itemVolumeMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="input-group mb-2">
+                                                    <span class="input-group-text">默认值</span>
+                                                    <input type="number" class="form-control" placeholder="输入默认体积" value="1000">
+                                                </div>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">单位</span>
+                                                    <select class="form-select">
+                                                        <option value="cm3" selected>立方厘米(cm³)</option>
+                                                        <option value="dm3">立方分米(dm³)</option>
+                                                        <option value="m3">立方米(m³)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="itemVolumeMethod" id="itemVolumeMethod3" value="random">
+                                        <label class="form-check-label" for="itemVolumeMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 10. 物料冷热度 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#ruleMaterialTemp">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="materialTempProcess">
+                                <label class="form-check-label fw-bold" for="materialTempProcess">物料冷热度 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="ruleMaterialTemp">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialTempMethod" id="materialTempMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="materialTempMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialTempMethod" id="materialTempMethod2" value="default">
+                                        <label class="form-check-label" for="materialTempMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="input-group" style="max-width: 350px;">
+                                            <span class="input-group-text">默认值</span>
+                                            <select class="form-select">
+                                                <option value="A">热-A</option>
+                                                <option value="B" selected>温-B</option>
+                                                <option value="C">冷-C</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="materialTempMethod" id="materialTempMethod3" value="random">
+                                        <label class="form-check-label" for="materialTempMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 11. 包装长度 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#rulePackLength">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="packLengthProcess">
+                                <label class="form-check-label fw-bold" for="packLengthProcess">包装长度 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="rulePackLength">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packLengthMethod" id="packLengthMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="packLengthMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packLengthMethod" id="packLengthMethod2" value="default">
+                                        <label class="form-check-label" for="packLengthMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="input-group mb-2">
+                                                    <span class="input-group-text">默认值</span>
+                                                    <input type="number" class="form-control" placeholder="输入默认长度" value="30">
+                                                </div>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">单位</span>
+                                                    <select class="form-select">
+                                                        <option value="cm" selected>厘米(cm)</option>
+                                                        <option value="dm">分米(dm)</option>
+                                                        <option value="m">米(m)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packLengthMethod" id="packLengthMethod3" value="random">
+                                        <label class="form-check-label" for="packLengthMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 12. 包装宽度 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#rulePackWidth">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="packWidthProcess">
+                                <label class="form-check-label fw-bold" for="packWidthProcess">包装宽度 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="rulePackWidth">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packWidthMethod" id="packWidthMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="packWidthMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packWidthMethod" id="packWidthMethod2" value="default">
+                                        <label class="form-check-label" for="packWidthMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="input-group mb-2">
+                                                    <span class="input-group-text">默认值</span>
+                                                    <input type="number" class="form-control" placeholder="输入默认宽度" value="20">
+                                                </div>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">单位</span>
+                                                    <select class="form-select">
+                                                        <option value="cm" selected>厘米(cm)</option>
+                                                        <option value="dm">分米(dm)</option>
+                                                        <option value="m">米(m)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packWidthMethod" id="packWidthMethod3" value="random">
+                                        <label class="form-check-label" for="packWidthMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 13. 包装高度 - 异常值处理 -->
+                    <div class="rule-item">
+                        <div class="field-rule-header" data-bs-toggle="collapse" data-bs-target="#rulePackHeight">
+                            <i class="fas fa-caret-down me-2 collapse-icon"></i>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="packHeightProcess">
+                                <label class="form-check-label fw-bold" for="packHeightProcess">包装高度 - 异常值处理</label>
+                            </div>
+                        </div>
+                        <div class="field-rule-content collapse" id="rulePackHeight">
+                            <p class="text-muted small">系统支持对异常值进行处理</p>
+                            <div class="radio-options">
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packHeightMethod" id="packHeightMethod1" value="delete" checked>
+                                        <label class="form-check-label" for="packHeightMethod1">
+                                            删除（跳过该行数据）
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packHeightMethod" id="packHeightMethod2" value="default">
+                                        <label class="form-check-label" for="packHeightMethod2">
+                                            默认值替换
+                                        </label>
+                                    </div>
+                                    <div class="default-value-container">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="input-group mb-2">
+                                                    <span class="input-group-text">默认值</span>
+                                                    <input type="number" class="form-control" placeholder="输入默认高度" value="15">
+                                                </div>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">单位</span>
+                                                    <select class="form-select">
+                                                        <option value="cm" selected>厘米(cm)</option>
+                                                        <option value="dm">分米(dm)</option>
+                                                        <option value="m">米(m)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="option-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="packHeightMethod" id="packHeightMethod3" value="random">
+                                        <label class="form-check-label" for="packHeightMethod3">
+                                            随机生成
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 按钮区域 -->
+                    <!-- 以下为第三步按钮区域的 HTML 修改部分 -->
+<!-- 将原来的按钮区域替换为下面的代码 -->
+<div class="d-flex justify-content-between mt-4">
+    <div>
+        <button class="btn btn-outline-secondary btn-step" id="btnPrevStep3">
+            <i class="fas fa-arrow-left me-2"></i>上一步
+        </button>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-outline-danger" id="btnCancelStep3">
+            <i class="fas fa-times me-1"></i> 取消操作
+        </button>
+        <button class="btn btn-outline-warning" id="btnDownloadAbnormal">
+            <i class="fas fa-download me-1"></i> 下载异常数据
+        </button>
+        <button class="btn btn-outline-info" id="btnViewDetailStep3">
+            <i class="fas fa-list me-1"></i> 查看明细
+        </button>
+        <button class="btn btn-outline-primary" id="btnSubmitAnalysis">
+            <i class="fas fa-chart-bar me-1"></i> 提交分析
+        </button>
+        <button class="btn btn-success" id="btnFinishImport">
+            <i class="fas fa-check me-1"></i> 完成导入
+        </button>
+    </div>
+</div>
+
+<!-- 添加此模态框到页面底部 -->
+<div class="modal fade" id="completionModal" tabindex="-1" aria-labelledby="completionModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="completionModalLabel">操作完成</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="completionModalContent">
+        文件正在清洗中，请到订单数据管理页面查看。
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 简单的演示交互脚本 -->
+    <script>
+        // 页面加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化折叠面板的箭头方向
+            document.querySelectorAll('.field-rule-header').forEach(header => {
+                const collapseElement = header.getAttribute('data-bs-target');
+                const isExpanded = document.querySelector(collapseElement).classList.contains('show');
+                const icon = header.querySelector('.collapse-icon');
+                
+                if (!isExpanded) {
+                    header.classList.add('collapsed');
+                }
+            });
+            
+            // 切换折叠面板时更新箭头方向
+            document.querySelectorAll('.field-rule-header').forEach(header => {
+                header.addEventListener('click', function() {
+                    this.classList.toggle('collapsed');
+                });
+            });
+            
+            // 初始隐藏所有默认值容器
+            document.querySelectorAll('.default-value-container').forEach(container => {
+                const radioInput = container.parentElement.querySelector('input[type="radio"]');
+                if (!radioInput.checked) {
+                    container.style.display = 'none';
+                }
+            });
+            
+            // 单选按钮切换时显示/隐藏默认值输入框
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const name = this.name;
+                    const containers = document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+                        const container = input.closest('.option-item').querySelector('.default-value-container');
+                        if (container) {
+                            container.style.display = input.checked && input.value === 'default' ? 'block' : 'none';
+                        }
+                    });
+                });
+            });
+            
+            // 初始化开关状态
+            document.querySelectorAll('.form-check-input[type="checkbox"]').forEach(checkbox => {
+                const contentId = checkbox.closest('.field-rule-header').getAttribute('data-bs-target');
+                const content = document.querySelector(contentId);
+                
+                if (!checkbox.checked && content) {
+                    content.classList.remove('show');
+                }
+                
+                checkbox.addEventListener('change', function(e) {
+                    e.stopPropagation();  // 阻止事件冒泡，防止触发折叠面板
+                });
+            });
+        });
+        
+        // 模拟文件上传成功后的交互
+        document.getElementById('fileInput')?.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                // 显示进度条
+                document.getElementById('uploadArea').classList.add('hidden');
+                document.getElementById('progressArea').classList.remove('hidden');
+                
+                // 模拟进度
+                let progress = 0;
+                const progressBar = document.querySelector('.progress-bar');
+                
+                const interval = setInterval(() => {
+                    progress += 10;
+                    progressBar.style.width = progress + '%';
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        // 隐藏进度条
+                        document.getElementById('progressArea').classList.add('hidden');
+                        
+                        // 显示文件信息（上传成功）或错误信息（上传失败）
+                        // 这里模拟80%概率上传成功，20%概率出错
+                        if (Math.random() > 0.2) {
+                            // 上传成功
+                            document.getElementById('uploadedFileInfo').classList.remove('hidden');
+                            document.getElementById('resultButtons').classList.remove('hidden');
+                            
+                            // 更新文件名称和上传时间
+                            const fileName = e.target.files[0].name;
+                            const now = new Date();
+                            const timeStr = now.toLocaleString('zh-CN');
+                            
+                            document.querySelector('.file-name').textContent = fileName;
+                            document.querySelector('.file-time').textContent = timeStr;
+                        } else {
+                            // 上传失败 - 显示错误信息
+                            document.getElementById('errorMessage').classList.remove('hidden');
+                            // 重新显示上传区域
+                            document.getElementById('uploadArea').classList.remove('hidden');
+                        }
+                    }
+                }, 200);
+            }
+        });
+        
+        // 删除文件按钮点击事件
+        document.getElementById('deleteFileBtn')?.addEventListener('click', function() {
+            document.getElementById('uploadedFileInfo').classList.add('hidden');
+            document.getElementById('resultButtons').classList.add('hidden');
+            document.getElementById('uploadArea').classList.remove('hidden');
+            document.getElementById('fileInput').value = '';
+        });
+        
+        // 步骤导航
+        document.getElementById('btnNextStep1')?.addEventListener('click', function() {
+    document.getElementById('import-step-1').classList.add('hidden');
+    document.getElementById('import-step-2').classList.remove('hidden');
+    document.getElementById('import-step-3').classList.add('hidden');
+    
+    document.getElementById('step-1').classList.add('step-completed');
+    document.getElementById('step-1').classList.remove('step-active');
+    document.getElementById('step-2').classList.add('step-active');
+    document.getElementById('step-3').classList.remove('step-active');
+});
+        
+        document.getElementById('btnPrevStep2')?.addEventListener('click', function() {
+            document.getElementById('import-step-1').classList.remove('hidden');
+            document.getElementById('import-step-2').classList.add('hidden');
+            document.getElementById('import-step-3').classList.add('hidden');
+            
+            document.getElementById('step-1').classList.add('step-active');
+            document.getElementById('step-1').classList.remove('step-completed');
+            document.getElementById('step-2').classList.remove('step-active');
+            document.getElementById('step-3').classList.remove('step-active');
+        });
+        
+        document.getElementById('btnNextStep2')?.addEventListener('click', function() {
+            document.getElementById('import-step-1').classList.add('hidden');
+            document.getElementById('import-step-2').classList.add('hidden');
+            document.getElementById('import-step-3').classList.remove('hidden');
+            
+            document.getElementById('step-1').classList.add('step-completed');
+            document.getElementById('step-1').classList.remove('step-active');
+            document.getElementById('step-2').classList.add('step-completed');
+            document.getElementById('step-2').classList.remove('step-active');
+            document.getElementById('step-3').classList.add('step-active');
+        });
+        
+        document.getElementById('btnPrevStep3')?.addEventListener('click', function() {
+            document.getElementById('import-step-1').classList.add('hidden');
+            document.getElementById('import-step-2').classList.remove('hidden');
+            document.getElementById('import-step-3').classList.add('hidden');
+            
+            document.getElementById('step-1').classList.add('step-completed');
+            document.getElementById('step-2').classList.add('step-active');
+            document.getElementById('step-2').classList.remove('step-completed');
+            document.getElementById('step-3').classList.remove('step-active');
+        });
+        
+        // 添加映射字段
+        document.getElementById('addMappingBtn')?.addEventListener('click', function() {
+            document.getElementById('availableFieldsCard').classList.remove('hidden');
+        });
+		//第一步取消操作
+        document.getElementById('btnCancel')?.addEventListener('click', function() {
+    if (confirm('确定要取消操作吗？所有已上传的数据将丢失。')) {
+        window.location.href = './index.html';
+    }
+});
+		
+        // 取消添加字段
+        document.getElementById('cancelAddFieldBtn')?.addEventListener('click', function() {
+            document.getElementById('availableFieldsCard').classList.add('hidden');
+        });
+        
+        // 确认添加字段
+        document.getElementById('confirmAddFieldBtn')?.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#availableFieldsCard input[type="checkbox"]:checked');
+            
+            if (checkboxes.length > 0) {
+                const table = document.getElementById('mappingTable');
+                
+                checkboxes.forEach(checkbox => {
+                    const fieldValue = checkbox.value;
+                    const newRow = table.insertRow(-1);
+                    
+                    // 文件原始字段
+                    const cell1 = newRow.insertCell(0);
+                    cell1.innerHTML = `
+                        <select class="form-select original-field">
+                            <option value="">请选择</option>
+                            <option value="订单类型">订单类型</option>
+                            <option value="订单项">订单项</option>
+                            <option value="优先级别">优先级别</option>
+                            <option value="波次编号">波次编号</option>
+                            <option value="温度属性">温度属性</option>
+                        </select>
+                    `;
+                    
+                    // 系统目标字段
+                    const cell2 = newRow.insertCell(1);
+                    cell2.innerHTML = `
+                        <select class="form-select target-field" disabled>
+                            <option value="${fieldValue}" selected>${fieldValue}</option>
+                        </select>
+                    `;
+                    
+                    // 是否必填
+                    const cell3 = newRow.insertCell(2);
+                    cell3.className = "text-center";
+                    cell3.innerHTML = `
+                        <div class="form-check form-switch d-flex justify-content-center">
+                            <input class="form-check-input required-toggle" type="checkbox" role="switch">
+                        </div>
+                    `;
+                    
+                    // 操作
+                    const cell4 = newRow.insertCell(3);
+                    cell4.className = "text-center";
+                    cell4.innerHTML = `<i class="fas fa-trash-alt remove-mapping-btn"></i>`;
+                    
+                    // 添加后取消选中
+                    checkbox.checked = false;
+                });
+                
+                // 添加删除事件
+                addRemoveMappingListeners();
+                // 添加必填切换事件
+                addRequiredToggleListeners();
+            }
+            
+            document.getElementById('availableFieldsCard').classList.add('hidden');
+        });
+        
+        // 初始化删除映射事件监听
+        function addRemoveMappingListeners() {
+            document.querySelectorAll('.remove-mapping-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // 获取当前行
+                    const row = this.closest('tr');
+                    // 删除行
+                    row.remove();
+                });
+            });
+        }
+        
+        // 初始化必填切换事件监听
+        function addRequiredToggleListeners() {
+            document.querySelectorAll('.required-toggle').forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    const cell = this.closest('td');
+                    if (this.checked) {
+                        cell.innerHTML = `<span class="badge bg-danger">必填</span>`;
+                    } else {
+                        cell.innerHTML = `
+                            <div class="form-check form-switch d-flex justify-content-center">
+                                <input class="form-check-input required-toggle" type="checkbox" role="switch">
+                            </div>
+                        `;
+                        addRequiredToggleListeners();
+                    }
+                });
+            });
+        }
+        
+        // SKU多字段选择
+        document.querySelectorAll('.multi-select-add').forEach(addBtn => {
+            addBtn.addEventListener('click', function() {
+                const container = this.closest('.multi-select-container');
+                const newItem = document.createElement('div');
+                newItem.className = 'multi-select-item';
+                newItem.innerHTML = `
+                    <select class="form-select">
+                        <option value="">请选择</option>
+                        <option value="商品编码">商品编码</option>
+                        <option value="物料编号">物料编号</option>
+                        <option value="产品编码">产品编码</option>
+                        <option value="SKU号">SKU号</option>
+                        <option value="货号">货号</option>
+                        <option value="条形码">条形码</option>
+                    </select>
+                    <i class="fas fa-times-circle ms-2 text-danger remove-field-btn"></i>
+                `;
+                
+                // 插入到添加按钮之前
+                container.insertBefore(newItem, this);
+                
+                // 添加删除事件
+                newItem.querySelector('.remove-field-btn').addEventListener('click', function() {
+                    this.closest('.multi-select-item').remove();
+                });
+            });
+        });
+        
+        // SKU字段移除按钮
+        document.querySelectorAll('.remove-field-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 获取当前项
+                const item = this.closest('.multi-select-item');
+                // 删除项
+                item.remove();
+            });
+        });
+        
+        // 初始化事件监听
+        addRemoveMappingListeners();
+        addRequiredToggleListeners();
+        
+        // 保存映射方案
+        document.getElementById('saveSchemeBtn').addEventListener('click', function() {
+            document.getElementById('saveSchemeForm').classList.remove('hidden');
+        });
+        
+        // 取消保存映射方案
+        document.getElementById('cancelSaveScheme').addEventListener('click', function() {
+            document.getElementById('saveSchemeForm').classList.add('hidden');
+        });
+        
+        // 确认保存映射方案
+        document.getElementById('confirmSaveScheme').addEventListener('click', function() {
+            const schemeName = document.getElementById('schemeName').value;
+            if (schemeName.trim() !== '') {
+                alert('映射方案 "' + schemeName + '" 保存成功！');
+                document.getElementById('saveSchemeForm').classList.add('hidden');
+                document.getElementById('schemeName').value = '';
+                document.getElementById('schemeDesc').value = '';
+                
+                // 模拟添加到下拉列表
+                const option = new Option(schemeName, 'new-scheme');
+                document.getElementById('mappingSchemeSelect').add(option);
+            } else {
+                alert('请输入方案名称！');
+            }
+        });
+        
+        // 删除映射方案
+        document.getElementById('deleteSchemeBtn').addEventListener('click', function() {
+            const select = document.getElementById('mappingSchemeSelect');
+            if (select.selectedIndex > 0) {
+                const schemeName = select.options[select.selectedIndex].text;
+                if (confirm('确定要删除映射方案 "' + schemeName + '" 吗？')) {
+                    select.remove(select.selectedIndex);
+                    alert('已删除映射方案 "' + schemeName + '"');
+                }
+            } else {
+                alert('请先选择要删除的映射方案！');
+            }
+        });
+        
+        // 保存规则方案
+        document.getElementById('saveRuleSchemeBtn').addEventListener('click', function() {
+            document.getElementById('saveRuleSchemeForm').classList.remove('hidden');
+        });
+        
+        // 取消保存规则方案
+        document.getElementById('cancelSaveRuleScheme').addEventListener('click', function() {
+            document.getElementById('saveRuleSchemeForm').classList.add('hidden');
+        });
+        
+        // 确认保存规则方案
+        document.getElementById('confirmSaveRuleScheme').addEventListener('click', function() {
+            const schemeName = document.getElementById('ruleSchemeeName').value;
+            if (schemeName.trim() !== '') {
+                alert('规则方案 "' + schemeName + '" 保存成功！');
+                document.getElementById('saveRuleSchemeForm').classList.add('hidden');
+                document.getElementById('ruleSchemeeName').value = '';
+                document.getElementById('ruleSchemeDesc').value = '';
+                
+                // 模拟添加到下拉列表
+                const option = new Option(schemeName, 'new-rule-scheme');
+                document.getElementById('ruleSchemeSelect').add(option);
+            } else {
+                alert('请输入方案名称！');
+            }
+        });
+        
+        // 删除规则方案
+        document.getElementById('deleteRuleSchemeBtn').addEventListener('click', function() {
+            const select = document.getElementById('ruleSchemeSelect');
+            if (select.selectedIndex > 0) {
+                const schemeName = select.options[select.selectedIndex].text;
+                if (confirm('确定要删除规则方案 "' + schemeName + '" 吗？')) {
+                    select.remove(select.selectedIndex);
+                    alert('已删除规则方案 "' + schemeName + '"');
+                }
+            } else {
+                alert('请先选择要删除的规则方案！');
+            }
+        });
+		
+		document.getElementById('btnFinishImport')?.addEventListener('click', function() {
+    alert('文件正在清洗中，请到订单数据管理页面查看。');
+    setTimeout(() => {
+        window.location.href = './index.html';
+    }, 1500);
+});
+
+document.getElementById('btnCancelStep3')?.addEventListener('click', function() {
+    if (confirm('确定要取消操作吗？所有已配置的规则将丢失。')) {
+        window.location.href = './index.html';
+    }
+});
+
+document.getElementById('btnDownloadAbnormal')?.addEventListener('click', function() {
+    alert('异常数据已生成，正在下载...');
+    // 模拟下载操作
+    setTimeout(() => {
+        console.log('下载异常数据');
+    }, 1000);
+});
+
+document.getElementById('btnSubmitAnalysis')?.addEventListener('click', function() {
+    alert('数据文件正在分析中，请至订单分析管理页面查看。');
+    setTimeout(() => {
+        window.location.href = './orderAnalysis.html';
+    }, 1500);
+});
+
+document.getElementById('btnViewDetailStep3')?.addEventListener('click', function() {
+    window.open('./orderDetails.html', '_blank');
+});
+
+
+    </script>
+</body>
+</html>

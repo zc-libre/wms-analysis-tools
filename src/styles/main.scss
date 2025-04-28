@@ -1,0 +1,26 @@
+/// 主样式文件
+/// 组织并导入所有样式模块
+
+// 导入变量
+@use "variables" as *;
+
+// 导入 Element Plus 主题变量
+@use "element-variables";
+
+// 导入混合宏
+@use "mixins/responsive" as *;
+
+// 导入基础样式
+@use "base/reset";
+@use "base/typography";
+@use "base/scrollbar";
+
+// 导入组件样式
+@use "components/utils";
+@use "components/views";
+
+// 可以添加更多特定组件的样式导入
+// @use "components/buttons";
+// @use "components/forms";
+// 等等...
+

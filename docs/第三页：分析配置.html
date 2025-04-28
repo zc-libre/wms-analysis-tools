@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单分析任务配置 - 流通行业智能仓储管理系统分析工具</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- noUiSlider 时间轴库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.6.1/nouislider.min.css">
+    <!-- Select2 美化下拉框 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .top-bar {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 10px 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .system-title {
+            font-weight: 600;
+            color: #0d6efd;
+            font-size: 1.1rem;
+        }
+        .config-container {
+            max-width: 1200px;
+            margin: 30px auto;
+        }
+        .card {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: none;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,.1);
+            padding: 18px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        .card-header h5 {
+            margin-bottom: 0;
+            font-weight: 600;
+            color: #0d6efd;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .form-section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .section-title .btn-toggle {
+            font-size: 0.8rem;
+            padding: 0.1rem 0.5rem;
+        }
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #495057;
+        }
+        .form-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        .form-select, .form-control, .form-check-input {
+            border-radius: 8px;
+            border-color: #ced4da;
+            padding: 0.5rem 0.75rem;
+        }
+        .form-select:focus, .form-control:focus, .form-check-input:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .select2-container--default .select2-selection--multiple {
+            border-radius: 8px;
+            border-color: #ced4da;
+            min-height: 38px;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .timeline-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .timeline-slider {
+            height: 15px;
+            margin: 30px 0 50px 0;
+        }
+        .time-axis-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .time-axis-tick {
+            position: relative;
+            text-align: center;
+        }
+        .time-axis-tick::before {
+            content: '';
+            position: absolute;
+            height: 5px;
+            width: 1px;
+            background-color: #ced4da;
+            top: -8px;
+            left: 50%;
+        }
+        .time-segments {
+            margin-top: 25px;
+        }
+        .time-segment {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+        .time-segment:hover {
+            background-color: #edf7ff;
+            border-color: #a8caff;
+        }
+        .time-segment-remove {
+            color: #dc3545;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .time-segment-remove:hover {
+            transform: scale(1.2);
+        }
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .switch-label {
+            margin-bottom: 0;
+        }
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            margin-top: 0;
+        }
+        .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .parameter-group {
+            padding: 18px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .conditional-field {
+            padding-left: 25px;
+            margin-top: 12px;
+            display: none;
+        }
+        .footer-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            padding: 20px 0;
+        }
+        .footer-buttons .btn {
+            min-width: 120px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        .advanced-params {
+            background-color: #f8f9fa;
+            border-left: 3px solid #0d6efd;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 0 10px 10px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .advanced-toggle {
+            cursor: pointer;
+            color: #0d6efd;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            padding: 8px 0;
+        }
+        .advanced-toggle:hover {
+            color: #0a58ca;
+        }
+        .inline-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .inline-group .form-control {
+            width: auto;
+        }
+        .btn {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        .btn-outline-primary {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+        .time-segment-visual {
+            height: 20px;
+            background-color: rgba(13, 110, 253, 0.2);
+            position: absolute;
+            border-radius: 4px;
+            top: 15px;
+            z-index: 1;
+        }
+        .timeline-visualization {
+            position: relative;
+            height: 50px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #dee2e6;
+        }
+        .hour-markers {
+            display: flex;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .hour-marker {
+            flex: 1;
+            position: relative;
+            border-right: 1px dashed #ced4da;
+        }
+        .hour-marker:last-child {
+            border-right: none;
+        }
+        .hour-marker span {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+        .required-mark {
+            color: #dc3545;
+            margin-left: 4px;
+        }
+        .required-text {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-left: 8px;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #e2f0ff;
+            border: 1px solid #bed8fb;
+            border-radius: 6px;
+            padding: 3px 8px;
+        }
+        .file-select-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        .export-format-options {
+            margin-top: 15px;
+            display: none;
+        }
+        .form-check-input.special-radio {
+            width: 1.2em;
+            height: 1.2em;
+            margin-top: 0.15em;
+        }
+        /* 改进的多选样式 */
+        .multi-select-panel {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .multi-select-card {
+            flex: 1;
+            min-width: 300px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+        }
+        .multi-select-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .multi-select-card.active {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 1px #0d6efd, 0 4px 12px rgba(13, 110, 253, 0.15);
+        }
+        .multi-select-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            cursor: pointer;
+        }
+        .multi-select-header.active {
+            background-color: #e7f1ff;
+            border-bottom-color: #b8daff;
+        }
+        .multi-select-title {
+            font-weight: 600;
+            margin-left: 10px;
+            color: #495057;
+        }
+        .multi-select-body {
+            padding: 15px;
+            display: none;
+        }
+        .multi-select-card.active .multi-select-body {
+            display: block;
+        }
+        /* 模板保存对话框 */
+        .save-template-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .save-template-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .save-template-content {
+            background-color: #fff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        .save-template-modal.active .save-template-content {
+            transform: translateY(0);
+        }
+        .modal-header {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .modal-title {
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: #212529;
+        }
+        .modal-footer {
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        /* 模板选择下拉菜单 */
+        .template-select-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .template-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+        }
+        .template-item:hover {
+            background-color: #f8f9fa;
+        }
+        .template-delete {
+            color: #dc3545;
+            cursor: pointer;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+        .template-item:hover .template-delete {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="top-bar d-flex justify-content-between align-items-center">
+        <div class="system-title">流通行业智能仓储管理系统分析工具</div>
+        <div>
+            <span class="me-3">欢迎，管理员</span>
+            <a href="#" class="text-decoration-none"><i class="fas fa-sign-out-alt"></i> 退出</a>
+        </div>
+    </div>
+
+    <div class="config-container">
+        <!-- 页面头部 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4>南京物流中心项目 - 订单分析任务配置</h4>
+            <div>
+                <button class="btn btn-outline-secondary me-2" onclick="showSaveTemplateModal()">
+                    <i class="fas fa-save me-1"></i> 保存为模板
+                </button>
+                <div class="template-select-wrapper d-inline-block">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-file me-1"></i> 加载模板
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-header">选择配置模板</li>
+                        <li>
+                            <div class="template-item">
+                                <span>标准配送模板</span>
+                                <i class="fas fa-trash-alt template-delete" onclick="confirmDeleteTemplate(event, '标准配送模板')"></i>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <div class="template-item">
+                                <span>电商配送模板</span>
+                                <i class="fas fa-trash-alt template-delete" onclick="confirmDeleteTemplate(event, '电商配送模板')"></i>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <div class="template-item">
+                                <span>批发配送模板</span>
+                                <i class="fas fa-trash-alt template-delete" onclick="confirmDeleteTemplate(event, '批发配送模板')"></i>
+                            </div>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <div class="template-item">
+                                <span>南京项目配置模板</span>
+                                <i class="fas fa-trash-alt template-delete" onclick="confirmDeleteTemplate(event, '南京项目配置模板')"></i>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 整体分析任务配置 -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks me-2"></i> 整体分析任务配置</h5>
+            </div>
+            <div class="card-body">
+                <!-- 基础参数 -->
+                <div class="form-section">
+                    <div class="section-title">基础参数</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="taskName" class="form-label">任务名称</label>
+                            <input type="text" class="form-control" id="taskName" placeholder="请输入任务名称" value="南京物流中心项目 - 出库订单分析">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="taskType" class="form-label">任务类型</label>
+                            <select class="form-select" id="taskType">
+                                <option value="inventory">命中率分析</option>
+                                <option value="eiq">订单EIQ分析</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 高级参数 -->
+                <div class="advanced-toggle mb-3" onclick="toggleAdvanced('generalAdvanced')">
+                    <i class="fas fa-caret-right" id="generalAdvancedIcon"></i>
+                    <span>高级参数</span>
+                </div>
+                <div class="advanced-params" id="generalAdvanced" style="display: none;">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoExport" onchange="toggleExportFormat()">
+                                <label class="form-check-label" for="autoExport">自动导出分析结果</label>
+                            </div>
+                            <div class="export-format-options" id="exportFormatOptions">
+                                <label class="form-label mt-2">导出格式</label>
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input special-radio" type="radio" name="exportFormat" id="formatExcel" checked>
+                                        <label class="form-check-label" for="formatExcel">
+                                            <i class="fas fa-file-excel text-success me-1"></i> Excel
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input special-radio" type="radio" name="exportFormat" id="formatPDF">
+                                        <label class="form-check-label" for="formatPDF">
+                                            <i class="fas fa-file-pdf text-danger me-1"></i> PDF
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input special-radio" type="radio" name="exportFormat" id="formatPPT">
+                                        <label class="form-check-label" for="formatPPT">
+                                            <i class="fas fa-file-powerpoint text-warning me-1"></i> PPT
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 出库订单相关参数 -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-shipping-fast me-2"></i> 出库订单相关参数</h5>
+            </div>
+            <div class="card-body">
+                <!-- 基础参数 -->
+                <div class="form-section">
+                    <div class="section-title">基础参数</div>
+                    
+                    <!-- 订单来源 -->
+                    <div class="mb-4">
+                        <label class="form-label mb-3">订单来源（可多选）</label>
+                        <div class="multi-select-panel">
+                            <!-- 数据文件选项 -->
+                            <div class="multi-select-card active" id="orderSourceFileCard">
+                                <div class="multi-select-header active" onclick="toggleMultiSelectCard('orderSourceFile')">
+                                    <input class="form-check-input" type="checkbox" id="orderSourceFile" checked onchange="updateOrderSourceOptions()">
+                                    <span class="multi-select-title">数据文件</span>
+                                </div>
+                                <div class="multi-select-body">
+                                    <label for="orderSource" class="form-label">选择订单文件</label>
+                                    <select class="form-select select2-multiple" id="orderSource" multiple style="width: 100%">
+                                        <option selected>南京物流中心2025年3月订单数据.excel</option>
+                                        <option>南京物流中心2025年2月订单数据.excel</option>
+                                        <option>南京物流中心2025年1月订单数据.excel</option>
+                                        <option>南京物流中心2024年12月订单数据.excel</option>
+                                        <option>南京物流中心2024年11月订单数据.excel</option>
+                                        <option>南京物流中心2024年10月订单数据.excel</option>
+                                        <option>南京物流中心2024年9月订单数据.excel</option>
+                                        <option>南京物流中心2024年8月订单数据.excel</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- 算法模拟选项 -->
+                            <div class="multi-select-card" id="orderSourceSimCard">
+                                <div class="multi-select-header" onclick="toggleMultiSelectCard('orderSourceSim')">
+                                    <input class="form-check-input" type="checkbox" id="orderSourceSim" onchange="updateOrderSourceOptions()">
+                                    <span class="multi-select-title">算法模拟</span>
+                                </div>
+                                <div class="multi-select-body">
+                                    <div class="parameter-group">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="dailyOrderLimit" class="form-label">日出库订单上限</label>
+                                                <input type="number" class="form-control" id="dailyOrderLimit" min="1">
+                                                <div class="form-text">每日最大处理的订单数量</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="multiItemRatio" class="form-label">多品订单占比</label>
+                                                <div class="input-group">
+                                                    <input type="number" class="form-control" id="multiItemRatio" min="1" max="100">
+                                                    <span class="input-group-text">%</span>
+                                                </div>
+                                                <div class="form-text">多品种订单在总订单中的百分比（1-100%）</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="multiItemOrderRatio" class="form-label">多品行单比</label>
+                                                <div class="inline-group">
+                                                    <span>行：单 =</span>
+                                                    <input type="number" class="form-control" id="multiItemRatioX" min="1" value="1">
+                                                    <span>：</span>
+                                                    <input type="number" class="form-control" id="multiItemRatioY" min="1" value="1">
+                                                </div>
+                                                <div class="form-text">多品订单中行数与订单数的比例</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">SKU种类调整模式</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="skuAdjustMode" id="skuNoChange" checked>
+                                                    <label class="form-check-label" for="skuNoChange">
+                                                        不变
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="radio" name="skuAdjustMode" id="skuAdjustWithOrders">
+                                                    <label class="form-check-label" for="skuAdjustWithOrders">
+                                                        同比增长SKU种类
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 工作站数量 -->
+                    <div class="mb-4">
+                        <label for="workstationCount" class="form-label">工作站数量</label>
+                        <input type="number" class="form-control" id="workstationCount" min="1" value="1">
+                        <div class="form-text">设置系统使用的工作站数量</div>
+                    </div>
+                    
+                    <!-- 单工作站格口数量 -->
+                    <div class="mb-4">
+                        <label for="slotCount" class="form-label">单工作站格口数量 <span class="required-text">必填，最多支持999个格口</span></label>
+                        <input type="number" class="form-control" id="slotCount" min="1" max="999" value="1" required>
+                    </div>
+                    
+                    <!-- 单品随单拣选 -->
+                    <div class="mb-4">
+                        <div class="switch-container">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="singleItemPicking">
+                                <label class="form-check-label switch-label" for="singleItemPicking">单品随单拣选</label>
+                            </div>
+                            <div class="form-text">开启后，单品将随订单一起拣选</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 物料热度分类 -->
+                    <div class="mb-4">
+                        <label class="form-label">物料热度分类</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="materialHeatSource" id="materialMasterData" checked>
+                            <label class="form-check-label" for="materialMasterData">
+                                物料主数据
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="materialHeatSource" id="orderDataAnalysis">
+                            <label class="form-check-label" for="orderDataAnalysis">
+                                订单数据分析
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 工作时间段 -->
+                    <div class="mb-4">
+                        <label class="form-label">工作时间段</label>
+                        <div class="timeline-container">
+                            <div class="timeline-visualization">
+                                <div class="hour-markers">
+                                    <div class="hour-marker"><span>0:00</span></div>
+                                    <div class="hour-marker"><span>1:00</span></div>
+                                    <div class="hour-marker"><span>2:00</span></div>
+                                    <div class="hour-marker"><span>3:00</span></div>
+                                    <div class="hour-marker"><span>4:00</span></div>
+                                    <div class="hour-marker"><span>5:00</span></div>
+                                    <div class="hour-marker"><span>6:00</span></div>
+                                    <div class="hour-marker"><span>7:00</span></div>
+                                    <div class="hour-marker"><span>8:00</span></div>
+                                    <div class="hour-marker"><span>9:00</span></div>
+                                    <div class="hour-marker"><span>10:00</span></div>
+                                    <div class="hour-marker"><span>11:00</span></div>
+                                    <div class="hour-marker"><span>12:00</span></div>
+                                    <div class="hour-marker"><span>13:00</span></div>
+                                    <div class="hour-marker"><span>14:00</span></div>
+                                    <div class="hour-marker"><span>15:00</span></div>
+                                    <div class="hour-marker"><span>16:00</span></div>
+                                    <div class="hour-marker"><span>17:00</span></div>
+                                    <div class="hour-marker"><span>18:00</span></div>
+                                    <div class="hour-marker"><span>19:00</span></div>
+                                    <div class="hour-marker"><span>20:00</span></div>
+                                    <div class="hour-marker"><span>21:00</span></div>
+                                    <div class="hour-marker"><span>22:00</span></div>
+                                    <div class="hour-marker"><span>23:00</span></div>
+                                </div>
+                                <!-- 可视化时间段 -->
+                                <div class="time-segment-visual" style="left: 0%; width: 100%;"></div>
+                            </div>
+                            
+                            <div class="time-segments" id="workingTimeSegments">
+                                <div class="time-segment">
+                                    <span>时段1：</span>
+                                    <input type="time" class="form-control form-control-sm time-start" value="00:00" onchange="updateTimeVisualization('working')">
+                                    <span>-</span>
+                                    <input type="time" class="form-control form-control-sm time-end" value="24:00" onchange="updateTimeVisualization('working')">
+                                    <i class="fas fa-times-circle time-segment-remove" onclick="removeTimeSegment(this, 'working')"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="addTimeSegment('workingTimeSegments', 'working')">
+                                <i class="fas fa-plus me-1"></i> 添加工作时段
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 订单截单时间 (移动到工作时间段后) -->
+                    <div class="mb-4">
+                        <label class="form-label">订单截单时间</label>
+                        <div class="timeline-container">
+                            <div class="timeline-visualization">
+                                <div class="hour-markers">
+                                    <div class="hour-marker"><span>0:00</span></div>
+                                    <div class="hour-marker"><span>1:00</span></div>
+                                    <div class="hour-marker"><span>2:00</span></div>
+                                    <div class="hour-marker"><span>3:00</span></div>
+                                    <div class="hour-marker"><span>4:00</span></div>
+                                    <div class="hour-marker"><span>5:00</span></div>
+                                    <div class="hour-marker"><span>6:00</span></div>
+                                    <div class="hour-marker"><span>7:00</span></div>
+                                    <div class="hour-marker"><span>8:00</span></div>
+                                    <div class="hour-marker"><span>9:00</span></div>
+                                    <div class="hour-marker"><span>10:00</span></div>
+                                    <div class="hour-marker"><span>11:00</span></div>
+                                    <div class="hour-marker"><span>12:00</span></div>
+                                    <div class="hour-marker"><span>13:00</span></div>
+                                    <div class="hour-marker"><span>14:00</span></div>
+                                    <div class="hour-marker"><span>15:00</span></div>
+                                    <div class="hour-marker"><span>16:00</span></div>
+                                    <div class="hour-marker"><span>17:00</span></div>
+                                    <div class="hour-marker"><span>18:00</span></div>
+                                    <div class="hour-marker"><span>19:00</span></div>
+                                    <div class="hour-marker"><span>20:00</span></div>
+                                    <div class="hour-marker"><span>21:00</span></div>
+                                    <div class="hour-marker"><span>22:00</span></div>
+                                    <div class="hour-marker"><span>23:00</span></div>
+                                </div>
+                                <!-- 可视化时间点 -->
+                                <div id="cutoffTimeVisual"></div>
+                            </div>
+                            
+                            <div class="time-segments" id="cutoffTimeSegments">
+                                <div class="time-segment">
+                                    <span>时间点1：</span>
+                                    <input type="time" class="form-control form-control-sm cutoff-time" value="12:00" onchange="updateCutoffTimeVisualization()">
+                                    <i class="fas fa-times-circle time-segment-remove" onclick="removeCutoffTime(this)"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="addCutoffTime()">
+                                <i class="fas fa-plus me-1"></i> 添加截单时间点
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 推单时间段 -->
+                    <div class="mb-4">
+                        <label class="form-label">推单时间段</label>
+                        <div class="timeline-container">
+                            <div class="timeline-visualization">
+                                <div class="hour-markers">
+                                    <div class="hour-marker"><span>0:00</span></div>
+                                    <div class="hour-marker"><span>1:00</span></div>
+                                    <div class="hour-marker"><span>2:00</span></div>
+                                    <div class="hour-marker"><span>3:00</span></div>
+                                    <div class="hour-marker"><span>4:00</span></div>
+                                    <div class="hour-marker"><span>5:00</span></div>
+                                    <div class="hour-marker"><span>6:00</span></div>
+                                    <div class="hour-marker"><span>7:00</span></div>
+                                    <div class="hour-marker"><span>8:00</span></div>
+                                    <div class="hour-marker"><span>9:00</span></div>
+                                    <div class="hour-marker"><span>10:00</span></div>
+                                    <div class="hour-marker"><span>11:00</span></div>
+                                    <div class="hour-marker"><span>12:00</span></div>
+                                    <div class="hour-marker"><span>13:00</span></div>
+                                    <div class="hour-marker"><span>14:00</span></div>
+                                    <div class="hour-marker"><span>15:00</span></div>
+                                    <div class="hour-marker"><span>16:00</span></div>
+                                    <div class="hour-marker"><span>17:00</span></div>
+                                    <div class="hour-marker"><span>18:00</span></div>
+                                    <div class="hour-marker"><span>19:00</span></div>
+                                    <div class="hour-marker"><span>20:00</span></div>
+                                    <div class="hour-marker"><span>21:00</span></div>
+                                    <div class="hour-marker"><span>22:00</span></div>
+                                    <div class="hour-marker"><span>23:00</span></div>
+                                </div>
+                                <!-- 可视化时间段 -->
+                                <div class="time-segment-visual" style="left: 0%; width: 100%;"></div>
+                            </div>
+                            
+                            <div class="time-segments" id="pushTimeSegments">
+                                <div class="time-segment">
+                                    <span>时段1：</span>
+                                    <input type="time" class="form-control form-control-sm time-start" value="00:00" onchange="updateTimeVisualization('push')">
+                                    <span>-</span>
+                                    <input type="time" class="form-control form-control-sm time-end" value="24:00" onchange="updateTimeVisualization('push')">
+                                    <i class="fas fa-times-circle time-segment-remove" onclick="removeTimeSegment(this, 'push')"></i>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary mt-2" onclick="addTimeSegment('pushTimeSegments', 'push')">
+                                <i class="fas fa-plus me-1"></i> 添加推单时段
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 高级参数 -->
+                <div class="advanced-toggle mb-3" onclick="toggleAdvanced('outboundAdvanced')">
+                    <i class="fas fa-caret-right" id="outboundAdvancedIcon"></i>
+                    <span>高级参数</span>
+                </div>
+                <div class="advanced-params" id="outboundAdvanced" style="display: none;">
+                    <!-- 考虑物料体积 -->
+                    <div class="mb-4">
+                        <div class="switch-container">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="considerVolume">
+                                <label class="form-check-label switch-label" for="considerVolume">考虑物料体积</label>
+                            </div>
+                            <div class="form-text">开启后，将在分析中考虑物料体积因素</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 库存记录相关参数 -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-warehouse me-2"></i> 库存记录相关参数</h5>
+            </div>
+            <div class="card-body">
+                <!-- 基础参数 -->
+                <div class="form-section">
+                    <div class="section-title">基础参数</div>
+                    
+                    <!-- 库存来源 - 使用改进的多选样式 -->
+                    <div class="mb-4">
+                        <label class="form-label mb-3">库存来源（可多选）</label>
+                        <div class="multi-select-panel">
+                            <!-- 数据文件选项 -->
+                            <div class="multi-select-card" id="inventorySourceFileCard">
+                                <div class="multi-select-header" onclick="toggleMultiSelectCard('inventorySourceFile')">
+                                    <input class="form-check-input" type="checkbox" id="inventorySourceFile" onchange="updateInventorySourceOptions()">
+                                    <span class="multi-select-title">数据文件</span>
+                                </div>
+                                <div class="multi-select-body">
+                                    <label for="inventoryFileList" class="form-label">选择库存文件</label>
+                                    <select class="form-select" id="inventoryFileList">
+                                        <option value="">请选择库存文件</option>
+                                        <option>库存列表1.excel</option>
+                                        <option>库存列表2.excel</option>
+                                        <option>历史库存列表.excel</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- 算法模拟选项 -->
+                            <div class="multi-select-card active" id="inventorySourceSimCard">
+                                <div class="multi-select-header active" onclick="toggleMultiSelectCard('inventorySourceSim')">
+                                    <input class="form-check-input" type="checkbox" id="inventorySourceSim" checked onchange="updateInventorySourceOptions()">
+                                    <span class="multi-select-title">算法模拟</span>
+                                </div>
+                                <div class="multi-select-body">
+                                    <div class="parameter-group">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="skuCount" class="form-label">在库SKU数量</label>
+                                                <input type="number" class="form-control" id="skuCount" min="1">
+                                                <div class="form-text">设置系统中的SKU总数量</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="containerCapacity" class="form-label">箱规（单位：个）</label>
+                                                <input type="number" class="form-control" id="containerCapacity" min="1" max="999999">
+                                                <div class="form-text">单个容器的最大容量</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="skuMixMax" class="form-label">容器混放SKU上限</label>
+                                                <input type="number" class="form-control" id="skuMixMax" min="1" max="999">
+                                                <div class="form-text">单个容器中最多的SKU数量</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="skuMixMin" class="form-label">容器混放SKU下限</label>
+                                                <input type="number" class="form-control" id="skuMixMin" min="1" max="999">
+                                                <div class="form-text">单个容器中最少的SKU数量</div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="skuMixAvg" class="form-label">容器混放SKU均值</label>
+                                                <input type="number" class="form-control" id="skuMixAvg" min="1" max="999">
+                                                <div class="form-text">单个容器中平均的SKU数量</div>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <label for="inventoryDepth" class="form-label">库存深度</label>
+                                                <input type="text" class="form-control" id="inventoryDepth" value="1" placeholder="以逗号分隔，如：1,2,3">
+                                                <div class="form-text">以逗号分隔，最长10位，默认值为1</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="footer-buttons">
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i> 取消
+            </button>
+            <div>
+                <button class="btn btn-outline-primary me-2">
+                    <i class="fas fa-save me-1"></i> 保存配置
+                </button>
+                <button class="btn btn-primary">
+                    <i class="fas fa-play me-1"></i> 提交任务
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存模板对话框 -->
+    <div class="save-template-modal" id="saveTemplateModal">
+        <div class="save-template-content">
+            <div class="modal-header">
+                <h5 class="modal-title">保存为配置模板</h5>
+                <button type="button" class="btn-close" onclick="hideSaveTemplateModal()"></button>
+            </div>
+            <div class="mb-3">
+                <label for="templateName" class="form-label">模板名称</label>
+                <input type="text" class="form-control" id="templateName" placeholder="请输入模板名称">
+            </div>
+            <div class="mb-3">
+                <label for="templateDesc" class="form-label">模板描述 (选填)</label>
+                <textarea class="form-control" id="templateDesc" rows="3" placeholder="简要描述该模板的用途或特点"></textarea>
+            </div>
+            <div class="form-text mb-3">
+                <i class="fas fa-info-circle me-1"></i> 保存后，配置方案将被保存并可在下次导入时使用。
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideSaveTemplateModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveTemplate()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS 和 Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <!-- jQuery (Select2需要) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Select2 美化下拉框 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        // 初始化Select2
+        $(document).ready(function() {
+            $('.select2-multiple').select2({
+                placeholder: "请选择订单文件",
+                allowClear: true
+            });
+            
+            // 更新任务名称
+            $('#taskType').change(function() {
+                const projectName = "南京物流中心项目";
+                const taskType = $('#taskType option:selected').text();
+                $('#taskName').val(`${projectName} - ${taskType}`);
+            });
+            
+            // 初始化默认状态
+            updateOrderSourceOptions();
+            updateInventorySourceOptions();
+            updateTimeVisualization('working');
+            updateTimeVisualization('push');
+            updateCutoffTimeVisualization();
+        });
+        
+        // 折叠/展开高级参数区域
+        function toggleAdvanced(id) {
+            const element = document.getElementById(id);
+            const iconElement = document.getElementById(id + 'Icon');
+            
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                iconElement.classList.remove('fa-caret-right');
+                iconElement.classList.add('fa-caret-down');
+            } else {
+                element.style.display = 'none';
+                iconElement.classList.remove('fa-caret-down');
+                iconElement.classList.add('fa-caret-right');
+            }
+        }
+        
+        // 切换导出格式选项显示
+        function toggleExportFormat() {
+            const exportOptions = document.getElementById('exportFormatOptions');
+            if (document.getElementById('autoExport').checked) {
+                exportOptions.style.display = 'block';
+            } else {
+                exportOptions.style.display = 'none';
+            }
+        }
+        
+        // 切换多选卡片
+        function toggleMultiSelectCard(optionId) {
+            const checkbox = document.getElementById(optionId);
+            checkbox.checked = !checkbox.checked;
+            
+            if (optionId.includes('order')) {
+                updateOrderSourceOptions();
+            } else if (optionId.includes('inventory')) {
+                updateInventorySourceOptions();
+            }
+        }
+        
+        // 更新订单来源选项显示
+        function updateOrderSourceOptions() {
+            const fileCard = document.getElementById('orderSourceFileCard');
+            const simCard = document.getElementById('orderSourceSimCard');
+            const fileHeader = fileCard.querySelector('.multi-select-header');
+            const simHeader = simCard.querySelector('.multi-select-header');
+            
+            // 更新选项卡状态
+            if (document.getElementById('orderSourceFile').checked) {
+                fileCard.classList.add('active');
+                fileHeader.classList.add('active');
+            } else {
+                fileCard.classList.remove('active');
+                fileHeader.classList.remove('active');
+            }
+            
+            if (document.getElementById('orderSourceSim').checked) {
+                simCard.classList.add('active');
+                simHeader.classList.add('active');
+            } else {
+                simCard.classList.remove('active');
+                simHeader.classList.remove('active');
+            }
+        }
+        
+        // 更新库存来源选项显示
+        function updateInventorySourceOptions() {
+            const fileCard = document.getElementById('inventorySourceFileCard');
+            const simCard = document.getElementById('inventorySourceSimCard');
+            const fileHeader = fileCard.querySelector('.multi-select-header');
+            const simHeader = simCard.querySelector('.multi-select-header');
+            
+            // 更新选项卡状态
+            if (document.getElementById('inventorySourceFile').checked) {
+                fileCard.classList.add('active');
+                fileHeader.classList.add('active');
+            } else {
+                fileCard.classList.remove('active');
+                fileHeader.classList.remove('active');
+            }
+            
+            if (document.getElementById('inventorySourceSim').checked) {
+                simCard.classList.add('active');
+                simHeader.classList.add('active');
+            } else {
+                simCard.classList.remove('active');
+                simHeader.classList.remove('active');
+            }
+        }
+        
+        // 添加时间段
+        function addTimeSegment(containerId, timeType) {
+            const timeSegments = document.getElementById(containerId);
+            const newIndex = timeSegments.children.length + 1;
+            
+            const newSegment = document.createElement('div');
+            newSegment.className = 'time-segment';
+            newSegment.innerHTML = `
+                <span>时段${newIndex}：</span>
+                <input type="time" class="form-control form-control-sm time-start" value="08:00" onchange="updateTimeVisualization('${timeType}')">
+                <span>-</span>
+                <input type="time" class="form-control form-control-sm time-end" value="17:00" onchange="updateTimeVisualization('${timeType}')">
+                <i class="fas fa-times-circle time-segment-remove" onclick="removeTimeSegment(this, '${timeType}')"></i>
+            `;
+            
+            timeSegments.appendChild(newSegment);
+            updateTimeVisualization(timeType);
+        }
+        
+        // 删除时间段
+        function removeTimeSegment(element, timeType) {
+            const segment = element.closest('.time-segment');
+            const segmentsContainer = segment.parentElement;
+            
+            if (segmentsContainer.children.length > 1) {
+                segmentsContainer.removeChild(segment);
+                // 重新编号
+                Array.from(segmentsContainer.children).forEach((seg, idx) => {
+                    seg.querySelector('span').textContent = `时段${idx + 1}：`;
+                });
+                updateTimeVisualization(timeType);
+            }
+        }
+        
+        // 添加截单时间点
+        function addCutoffTime() {
+            const timeSegments = document.getElementById('cutoffTimeSegments');
+            const newIndex = timeSegments.children.length + 1;
+            
+            const newSegment = document.createElement('div');
+            newSegment.className = 'time-segment';
+            newSegment.innerHTML = `
+                <span>时间点${newIndex}：</span>
+                <input type="time" class="form-control form-control-sm cutoff-time" value="16:00" onchange="updateCutoffTimeVisualization()">
+                <i class="fas fa-times-circle time-segment-remove" onclick="removeCutoffTime(this)"></i>
+            `;
+            
+            timeSegments.appendChild(newSegment);
+            updateCutoffTimeVisualization();
+        }
+        
+        // 删除截单时间点
+        function removeCutoffTime(element) {
+            const segment = element.closest('.time-segment');
+            const segmentsContainer = segment.parentElement;
+            
+            if (segmentsContainer.children.length > 1) {
+                segmentsContainer.removeChild(segment);
+                // 重新编号
+                Array.from(segmentsContainer.children).forEach((seg, idx) => {
+                    seg.querySelector('span').textContent = `时间点${idx + 1}：`;
+                });
+                updateCutoffTimeVisualization();
+            }
+        }
+        
+        // 更新截单时间点可视化
+        function updateCutoffTimeVisualization() {
+            const visualContainer = document.getElementById('cutoffTimeVisual');
+            
+            // 清除现有的可视化
+            visualContainer.innerHTML = '';
+            
+            // 获取所有时间点
+            const timeInputs = document.querySelectorAll('.cutoff-time');
+            
+            // 处理每个时间点
+            timeInputs.forEach((input, index) => {
+                const timeValue = input.value;
+                
+                if (!timeValue) return;
+                
+                // 转换时间为分钟数
+                const minutes = convertTimeToMinutes(timeValue);
+                
+                // 计算位置百分比
+                const positionPercent = (minutes / (24 * 60)) * 100;
+                
+                // 创建可视化元素
+                const visualElement = document.createElement('div');
+                visualElement.style.position = 'absolute';
+                visualElement.style.height = '30px';
+                visualElement.style.width = '4px';
+                visualElement.style.backgroundColor = '#dc3545';
+                visualElement.style.left = `${positionPercent}%`;
+                visualElement.style.top = '10px';
+                visualElement.style.borderRadius = '2px';
+                
+                visualContainer.appendChild(visualElement);
+            });
+        }
+        
+        // 更新时间轴可视化
+        function updateTimeVisualization(timeType) {
+            let containerId, visualizationContainer;
+            
+            switch(timeType) {
+                case 'working':
+                    containerId = 'workingTimeSegments';
+                    visualizationContainer = document.querySelector('#workingTimeSegments').closest('.timeline-container').querySelector('.time-segment-visual');
+                    break;
+                case 'push':
+                    containerId = 'pushTimeSegments';
+                    visualizationContainer = document.querySelector('#pushTimeSegments').closest('.timeline-container').querySelector('.time-segment-visual');
+                    break;
+                default:
+                    return;
+            }
+            
+            // 清除现有的可视化
+            visualizationContainer.innerHTML = '';
+            
+            // 获取所有时间段
+            const timeSegments = document.getElementById(containerId).querySelectorAll('.time-segment');
+            
+            // 处理每个时间段
+            timeSegments.forEach((segment, index) => {
+                const startTimeInput = segment.querySelector('.time-start');
+                const endTimeInput = segment.querySelector('.time-end');
+                
+                if (!startTimeInput || !endTimeInput) return;
+                
+                const startTime = startTimeInput.value;
+                const endTime = endTimeInput.value;
+                
+                if (!startTime || !endTime) return;
+                
+                // 转换时间为分钟数
+                const startMinutes = convertTimeToMinutes(startTime);
+                const endMinutes = convertTimeToMinutes(endTime);
+                
+                // 计算位置百分比
+                const startPercent = (startMinutes / (24 * 60)) * 100;
+                const width = ((endMinutes - startMinutes) / (24 * 60)) * 100;
+                
+                // 创建可视化元素
+                const visualElement = document.createElement('div');
+                visualElement.className = 'time-segment-visual';
+                visualElement.style.left = `${startPercent}%`;
+                visualElement.style.width = `${width}%`;
+                
+                // 不同的时间段使用不同的颜色
+                const colors = ['rgba(13, 110, 253, 0.2)', 'rgba(25, 135, 84, 0.2)', 'rgba(255, 193, 7, 0.2)', 'rgba(220, 53, 69, 0.2)'];
+                visualElement.style.backgroundColor = colors[index % colors.length];
+                
+                visualizationContainer.appendChild(visualElement);
+            });
+        }
+        
+        // 将时间字符串转换为分钟数
+        function convertTimeToMinutes(timeString) {
+            const [hours, minutes] = timeString.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+        
+        // 显示保存模板对话框
+        function showSaveTemplateModal() {
+            document.getElementById('saveTemplateModal').classList.add('active');
+        }
+        
+        // 隐藏保存模板对话框
+        function hideSaveTemplateModal() {
+            document.getElementById('saveTemplateModal').classList.remove('active');
+        }
+        
+        // 保存模板
+        function saveTemplate() {
+            const templateName = document.getElementById('templateName').value;
+            if (!templateName) {
+                alert('请输入模板名称');
+                return;
+            }
+            
+            // 模拟保存操作
+            alert(`配置模板"${templateName}"保存成功！`);
+            hideSaveTemplateModal();
+            
+            // 清空表单
+            document.getElementById('templateName').value = '';
+            document.getElementById('templateDesc').value = '';
+        }
+        
+        // 确认删除模板
+        function confirmDeleteTemplate(event, templateName) {
+            event.stopPropagation(); // 阻止事件冒泡
+            if (confirm(`确定要删除模板"${templateName}"吗？`)) {
+                // 模拟删除操作
+                alert(`已删除模板"${templateName}"`);
+            }
+        }
+    </script>
+</body>
+</html>

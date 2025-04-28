@@ -1,0 +1,56 @@
+/// Element Plus 主题变量
+/// 自定义 Element Plus 组件库主题
+
+// 引入全局变量
+@use 'variables' as *;
+
+/* 覆盖 Element Plus 默认变量 */
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (
+      'base': $color-primary,
+    ),
+    'success': (
+      'base': $color-success,
+    ),
+    'warning': (
+      'base': $color-warning,
+    ),
+    'danger': (
+      'base': $color-danger,
+    ),
+    'info': (
+      'base': $color-info,
+    ),
+  ),
+  $text-color: (
+    'primary': $color-text-primary,
+    'regular': $color-text-regular,
+    'secondary': $color-text-secondary,
+    'placeholder': $color-text-placeholder,
+  ),
+  $border-color: (
+    'base': $color-border-base,
+    'light': $color-border-light,
+    'lighter': $color-border-lighter,
+    'extra-light': $color-border-extra-light,
+  ),
+  $font-size: (
+    'extra-large': $font-size-extra-large,
+    'large': $font-size-large,
+    'medium': $font-size-medium,
+    'base': $font-size-base,
+    'small': $font-size-small,
+    'extra-small': $font-size-extra-small,
+  ),
+  $border-radius: (
+    'base': $border-radius-base,
+    'small': $border-radius-small,
+    'round': 20px,
+    'circle': $border-radius-circle,
+  ),
+  $box-shadow: (
+    'base': $shadow-base,
+    'light': $shadow-light
+  )
+); 

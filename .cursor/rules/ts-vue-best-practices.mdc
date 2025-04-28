@@ -1,0 +1,49 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# TypeScript and Vue.js Development Best Practices
+
+This guide outlines best practices for developing applications using Vue.js with TypeScript.
+
+## 1. Component Structure
+
+-   **Single File Components (SFCs):** Use `.vue` files. Keep template, `<script setup lang="ts">`, and `<style scoped>` together.
+-   **Component Naming:** Use PascalCase (e.g., `MyComponent.vue`). Prefix reusable base components (e.g., `BaseButton.vue`).
+
+## 2. TypeScript Usage
+
+-   **`<script setup lang="ts">`:** Always use this for Composition API syntax.
+-   **Props Typing:** Use `defineProps<InterfaceName>()`.
+-   **Emits Typing:** Use `defineEmits<{ (e: 'eventName', payload: Type): void }>()`.
+-   **Refs and Reactives:** Provide explicit types (`ref<Type>()`, `reactive<Type>({})`) when inference is insufficient.
+-   **Composition API:** Strongly prefer over Options API for better TS support and organization.
+
+## 3. State Management
+
+-   **Pinia:** Recommended for state management due to its excellent TypeScript support and modularity.
+
+## 4. Routing
+
+-   **Vue Router:** Use for navigation. Define typed routes and utilize lazy loading `() => import('../views/ViewName.vue')`.
+
+## 5. Code Style and Linting
+
+-   **ESLint & Prettier:** Configure with Vue and TypeScript plugins for consistency. Enforce in CI.
+-   **TypeScript Configuration:** Use a strict `tsconfig.json`.
+
+## 6. Testing
+
+-   **Vitest & Vue Test Utils:** Recommended testing stack for Vite-based Vue projects.
+
+## 7. Performance
+
+-   **Lazy Loading:** For routes and components.
+-   **Memoization:** Use `computed` for derived state and `v-memo` for template parts.
+-   **Virtual Scrolling:** For long lists.
+
+## 8. General
+
+-   **Avoid `any`:** Use specific types or `unknown` instead.
+-   **Leverage Utility Types:** Use TypeScript's built-in utility types (e.g., `Partial`, `Readonly`).
