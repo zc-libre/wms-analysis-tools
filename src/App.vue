@@ -9,7 +9,9 @@ import TopBar from './components/TopBar.vue'
       <TopBar />
     </el-header>
     <el-main class="app-main">
-      <router-view />
+      <transition name="fade-slide" mode="out-in">
+        <router-view />
+      </transition>
     </el-main>
   </el-container>
 </template>
@@ -38,6 +40,22 @@ html, body, #app, .app-layout {
   // The overflow should likely be handled by the content within router-view
   // For example, by the .layout-main class in DefaultLayout.vue if that's still used,
   // or by the specific view's container.
+}
+
+// 页面过渡动画样式
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
 }
 
 // Remove default body margin

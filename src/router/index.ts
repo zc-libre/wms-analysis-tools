@@ -18,14 +18,6 @@ const routes: Array<RouteRecordRaw> = [
         }
       },
       {
-        path: '/project',
-        name: 'Project',
-        component: () => import('@/views/ProjectManagement.vue'),
-        meta: {
-          title: '项目管理'
-        }
-      },
-      {
         path: '/order-data',
         name: 'OrderData',
         component: () => import('@/views/OrderData.vue'),
@@ -57,7 +49,16 @@ const routes: Array<RouteRecordRaw> = [
           title: '库存记录'
         }
       }
+      
     ]
+  },
+  {
+    path: '/file-import',
+    name: 'FileImport',
+    component: () => import('@/views/FileImport.vue'),
+    meta: {
+      title: '文件导入'
+    }
   },
   {
     path: '/:pathMatch(.*)*',

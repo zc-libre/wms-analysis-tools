@@ -140,6 +140,7 @@ import {
 import NewProjectModal from './NewProjectModal.vue'
 import EditProjectModal from './EditProjectModal.vue'
 import FileUploadModal from './FileUploadModal.vue'
+import { useRouter } from 'vue-router'
 
 interface File {
   id: string
@@ -159,6 +160,7 @@ interface Project {
 
 const activeProjectId = ref(1)
 const activeFileId = ref('file1')
+const router = useRouter()
 
 const projects = ref<Project[]>([
   {
@@ -287,8 +289,18 @@ const confirmDeleteProject = () => {
 
 // 打开文件上传对话框
 const openUploadDialog = (projectId: number) => {
-  currentUploadProjectId.value = projectId
-  uploadDialogVisible.value = true
+  // 获取当前项目名称
+  const project = projects.value.find(p => p.id === projectId);
+  if (!project) return;
+  
+  // 导航到文件导入页面，使用查询参数
+  router.push({
+    name: 'FileImport',
+    query: {
+      id: projectId.toString(),
+      name: project.name
+    }
+  });
 }
 
 // 处理文件上传
