@@ -20,6 +20,7 @@ const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const totalItems = ref(0)
 
 // 类别选项
 const categoryOptions = [
@@ -173,16 +174,40 @@ onMounted(() => {
           <el-icon><Plus /></el-icon>
           新增物料
         </el-button>
-        <el-button type="success" @click="handleExport">
-          <el-icon><Download /></el-icon>
-          导出数据
-        </el-button>
       </div>
     </div>
     
     <!-- 表格 -->
     <div class="table-container">
-      <base-table
+      <el-table :data="tableData" v-loading="loading" border stripe height="100%">
+        <el-table-column prop="materialCode" label="物料编码"  sortable />
+        <el-table-column prop="materialName" label="物料名称"  sortable />
+        <el-table-column prop="specification" label="规格型号" />
+        <el-table-column prop="category" label="类别"  />
+        <el-table-column prop="unit" label="单位" width="160" sortable />
+        <el-table-column prop="price" label="单价" />
+        <el-table-column prop="inventory" label="库存数量"  sortable />
+        <el-table-column label="操作"  fixed="right">
+          <template #default="scope">
+            <el-button 
+            type="primary" 
+            link
+            @click="handleViewDetail(scope.row)"
+          >
+            查看
+          </el-button>
+          <el-button 
+            type="primary" 
+            link
+            @click="handleEdit(scope.row)"
+          >
+            编辑
+          </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- <base-table
         :data="tableData"
         :loading="loading"
         :total="total"
@@ -192,8 +217,8 @@ onMounted(() => {
         show-operation
         @current-change="handleCurrentChange"
         @size-change="handleSizeChange"
-      >
-        <el-table-column
+      > -->
+        <!-- <el-table-column
           v-for="column in columns"
           :key="column.prop"
           :prop="column.prop"
@@ -218,39 +243,53 @@ onMounted(() => {
           >
             编辑
           </el-button>
-        </template>
-      </base-table>
+        </template> -->
+      <!-- </base-table> -->
+    </div>
+    <!-- 分页区域 -->
+    <div class="pagination-container">
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="totalItems"
+        :page-size="pageSize"
+        v-model:current-page="currentPage"
+        @current-change="handleCurrentChange"
+        @size-change="handleSizeChange"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
 .view-container {
-  padding: 20px;
+  /* padding: 20px; */
   height: 100%;
 }
 
 .action-bar {
-  margin-bottom: 20px;
+  /* margin-bottom: 20px; */
   display: flex;
   justify-content: space-between;
+  flex-direction: row;
 }
 
 .search-area {
   background-color: #fff;
-  padding: 16px;
+  /* padding: 16px; */
   border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  /* box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05); */
 }
 
 .operation-buttons {
   display: flex;
   justify-content: flex-end;
+
 }
 
 .table-container {
   background-color: #fff;
-  padding: 16px;
+  /* padding: 16px; */
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }

@@ -117,48 +117,27 @@ onMounted(() => {
           />
         </el-form-item>
         
-        <el-form-item label="SKU">
-          <el-input 
-            v-model="searchForm.sku" 
-            placeholder="请输入SKU" 
-            clearable 
-            @keyup.enter="handleSearch"
-          />
-        </el-form-item>
-        
-        <el-form-item label="单据时间">
-          <el-date-picker
-            v-model="searchForm.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            format="YYYY-MM-DD"
-          />
-        </el-form-item>
-        
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-          <el-button @click="handleReset">重置</el-button>
         </el-form-item>
       </el-form>
       
       <div class="operation-buttons">
-        <el-button type="success" :icon="Plus" @click="handleAddOrder">新增订单</el-button>
+        <el-button clearable type="success" :icon="Plus" @click="handleAddOrder">新增订单</el-button>
       </div>
     </div>
 
     <!-- 表格区域 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" border stripe>
-        <el-table-column prop="id" label="单据编号" width="120" sortable />
-        <el-table-column prop="sku" label="SKU" width="120" sortable />
-        <el-table-column prop="orderType" label="单据类型" width="100" />
-        <el-table-column prop="projectItem" label="单据项" width="100" />
+      <el-table :data="tableData" v-loading="loading" stripe show-header height="100%">
+        <el-table-column prop="id" label="单据编号"  sortable />
+        <el-table-column prop="sku" label="SKU"  sortable />
+        <el-table-column prop="orderType" label="单据类型" />
+        <el-table-column prop="projectItem" label="单据项"  />
         <el-table-column prop="orderDate" label="单据时间" width="160" sortable />
-        <el-table-column prop="materialCode" label="物料编号" width="120" />
-        <el-table-column prop="quantity" label="需求数量" width="100" sortable />
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="materialCode" label="物料编号" />
+        <el-table-column prop="quantity" label="需求数量"  sortable />
+        <el-table-column label="操作"  fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" link :icon="Document" @click="handleViewDetail(scope.row)">
               查看详情
@@ -194,6 +173,7 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
+  flex-direction: row;
 }
 
 .search-area {
@@ -204,6 +184,7 @@ onMounted(() => {
 .operation-buttons {
   display: flex;
   gap: 0.5rem;
+  margin-top: 0px;
 }
 
 .table-container {

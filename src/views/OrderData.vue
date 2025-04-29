@@ -63,9 +63,11 @@ const refreshData = () => {
 .data-management-card {
   border-radius: 8px;
   transition: all 0.3s;
+  height: 100%;
   
   :deep(.el-card__body) {
     padding: 0;
+    height: calc(100% - 60px);
   }
 }
 
@@ -101,11 +103,17 @@ const refreshData = () => {
 
 .data-tabs {
   padding: 0 20px 20px;
+  height: 100%;
+  
+  .el-tab-pane {
+    height: 100%;
+  }
   
   :deep(.el-tabs__header) {
     margin-bottom: 20px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
+
   
   :deep(.el-tabs__item) {
     font-size: 14px;

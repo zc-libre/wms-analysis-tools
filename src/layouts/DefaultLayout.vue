@@ -23,7 +23,7 @@ import Sidebar from '../components/Sidebar.vue'
 
 <style lang="scss" scoped>
 .layout-default {
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -46,7 +46,7 @@ import Sidebar from '../components/Sidebar.vue'
 
 .layout-main {
   background-color: #f8f9fa;
-  padding: 15px;
+  padding: 0 10px;
   overflow-y: auto;
   flex: 1;
 }

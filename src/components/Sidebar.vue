@@ -2,15 +2,56 @@
   <div class="sidebar-container">
     <div class="project-management-header">
       <el-text tag="h5">项目管理</el-text>
-      <el-button type="primary" size="small" :icon="Plus">
+      <el-button type="primary" size="small" :icon="Plus" @click="newProjectVisible = true">
         新建
       </el-button>
     </div>
 
+    <!-- 新建项目对话框 -->
+    <NewProjectModal
+      v-model:visible="newProjectVisible"
+      @save="handleCreateProject"
+    />
+
+    <!-- 编辑项目对话框 -->
+    <EditProjectModal
+      v-model:visible="editProjectVisible"
+      :project-data="currentEditProject"
+      @save="handleUpdateProject"
+    />
+
+    <!-- 删除确认对话框 -->
+    <el-dialog
+      v-model="deleteConfirmVisible"
+      title="确认删除"
+      width="30%"
+      :close-on-click-modal="false"
+      class="delete-confirm-dialog"
+    >
+      <div class="delete-confirm-content">
+        <p>确定要删除这个项目吗？该操作无法撤销，项目下的所有文件也将被删除。</p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deleteConfirmVisible = false">取消</el-button>
+          <el-button type="danger" @click="confirmDeleteProject">
+            确认删除
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 文件上传对话框 -->
+    <FileUploadModal
+      v-model:visible="uploadDialogVisible"
+      :project-id="currentUploadProjectId"
+      @upload="handleFileUpload"
+    />
+
     <div class="project-list">
       <el-card
         v-for="(project, index) in projects"
-        :key="project.id"
+        :key="index"
         class="project-card"
         :body-style="{ padding: '0px' }"
         :class="{ active: activeProjectId === project.id }"
@@ -34,10 +75,10 @@
                     <component :is="project.filesVisible ? FolderOpened : Folder" />
                   </el-icon>
                 </el-button>
-                <el-button link type="primary" size="small" class="action-btn">
+                <el-button link type="primary" size="small" class="action-btn" @click.stop="handleEditProject(project)">
                   <el-icon><Edit /></el-icon>
                 </el-button>
-                <el-button link type="danger" size="small" class="action-btn">
+                <el-button link type="danger" size="small" class="action-btn" @click.stop="handleDeleteProject(project)">
                   <el-icon><Delete /></el-icon>
                 </el-button>
               </div>
@@ -57,6 +98,7 @@
                   size="small"
                   :icon="Upload"
                   class="upload-btn"
+                  @click.stop="openUploadDialog(project.id)"
                 >
                   上传
                 </el-button>
@@ -95,6 +137,9 @@ import {
   Upload,
   Document
 } from '@element-plus/icons-vue'
+import NewProjectModal from './NewProjectModal.vue'
+import EditProjectModal from './EditProjectModal.vue'
+import FileUploadModal from './FileUploadModal.vue'
 
 interface File {
   id: string
@@ -170,6 +215,100 @@ const setActiveFile = (fileId: string) => {
   activeFileId.value = fileId
 }
 
+// 新建项目对话框可见性
+const newProjectVisible = ref(false)
+
+// 编辑项目对话框可见性
+const editProjectVisible = ref(false)
+const currentEditProject = ref<Project | null>(null)
+
+// 删除项目确认对话框可见性
+const deleteConfirmVisible = ref(false)
+const projectToDelete = ref<Project | null>(null)
+
+// 文件上传对话框可见性
+const uploadDialogVisible = ref(false)
+const currentUploadProjectId = ref<number | null>(null)
+
+// 处理新建项目
+const handleCreateProject = (projectData: any) => {
+  const newProject = {
+    id: projects.value.length + 1,
+    name: projectData.name,
+    company: projectData.company,
+    location: projectData.location,
+    filesVisible: false,
+    files: []
+  }
+  projects.value.push(newProject)
+}
+
+// 处理编辑项目
+const handleEditProject = (project: Project) => {
+  currentEditProject.value = { ...project }
+  editProjectVisible.value = true
+}
+
+// 处理更新项目
+const handleUpdateProject = (projectData: any) => {
+  const index = projects.value.findIndex(p => p.id === projectData.id)
+  if (index !== -1) {
+    projects.value[index] = {
+      ...projects.value[index],
+      name: projectData.name,
+      company: projectData.company,
+      location: projectData.location
+    }
+  }
+}
+
+// 处理删除项目
+const handleDeleteProject = (project: Project) => {
+  projectToDelete.value = project
+  deleteConfirmVisible.value = true
+}
+
+// 确认删除项目
+const confirmDeleteProject = () => {
+  if (projectToDelete.value) {
+    const index = projects.value.findIndex(p => p.id === projectToDelete.value!.id)
+    if (index !== -1) {
+      projects.value.splice(index, 1)
+      
+      // 如果删除的是当前活动项目，则重置活动项目
+      if (activeProjectId.value === projectToDelete.value.id) {
+        activeProjectId.value = projects.value.length > 0 ? projects.value[0].id : 0
+      }
+    }
+    deleteConfirmVisible.value = false
+    projectToDelete.value = null
+  }
+}
+
+// 打开文件上传对话框
+const openUploadDialog = (projectId: number) => {
+  currentUploadProjectId.value = projectId
+  uploadDialogVisible.value = true
+}
+
+// 处理文件上传
+const handleFileUpload = (fileData: any) => {
+  // 这里实际项目中应该有文件上传的API调用
+  // 这里仅做模拟展示
+  const today = new Date()
+  const dateStr = today.toISOString().split('T')[0]
+  const newFile = {
+    id: `file${Date.now()}`,
+    name: fileData.fileName,
+    date: dateStr,
+    size: '3.0MB'
+  }
+  
+  const projectIndex = projects.value.findIndex(p => p.id === fileData.projectId)
+  if (projectIndex !== -1) {
+    projects.value[projectIndex].files.push(newFile)
+  }
+}
 </script>
 
 <style scoped lang="scss">
@@ -187,6 +326,23 @@ const setActiveFile = (fileId: string) => {
 
   .el-text {
     font-weight: 600;
+  }
+}
+
+.delete-confirm-dialog {
+  .delete-confirm-content {
+    margin: 10px 0;
+    
+    p {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+  
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
   }
 }
 

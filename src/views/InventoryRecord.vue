@@ -119,16 +119,18 @@ onMounted(() => {
         </el-input>
         <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
       </div>
-      <div class="operation-buttons">
-        <el-button type="success" size="small" :icon="Plus" @click="handleAdd">
-          新增库存记录
-        </el-button>
-      </div>
+          <!-- 工具栏 -->
+    <div class="inbound-order__toolbar">
+      <el-button type="primary" @click="handleAdd">
+        <el-icon><Plus /></el-icon>
+        新增入库单
+      </el-button>
+    </div>
     </div>
 
     <!-- 表格区域 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" border stripe>
+      <el-table :data="tableData" v-loading="loading" border stripe height="100%">
         <el-table-column prop="id" label="库存记录编号" width="180" sortable />
         <el-table-column prop="sku" label="SKU" width="180" sortable />
         <el-table-column prop="containerId" label="容器编号" width="180" />
@@ -167,6 +169,20 @@ onMounted(() => {
 
 .action-bar {
   // 样式调整间距等
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-direction: row;
+}
+
+.table-container {
+  background-color: #fff;
+  /* padding: 16px; */
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
 .pagination-container {

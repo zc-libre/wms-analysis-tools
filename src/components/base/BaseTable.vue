@@ -157,7 +157,7 @@ const calcTableHeight = () => {
         fixed="right"
         min-width="100"
       >
-        <template #default="scope">
+        <template #default="scope" fixed="right" min-width="150">
           <slot name="operation" :row="scope.row" :$index="scope.$index" />
         </template>
       </el-table-column>

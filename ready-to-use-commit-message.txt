@@ -1,0 +1,8 @@
+chore: add git commit utilities and documentation
+
+Added PowerShell script to help with git commit process following project
+conventions. Also added documentation for manual commit process in case the
+script cannot be executed. These utilities ensure proper commit message 
+formatting with type prefixes, descriptive titles, and detailed explanations.
+
+-Agent Generated Commit Message 
