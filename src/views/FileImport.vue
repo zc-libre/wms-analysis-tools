@@ -35,45 +35,49 @@
           </el-link>
         </div>
         
-        <!-- 导入说明部分 -->
-        <div class="import-instructions">
-          <div class="instruction-header">
-            <el-icon><InfoFilled /></el-icon> 导入说明
+        <!-- 添加带边框的容器 -->
+        <div class="import-area-bordered">
+          <!-- 导入说明部分 -->
+          <div class="import-instructions">
+            <div class="instruction-header">
+              <el-icon><InfoFilled /></el-icon> 导入说明
+            </div>
+            <ul class="instruction-list">
+              <li>文件仅支持xls、xlsx、csv格式。</li>
+              <li>必须项目提供账单信息、支持用户修改。</li>
+              <li>请不要更改或合并单元格操作！</li>
+              <li>请不要删除各行标题！</li>
+              <li>请不要更改的日期日期格式！</li>
+              <li>注意单个Excel文件最大支持100W行。</li>
+              <li>注意单个Excel文件最大支持200M。</li>
+              <li>物料体积可选择立方厘米（cm³）、立方分米（dm³）、立方米（m³）、默认立方厘米。</li>
+            </ul>
           </div>
-          <ul class="instruction-list">
-            <li>文件仅支持xls、xlsx、csv格式。</li>
-            <li>必须项目提供账单信息、支持用户修改。</li>
-            <li>请不要更改或合并单元格操作！</li>
-            <li>请不要删除各行标题！</li>
-            <li>请不要更改的日期日期格式！</li>
-            <li>注意单个Excel文件最大支持100W行。</li>
-            <li>注意单个Excel文件最大支持200M。</li>
-            <li>物料体积可选择立方厘米（cm³）、立方分米（dm³）、立方米（m³）、默认立方厘米。</li>
-          </ul>
-        </div>
 
-        <el-card class="file-upload-card">
-          <div class="file-select-area" ref="fileUploadArea">
-            <el-upload
-              class="upload-area"
-              drag
-              action="#"
-              :auto-upload="false"
-              :on-change="handleFileChange"
-              :show-file-list="false"
-            >
-              <div class="upload-content">
-                <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                <div class="el-upload__text">
-                  拖拽文件到此处或<em>点击上传</em>
+          <!-- 将 el-card 替换为普通 div -->
+          <div> 
+            <div class="file-select-area" ref="fileUploadArea">
+              <el-upload
+                class="upload-area"
+                drag
+                action="#"
+                :auto-upload="false"
+                :on-change="handleFileChange"
+                :show-file-list="false"
+              >
+                <div class="upload-content">
+                  <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                  <div class="el-upload__text">
+                    拖拽文件到此处或<em>点击上传</em>
+                  </div>
+                  <div class="el-upload__tip">
+                    支持 .xls, .xlsx, .csv 格式文件
+                  </div>
                 </div>
-                <div class="el-upload__tip">
-                  支持 .xls, .xlsx, .csv 格式文件
-                </div>
-              </div>
-            </el-upload>
+              </el-upload>
+            </div>
           </div>
-        </el-card>
+        </div> <!-- 结束带边框的容器 -->
 
         <!-- 已上传文件列表 -->
         <div class="uploaded-files" v-if="uploadedFiles.length > 0">
@@ -160,6 +164,26 @@
           </el-button>
         </div>
         
+        <!-- 新增：方案名称和描述输入区域，仅在未选择方案时显示 (MOVED HERE) -->
+        <div v-if="!selectedMappingScheme" class="new-scheme-inputs">
+          <el-form label-position="top">
+            <el-form-item label="方案名称" required>
+              <el-input 
+                v-model="newSchemeName" 
+                placeholder="输入方案名称，例如：物流中心映射方案" 
+              />
+            </el-form-item>
+            <el-form-item label="方案描述 (选填)">
+              <el-input 
+                type="textarea"
+                v-model="newSchemeDescription" 
+                placeholder="简要描述该方案的用途或特点" 
+                :rows="2"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+        
         <!-- 添加映射字段按钮 -->
         <el-button 
           type="primary" 
@@ -175,24 +199,54 @@
           <el-table :data="mappingData" border>
             <el-table-column label="文件原始字段" min-width="180">
               <template #default="scope">
-                <el-select 
-                  v-model="scope.row.sourceField" 
-                  placeholder="选择文件字段"
-                  filterable
-                >
-                  <el-option
-                    v-for="item in sourceFields"
-                    :key="item"
-                    :label="item"
-                    :value="item"
-                  />
-                </el-select>
+                <div :class="{ 'sku-source-field': scope.row.isSkuSource, 'sku-field-container': scope.row.targetField === 'sku' && !scope.row.isSkuSource }">
+                  <div v-for="(field, index) in scope.row.sourceField" :key="index" class="source-field-row">
+                    <el-select 
+                      v-model="scope.row.sourceField[index]" 
+                      placeholder="选择文件字段"
+                      filterable
+                    >
+                      <el-option
+                        v-for="item in sourceFields"
+                        :key="item"
+                        :label="item"
+                        :value="item"
+                      />
+                    </el-select>
+                    <!-- 添加删除按钮，但第一个源字段不显示 -->
+                    <el-button 
+                      v-if="index > 0"
+                      type="danger" 
+                      circle 
+                      plain 
+                      size="small"
+                      @click="removeSourceField(scope.$index, index)"
+                    >
+                      <el-icon><DeleteIcon /></el-icon>
+                    </el-button>
+                  </div>
+                  <span v-if="scope.row.isSkuSource" class="sku-source-label">SKU源字段</span>
+                  <!-- 添加源字段按钮，仅在SKU字段行显示 -->
+                  <div v-if="scope.row.targetField === 'sku' && !scope.row.isSkuSource" class="add-source-btn-container">
+                    <el-button 
+                      type="success" 
+                       
+                      size="small"
+                      class="add-source-btn"
+                      @click="addSkuSourceField(scope.$index)"
+                    >
+                    <el-icon><Plus /></el-icon>
+                    添加源字段
+                    </el-button>
+                  </div>
+                </div>
               </template>
             </el-table-column>
             
             <el-table-column label="系统目标字段" min-width="180">
               <template #default="scope">
                 <el-select 
+                  v-if="scope.row.isSourceField"
                   v-model="scope.row.targetField" 
                   placeholder="选择目标字段"
                   filterable
@@ -204,18 +258,20 @@
                     :value="item.value"
                   />
                 </el-select>
+                <el-input v-else v-model="scope.row.targetFieldText" placeholder="填写目标字段" />
               </template>
             </el-table-column>
             
             <el-table-column label="是否必填" width="100" align="center">
               <template #default="scope">
                 <el-tag 
-                  v-if="scope.row.isRequired" 
+                  v-if="scope.row.isSourceField" 
                   type="danger" 
                   effect="plain" 
                   size="small"
                   class="required-tag"
                 >必填</el-tag>
+                <el-switch v-else v-model="scope.row.isRequired" />
               </template>
             </el-table-column>
             
@@ -227,7 +283,7 @@
                   plain 
                   size="small"
                   @click="removeMappingField(scope.$index)"
-                  :disabled="scope.row.isRequired"
+                  :disabled="scope.row.isSourceField && !scope.row.isSkuSource"
                 >
                   <el-icon><DeleteIcon /></el-icon>
                 </el-button>
@@ -546,22 +602,51 @@
       </div>
     </div>
 
+    <!-- 添加映射字段弹窗 -->
+    <el-dialog
+      v-model="showAddFieldDialog"
+      title="可选映射字段"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-checkbox-group v-model="fieldsToAdd">
+        <el-checkbox
+          v-for="field in availableFieldsForAdding"
+          :key="field.value"
+          :label="field.value"
+          border
+          style="margin: 5px;"
+        >
+          {{ field.label }}
+        </el-checkbox>
+      </el-checkbox-group>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="showAddFieldDialog = false">取消</el-button>
+          <el-button type="primary" @click="confirmAddFieldSelection">
+            确认添加
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <div class="step-actions">
       <div class="left-actions">
-        <el-button @click="goBack">返回</el-button>
+        <el-button @click="goBack"><el-icon><ArrowLeft /></el-icon> 返回</el-button>
+      </div>
+      <div class="right-actions">
+        
         <el-button v-if="activeStep === 1 || activeStep === 3" type="primary" plain @click="viewDetails">
           <el-icon><Document /></el-icon> 查看明细
         </el-button>
-      </div>
-      <div class="right-actions">
         <el-button 
           v-if="activeStep < 3" 
           type="primary" 
           @click="nextStep"
           ref="nextStepButton"
-        >下一步</el-button>
+        >下一步<el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
+        <el-button v-if="activeStep === 3 || activeStep === 1" type="danger" plain @click="cancelOperation">取消操作</el-button>
         <el-button v-if="activeStep === 3" type="success" @click="completeImport">完成导入</el-button>
-        <el-button type="danger" plain @click="cancelOperation">取消操作</el-button>
       </div>
     </div>
     
@@ -649,8 +734,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight } from '@element-plus/icons-vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight, ArrowLeft } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -971,12 +1056,25 @@ const uploadedFiles = ref<UploadedFile[]>([
 const uploadError = ref('');
 
 // 字段映射相关数据
-const mappingData = ref([
-  { sourceField: 'order_id', targetField: 'orderNumber', previewData: 'ORD-2023-001', isRequired: true },
-  { sourceField: 'item_sku', targetField: 'sku', previewData: 'SKU12345', isRequired: true },
-  { sourceField: 'quantity', targetField: 'quantity', previewData: '10', isRequired: true },
-  { sourceField: 'order_date', targetField: 'orderDate', previewData: '2023-05-15', isRequired: true },
-  { sourceField: 'material_code', targetField: 'materialCode', previewData: 'M-2023-001', isRequired: true },
+// {{ 定义映射项接口 }}
+interface MappingItem {
+  sourceField: Array<string>;
+  targetField: string;
+  previewData: string;
+  isRequired: boolean;
+  isSourceField: boolean;
+  targetFieldText?: string; // 添加可选的 targetFieldText
+  isLocked?: boolean; // 添加 isLocked 属性
+  parentIndex?: number; // 添加 parentIndex 用于标识子SKU源字段对应的父项索引
+  isSkuSource?: boolean; // 添加 isSkuSource 标识是否为SKU的额外源字段
+}
+
+const mappingData = ref<MappingItem[]>([
+  { sourceField: ['item_sku'], targetField: 'sku', previewData: 'SKU12345', isRequired: true, isSourceField: true, isLocked: true },
+  { sourceField: ['order_id'], targetField: 'orderNumber', previewData: 'ORD-2023-001', isRequired: true, isSourceField: true },
+  { sourceField: ['quantity'], targetField: 'quantity', previewData: '10', isRequired: true, isSourceField: true },
+  { sourceField: ['order_date'], targetField: 'orderDate', previewData: '2023-05-15', isRequired: true, isSourceField: true },
+  { sourceField: ['material_code'], targetField: 'materialCode', previewData: 'M-2023-001', isRequired: true, isSourceField: true },
 ]);
 
 // 源文件字段
@@ -990,14 +1088,14 @@ const sourceFields = ref([
 ]);
 
 // 可选的目标字段
-const targetFields = [
+const targetFields = ref([
   { value: 'orderNumber', label: '单据编号' },
   { value: 'sku', label: 'SKU' },
   { value: 'quantity', label: '数量' },
   { value: 'orderDate', label: '单据时间' },
   { value: 'materialCode', label: '物料编码' },
   { value: 'customerOrder', label: '客户订单' },
-];
+]);
 
 // 映射方案相关数据
 const mappingSchemes = ref([
@@ -1007,14 +1105,111 @@ const mappingSchemes = ref([
 ]);
 const selectedMappingScheme = ref<number | null>(null);
 
+// {{ 添加新方案名称和描述的 ref }}
+const newSchemeName = ref('');
+const newSchemeDescription = ref('');
+
+// {{ 添加弹窗控制和数据 ref }}
+const showAddFieldDialog = ref(false);
+const fieldsToAdd = ref<string[]>([]);
+const availableFieldsForAdding = ref([
+  { label: '单据类型', value: 'documentType' }, // TODO: 确认实际的 value
+  { label: '单据项', value: 'documentItem' },     // TODO: 确认实际的 value
+  { label: '物料编号', value: 'materialCode' },   // 假设与 targetFields 一致
+  { label: '订单优先级', value: 'orderPriority' }, // TODO: 确认实际的 value
+  { label: '上级波次编号', value: 'parentWaveNumber' }, // TODO: 确认实际的 value
+  { label: '物料冷热度', value: 'materialTemperature' }, // TODO: 确认实际的 value
+]);
+
 // 字段映射相关方法
 const addMappingField = () => {
-  mappingData.value.push({
-    sourceField: '',
-    targetField: '',
-    previewData: '',
-    isRequired: false
+  // {{ 修改：不再直接添加，而是打开弹窗 }}
+  fieldsToAdd.value = []; // 重置选项
+  showAddFieldDialog.value = true;
+};
+
+// 为SKU字段添加源字段
+const addSkuSourceField = (parentIndex: number) => {
+  // 找到父SKU项
+  const parentItem = mappingData.value[parentIndex];
+  
+  // 只有当目标字段为SKU时才添加
+  if (parentItem.targetField !== 'sku') return;
+  
+  // 添加新字段
+  parentItem.sourceField.push('');
+  
+  // 添加后获取焦点效果
+  nextTick(() => {
+    // 等待DOM更新后找到新添加的字段行
+    const sourceFieldRows = document.querySelectorAll(`.source-field-row`);
+    const newRowIndex = parentItem.sourceField.length - 1;
+    
+    if (sourceFieldRows && sourceFieldRows.length > newRowIndex) {
+      // 获取新添加行的select元素
+      const selectElement = sourceFieldRows[newRowIndex].querySelector('.el-select');
+      if (selectElement) {
+        // 添加一个临时的高亮动画类
+        selectElement.classList.add('highlight-field');
+        
+        // 一段时间后移除高亮效果
+        setTimeout(() => {
+          selectElement.classList.remove('highlight-field');
+        }, 1500);
+      }
+    }
   });
+};
+
+// 删除特定行的特定源字段
+const removeSourceField = (rowIndex: number, fieldIndex: number) => {
+  // 找到对应行
+  const row = mappingData.value[rowIndex];
+  
+  // 检查是否至少有一个源字段，如果只有一个则不允许删除
+  if (row.sourceField.length <= 1) {
+    ElMessage.warning('至少需要保留一个源字段');
+    return;
+  }
+  
+  // 获取要删除的元素的DOM引用
+  const sourceFieldRows = document.querySelectorAll(`.source-field-row`);
+  if (sourceFieldRows[fieldIndex]) {
+    // 添加fadeOut动画类
+    const fieldRow = sourceFieldRows[fieldIndex] as HTMLElement;
+    fieldRow.style.animation = 'fadeOut 0.3s forwards';
+    
+    // 等待动画完成后再删除数据
+    setTimeout(() => {
+      // 从sourceField数组中删除指定索引的元素
+      row.sourceField.splice(fieldIndex, 1);
+    }, 280); // 稍微短于动画时间，使切换更流畅
+  } else {
+    // 如果找不到DOM元素，直接删除
+    row.sourceField.splice(fieldIndex, 1);
+  }
+};
+
+// {{ 新增：处理弹窗确认 }}
+const confirmAddFieldSelection = () => {
+  fieldsToAdd.value.forEach(targetFieldValue => {
+    // 简单检查是否已存在该目标字段的映射 (可优化)
+    const exists = mappingData.value.some(item => item.targetField === targetFieldValue);
+    if (!exists) {
+      const availableFieldsOptions = availableFieldsForAdding.value.filter(field => field.value === targetFieldValue);
+      mappingData.value.push({
+        sourceField: [],
+        targetField: targetFieldValue,
+        previewData: '', // 可能需要根据字段类型设置默认预览
+        isRequired: false, // 假设新添加的都不是必填，或者需要额外逻辑判断
+        isSourceField: false,
+        targetFieldText: availableFieldsOptions.find(option => option.value === targetFieldValue)?.label || targetFieldValue
+      });
+      // const availableFieldsOptions = availableFieldsForAdding.value.filter(field => field.value !== targetFieldValue);
+      // targetFields.value.push(...availableFieldsOptions);
+    }
+  });
+  showAddFieldDialog.value = false;
 };
 
 const removeMappingField = (index: number) => {
@@ -1022,7 +1217,38 @@ const removeMappingField = (index: number) => {
   if (mappingData.value[index].isRequired) {
     return;
   }
+  
+  // 删除字段及其可能的子源字段
+  const item = mappingData.value[index];
+  
+  // 如果删除的是SKU字段，需要同时删除其所有源字段
+  if (item.targetField === 'sku' && !item.isSkuSource) {
+    // 找到所有关联的SKU源字段并删除
+    const childIndices: number[] = [];
+    mappingData.value.forEach((field, idx) => {
+      if (field.isSkuSource && field.parentIndex === index) {
+        childIndices.push(idx);
+      }
+    });
+    
+    // 从后向前删除，避免索引变化问题
+    for (let i = childIndices.length - 1; i >= 0; i--) {
+      mappingData.value.splice(childIndices[i], 1);
+    }
+  }
+  
+  // 删除当前项
   mappingData.value.splice(index, 1);
+  
+  // 如果删除的是父项，需要更新子项的parentIndex
+  if (!item.isSkuSource) {
+    // 计算删除后索引的偏移量
+    mappingData.value.forEach((field) => {
+      if (field.parentIndex !== undefined && field.parentIndex > index) {
+        field.parentIndex--;
+      }
+    });
+  }
 };
 
 const saveCurrentScheme = () => {
@@ -1150,7 +1376,11 @@ const completeImport = () => {
 // 校验步骤1
 const validateStep1 = () => {
   if (!fileTypeSelected.value) {
-    ElMessage.warning('请选择文件类型');
+    //ElMessage.warning('请选择文件类型');
+      ElMessage({
+    message: '请选择文件类型',
+    type: 'warning'
+  })
     return false;
   }
   
@@ -1172,12 +1402,22 @@ const validateStep1 = () => {
 const validateStep2 = () => {
   // 检查必填字段是否都已映射
   const requiredUnmapped = mappingData.value
-    .filter(item => item.isRequired)
-    .some(item => !item.targetField);
+    .filter(item => item.isRequired && !item.isSkuSource)
+    .some(item => (!item.sourceField || item.sourceField.length === 0) || !item.targetField);
     
   if (requiredUnmapped) {
     ElMessage.warning('请完成所有必填字段的映射');
     return false;
+  }
+  
+  // 检查SKU字段是否至少有一个源字段
+  const skuFields = mappingData.value.filter(item => item.targetField === 'sku');
+  if (skuFields.length > 0) {
+    const hasValidSkuMapping = skuFields.some(item => item.sourceField && item.sourceField.length > 0);
+    if (!hasValidSkuMapping) {
+      ElMessage.warning('请为SKU字段至少设置一个源字段');
+      return false;
+    }
   }
   
   return true;
@@ -1245,9 +1485,21 @@ const goBack = () => {
 
 // 取消操作
 const cancelOperation = () => {
-  ElMessage.info('取消操作');
-  // 跳转回项目页
-  router.push('/project');
+  ElMessageBox.confirm(
+    '确定要取消操作吗？所有已上传的数据将丢失。',
+    '此页面显示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    ElMessage.success('操作已取消');
+    // 跳转回项目页
+    router.push('/');
+  }).catch(() => {
+    ElMessage.info('取消操作已撤销');
+  });
 };
 
 // 下载模板
@@ -1391,6 +1643,16 @@ onMounted(() => {
   // 设置交互监听
   setupInteractionObserver();
 });
+
+// 计算属性：是否有SKU字段
+// const hasSKUField = computed(() => {
+//   return mappingData.value.some(item => item.targetField === 'sku' && !item.isSkuSource);
+// });
+
+// 工具函数：获取SKU字段的索引
+// const getSkuFieldIndex = () => {
+//   return mappingData.value.findIndex(item => item.targetField === 'sku' && !item.isSkuSource);
+// };
 </script>
 
 <style scoped lang="scss">
@@ -2068,7 +2330,7 @@ onMounted(() => {
 // 容器宽度控制
 .step-body {
   min-height: 400px;
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -2092,6 +2354,226 @@ onMounted(() => {
   .el-input {
     width: 300px;
     max-width: 100%;
+  }
+}
+
+/* 添加新的边框容器样式 */
+.import-area-bordered {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #fff;
+}
+
+.sku-source-field {
+  position: relative;
+  padding-top: 20px;
+  padding-left: 10px;
+  margin-left: 5px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sku-source-label {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  background-color: #e6f2ff;
+  padding: 0 8px;
+  color: #409EFF;
+  font-size: 12px;
+  border-radius: 10px;
+  line-height: 18px;
+}
+
+.add-sku-source-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 5px;
+  z-index: 2;
+}
+
+.add-source-field-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 10px 10px 30px;
+  border: 1px dashed #dcdfe6;
+  border-top: none;
+  background-color: #f9f9f9;
+  width: calc(43% - 20px);
+  margin-bottom: 15px;
+  margin-left: 10px;
+  border-radius: 0 0 4px 4px;
+  box-sizing: border-box;
+
+  .add-source-btn {
+    background-color: #67c23a;
+    border-color: #67c23a;
+    color: white;
+    margin-right: 8px;
+    
+    &:hover {
+      opacity: 0.9;
+      background-color: #67c23a;
+      border-color: #67c23a;
+      color: white;
+    }
+  }
+
+  .add-source-text {
+    color: #303133;
+    font-size: 14px;
+  }
+}
+
+.sku-field-container {
+  position: relative;
+}
+
+.add-source-btn-container {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  
+  .add-source-btn {
+    background-color: #67c23a;
+    border-color: #67c23a;
+    color: white;
+    margin-right: 8px;
+    
+    &:hover {
+      opacity: 0.9;
+      background-color: #67c23a;
+      border-color: #67c23a;
+      color: white;
+    }
+  }
+  
+  .add-source-text {
+    color: #303133;
+    font-size: 14px;
+    cursor: pointer;
+  }
+}
+
+/* 新增：源字段行样式 */
+.source-field-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  animation: slideDown 0.3s ease-out;
+  transform-origin: top center;
+  
+  .el-select {
+    flex: 1;
+    margin-right: 8px;
+  }
+  
+  .el-button {
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+}
+
+/* 新添加字段高亮效果 */
+.highlight-field {
+  animation: pulse-highlight 1.5s ease;
+}
+
+@keyframes pulse-highlight {
+  0% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(64, 158, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0);
+  }
+}
+
+/* 添加源字段动画效果 */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-15px) scaleY(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(3px) scaleY(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* 删除源字段动画效果 */
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-15px) scaleY(0.8);
+    max-height: 0;
+  }
+}
+
+/* 添加源字段按钮样式增强 */
+.add-source-btn-container {
+  display: flex;
+  align-items: center;
+  margin-top: 10px;
+  
+  .add-source-btn {
+    background-color: #67c23a;
+    border-color: #67c23a;
+    color: white;
+    margin-right: 8px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    &:hover {
+      opacity: 0.9;
+      background-color: #67c23a;
+      border-color: #67c23a;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(103, 194, 58, 0.25);
+    }
+    
+    &:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(103, 194, 58, 0.25);
+    }
+  }
+  
+  .add-source-text {
+    color: #303133;
+    font-size: 14px;
+    cursor: pointer;
   }
 }
 </style> 

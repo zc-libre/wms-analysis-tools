@@ -129,7 +129,7 @@ onMounted(() => {
 
     <!-- 表格区域 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe show-header height="100%">
+      <el-table :data="tableData" v-loading="loading" stripe height="100%">
         <el-table-column prop="id" label="单据编号"  sortable />
         <el-table-column prop="sku" label="SKU"  sortable />
         <el-table-column prop="orderType" label="单据类型" />

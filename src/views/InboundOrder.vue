@@ -2,7 +2,6 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Refresh, Plus, Download } from '@element-plus/icons-vue'
-import BaseTable from '@/components/base/BaseTable.vue'
 
 // 页面标题
 const pageTitle = ref('入库单据管理')
