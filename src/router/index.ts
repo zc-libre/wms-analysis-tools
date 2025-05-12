@@ -61,6 +61,22 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/analysis-result',
+    name: 'AnalysisResult',
+    component: () => import('@/views/AnalysisResult.vue'),
+    meta: {
+      title: '分析结果'
+    }
+  },
+  {
+    path: '/analysis',
+    name: 'Analysis',
+    component: () => import('@/views/Analysis.vue'),
+    meta: {
+      title: '订单分析'
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFound.vue'),

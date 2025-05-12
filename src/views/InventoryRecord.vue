@@ -123,7 +123,7 @@ onMounted(() => {
     <div class="inbound-order__toolbar">
       <el-button type="primary" @click="handleAdd">
         <el-icon><Plus /></el-icon>
-        新增入库单
+        新增库存记录
       </el-button>
     </div>
     </div>

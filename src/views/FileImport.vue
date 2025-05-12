@@ -164,13 +164,13 @@
           </el-button>
         </div>
         
-        <!-- 新增：方案名称和描述输入区域，仅在未选择方案时显示 (MOVED HERE) -->
+        <!-- 新增：方案名称和描述输入区域，仅在未选择方案时显示 -->
         <div v-if="!selectedMappingScheme" class="new-scheme-inputs">
           <el-form label-position="top">
             <el-form-item label="方案名称" required>
               <el-input 
                 v-model="newSchemeName" 
-                placeholder="输入方案名称，例如：物流中心映射方案" 
+                placeholder="输入方案名称，例如：标准处理规则" 
               />
             </el-form-item>
             <el-form-item label="方案描述 (选填)">
@@ -348,36 +348,57 @@
           </el-button>
         </div>
         
-        <!-- 基础编号 - 特殊字符处理 -->
-        <div class="rule-section">
-          <div class="rule-section-header">
-            <i class="el-icon circle-icon"></i> 基础编号 - 特殊字符处理
+        <!-- 新增：方案名称和描述输入区域，仅在未选择方案时显示 -->
+        <div v-if="!selectedMappingScheme" class="new-scheme-inputs">
+          <el-form label-position="top">
+            <el-form-item label="方案名称" required>
+              <el-input 
+                v-model="newSchemeName" 
+                placeholder="输入方案名称，例如：标准处理规则" 
+              />
+            </el-form-item>
+            <el-form-item label="方案描述 (选填)">
+              <el-input 
+                type="textarea"
+                v-model="newSchemeDescription" 
+                placeholder="简要描述该方案的用途或特点" 
+                :rows="2"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+        
+        <!-- 单据编号 - 特殊字符校验 -->
+        <div class="collapsible-rule-section">
+          <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
+            <div class="header-left">
+              <el-switch v-model="processingRules.documentNumberValidation.enabled" @click.stop="handleSwitchChange('documentNumberValidation', $event)" />
+              <span class="rule-title">单据编号 - 特殊字符校验</span>
+            </div>
+            <el-icon>
+              <component :is="processingRules.documentNumberValidation.collapsed ? icons.ArrowRight : icons.ArrowDown" />
+            </el-icon>
           </div>
           
-          <div class="rule-options">
+          <div v-if="!processingRules.documentNumberValidation.collapsed" class="collapsible-content">
             <p class="rule-description">注意：开启后，系统将进行特殊字符处理，将特殊字符去除（如横线、空格、下划线等）。建议开启此选项，避免因特殊字符导致系统不能识别相同物料。</p>
             
             <div class="special-chars-section">
-              <div class="option-grid">
-                <div class="option-row">
-                  <span class="label">外部编码</span>
-                  <el-switch v-model="processingRules.externalCode" />
+              <div class="special-chars-list">
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.documentNumberValidation.atSymbol">@</el-checkbox>
                 </div>
-                <div class="option-row">
-                  <span class="label">包装代码</span>
-                  <el-switch v-model="processingRules.packagingCode" />
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.documentNumberValidation.percentSymbol">%</el-checkbox>
                 </div>
-                <div class="option-row">
-                  <span class="label">网格代码</span>
-                  <el-switch v-model="processingRules.gridCode" />
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.documentNumberValidation.hyphen">-</el-checkbox>
                 </div>
-                <div class="option-row">
-                  <span class="label">生产日期</span>
-                  <el-switch v-model="processingRules.productionDate" />
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.documentNumberValidation.dash">—</el-checkbox>
                 </div>
-                <div class="option-row">
-                  <span class="label">保质期</span>
-                  <el-switch v-model="processingRules.shelfLife" />
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.documentNumberValidation.underscore">_</el-checkbox>
                 </div>
               </div>
             </div>
@@ -385,29 +406,67 @@
         </div>
         
         <!-- SKU合并规则 -->
-        <div class="rule-section">
-          <div class="rule-section-header">
-            <i class="el-icon circle-icon"></i> SKU合并规则
+        <div class="collapsible-rule-section">
+          <div class="collapsible-header" @click="toggleRule('skuCombination')">
+            <div class="header-left">
+              <el-switch v-model="processingRules.skuCombination.enabled" @click.stop="handleSwitchChange('skuCombination', $event)" />
+              <span class="rule-title">SKU合并规则</span>
+            </div>
+            <el-icon>
+              <component :is="processingRules.skuCombination.collapsed ? icons.ArrowRight : icons.ArrowDown" />
+            </el-icon>
           </div>
           
-          <div class="rule-content">
-            <p class="rule-description">可以设置SKU合并规则，精确控制</p>
+          <div v-if="!processingRules.skuCombination.collapsed" class="collapsible-content">
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>开启后，在<strong>SKU相同</strong>的情况下，选择哪些属性的值一致的情况下才会进行合并。</p>
+                <div class="example-box">
+                  <p class="example-title"><el-icon><Warning /></el-icon> 示例：</p>
+                  <p>假设选择了<span class="highlight-text">质检状态</span>（未检测、合格、不合格），则：</p>
+                  <ul class="example-list">
+                    <li><el-tag size="small" effect="plain">未检测</el-tag> 状态的SKU记录彼此合并</li>
+                    <li><el-tag size="small" effect="plain">合格</el-tag> 状态的SKU记录彼此合并</li>
+                    <li><el-tag size="small" effect="plain">不合格</el-tag> 状态的SKU记录彼此合并</li>
+                  </ul>
+                  <p class="note-text"><el-icon><CircleCheck /></el-icon> 不同状态之间的SKU记录<strong>不会</strong>进行合并</p>
+                </div>
+              </div>
+            </div>
             
-            <div class="sku-section">
-              <div class="sku-input-container">
-                <span class="label">标准SKU值：</span>
-                <el-input v-model="processingRules.skuInput" placeholder="填写标准SKU值" />
+            <div class="special-chars-section">
+              <div class="section-title">
+                <el-icon><Menu /></el-icon>
+                <span>选择合并条件</span>
+              </div>
+              <div class="special-chars-list">
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.skuCombination.externalBatch">外部批次</el-checkbox>
+                </div>
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.skuCombination.packagingCode">包装代码</el-checkbox>
+                </div>
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.skuCombination.qualityStatus">质检状态</el-checkbox>
+                </div>
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.skuCombination.productionDate">生产日期</el-checkbox>
+                </div>
+                <div class="checkbox-item">
+                  <el-checkbox v-model="processingRules.skuCombination.shelfLife">保质期</el-checkbox>
+                </div>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- 表格规则 - 默认值 -->
-        <div class="collapsible-rule-section">
+        <!-- 单据类型 - 默认值 -->
+        <div class="collapsible-rule-section document-type-section">
           <div class="collapsible-header" @click="toggleRule('tableRule')">
             <div class="header-left">
-              <el-switch v-model="processingRules.tableRule.enabled" />
-              <span class="rule-title">表格规则 - 默认值</span>
+              <el-switch v-model="processingRules.tableRule.enabled" @click.stop="handleSwitchChange('tableRule', $event)" />
+              <span class="rule-title">单据类型 - 默认值</span>
             </div>
             <el-icon>
               <component :is="processingRules.tableRule.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -415,24 +474,75 @@
           </div>
           
           <div v-if="!processingRules.tableRule.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.tableRule.option" :label="1">取最大值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持为空白字段自动填充默认值，开启此选项可确保导入数据的完整性。</p>
+              </div>
             </div>
-            <div class="option-row">
-              <el-radio v-model="processingRules.tableRule.option" :label="2">平均值取整</el-radio>
-            </div>
-            <div class="option-row">
-              <el-radio v-model="processingRules.tableRule.option" :label="3">取小值取整</el-radio>
+            <div class="default-value-container">
+              <div class="default-value-item">
+                <el-input
+                  v-model="processingRules.tableRule.defaultType"
+                  class="default-value-input"
+                  placeholder="例如：销售出库"
+                >
+                  <template #prepend>默认值</template>
+                  <template #append>
+                    <el-tooltip content="此值将用于填充表格中空白的单据类型字段" placement="top">
+                      <el-icon><InfoFilled /></el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-input>
+              </div>
             </div>
           </div>
         </div>
         
-        <!-- 物料规格 - 合并规则设置 -->
+        <!-- 单据项 - 默认值 -->
+        <div class="collapsible-rule-section document-type-section">
+          <div class="collapsible-header" @click="toggleRule('documentItemRule')">
+            <div class="header-left">
+              <el-switch v-model="processingRules.documentItemRule.enabled" @click.stop="handleSwitchChange('documentItemRule', $event)" />
+              <span class="rule-title">单据项 - 默认值</span>
+            </div>
+            <el-icon>
+              <component :is="processingRules.documentItemRule.collapsed ? icons.ArrowRight : icons.ArrowDown" />
+            </el-icon>
+          </div>
+          
+          <div v-if="!processingRules.documentItemRule.collapsed" class="collapsible-content">
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持为空白字段自动填充默认值，开启此选项可确保导入数据的完整性。</p>
+              </div>
+            </div>
+            <div class="default-value-container">
+              <div class="default-value-item">
+                <el-input
+                  v-model="processingRules.documentItemRule.defaultValue"
+                  class="default-value-input"
+                  placeholder="例如：标准项"
+                >
+                  <template #prepend>默认值</template>
+                  <template #append>
+                    <el-tooltip content="此值将用于填充表格中空白的单据项字段" placement="top">
+                      <el-icon><InfoFilled /></el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-input>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 物料编号 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('materialSpec')">
             <div class="header-left">
-              <el-switch v-model="processingRules.materialSpec.enabled" />
-              <span class="rule-title">物料规格 - 合并规则设置</span>
+              <el-switch v-model="processingRules.materialSpec.enabled" @click.stop="handleSwitchChange('materialSpec', $event)" />
+              <span class="rule-title">物料编号 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.materialSpec.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -440,24 +550,30 @@
           </div>
           
           <div v-if="!processingRules.materialSpec.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.materialSpec.option" :label="1">开启平均值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.materialSpec.option" :label="2">中位数取整</el-radio>
+              <el-radio v-model="processingRules.materialSpec.option" :label="1">删除（跳过该行数据）</el-radio>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.materialSpec.option" :label="3">取小值取整</el-radio>
+              <el-radio v-model="processingRules.materialSpec.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialSpec.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 物料编号 - 合并规则设置 -->
+        <!-- 需求数量 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('materialCode')">
             <div class="header-left">
-              <el-switch v-model="processingRules.materialCode.enabled" />
-              <span class="rule-title">物料编号 - 合并规则设置</span>
+              <el-switch v-model="processingRules.materialCode.enabled" @click.stop="handleSwitchChange('materialCode', $event)" />
+              <span class="rule-title">需求数量 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.materialCode.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -465,18 +581,33 @@
           </div>
           
           <div v-if="!processingRules.materialCode.collapsed" class="collapsible-content">
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
+            </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.materialCode.option" :label="1">取认设置值</el-radio>
+              <el-radio v-model="processingRules.materialCode.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialCode.option" :label="2">平均值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialCode.option" :label="3">中位数替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialCode.option" :label="4">默认值替换</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 订单状态 - 合并规则设置 -->
+        <!-- 订单优先级 - 异常值处理-->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('orderStatus')">
             <div class="header-left">
-              <el-switch v-model="processingRules.orderStatus.enabled" />
-              <span class="rule-title">订单状态 - 合并规则设置</span>
+              <el-switch v-model="processingRules.orderStatus.enabled" @click.stop="handleSwitchChange('orderStatus', $event)" />
+              <span class="rule-title">订单优先级 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.orderStatus.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -484,18 +615,27 @@
           </div>
           
           <div v-if="!processingRules.orderStatus.collapsed" class="collapsible-content">
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
+            </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.orderStatus.option" :label="1">取认设置值</el-radio>
+              <el-radio v-model="processingRules.orderStatus.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.orderStatus.option" :label="2">默认值替换</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 上架波次号 - 合并规则设置 -->
+        <!-- 上级波次编号 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('shelfWaveNumber')">
             <div class="header-left">
-              <el-switch v-model="processingRules.shelfWaveNumber.enabled" />
-              <span class="rule-title">上架波次号 - 合并规则设置</span>
+              <el-switch v-model="processingRules.shelfWaveNumber.enabled" @click.stop="handleSwitchChange('shelfWaveNumber', $event)" />
+              <span class="rule-title">上级波次编号 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.shelfWaveNumber.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -503,21 +643,30 @@
           </div>
           
           <div v-if="!processingRules.shelfWaveNumber.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.shelfWaveNumber.option" :label="1">取认设置值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.shelfWaveNumber.option" :label="2">保持生成</el-radio>
+              <el-radio v-model="processingRules.shelfWaveNumber.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.shelfWaveNumber.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.shelfWaveNumber.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 单个单据 - 合并规则设置 -->
+        <!-- 单个体积 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('singleOrder')">
             <div class="header-left">
-              <el-switch v-model="processingRules.singleOrder.enabled" />
-              <span class="rule-title">单个单据 - 合并规则设置</span>
+              <el-switch v-model="processingRules.singleOrder.enabled" @click.stop="handleSwitchChange('singleOrder', $event)" />
+              <span class="rule-title">单个体积 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.singleOrder.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -525,21 +674,30 @@
           </div>
           
           <div v-if="!processingRules.singleOrder.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.singleOrder.option" :label="1">取认设置值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.singleOrder.option" :label="2">保持生成</el-radio>
+              <el-radio v-model="processingRules.singleOrder.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.singleOrder.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.singleOrder.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 物料分类 - 合并规则设置 -->
+        <!-- 物料冷热度 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('materialCategory')">
             <div class="header-left">
-              <el-switch v-model="processingRules.materialCategory.enabled" />
-              <span class="rule-title">物料分类 - 合并规则设置</span>
+              <el-switch v-model="processingRules.materialCategory.enabled" @click.stop="handleSwitchChange('materialCategory', $event)" />
+              <span class="rule-title">物料冷热度 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.materialCategory.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -547,21 +705,30 @@
           </div>
           
           <div v-if="!processingRules.materialCategory.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.materialCategory.option" :label="1">取认设置值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.materialCategory.option" :label="2">保持生成</el-radio>
+              <el-radio v-model="processingRules.materialCategory.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialCategory.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.materialCategory.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 包装长度 - 合并规则设置 -->
+        <!-- 包装长度 - 异常值处理 -->
         <div class="collapsible-rule-section">
-          <div class="collapsible-header" @click="toggleRule('packagingLength')">
+          <div class="collapsible-header" @click.stop="toggleRule('packagingLength')">
             <div class="header-left">
-              <el-switch v-model="processingRules.packagingLength.enabled" />
-              <span class="rule-title">包装长度 - 合并规则设置</span>
+              <el-switch v-model="processingRules.packagingLength.enabled" @click.stop="handleSwitchChange('packagingLength', $event)" />
+              <span class="rule-title">包装长度 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.packagingLength.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -569,21 +736,30 @@
           </div>
           
           <div v-if="!processingRules.packagingLength.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.packagingLength.option" :label="1">取认设置值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.packagingLength.option" :label="2">保持生成</el-radio>
+              <el-radio v-model="processingRules.packagingLength.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingLength.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingLength.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
         
-        <!-- 包装规格 - 合并规则设置 -->
+        <!-- 包装宽度 - 异常值处理 -->
         <div class="collapsible-rule-section">
           <div class="collapsible-header" @click="toggleRule('packagingSpec')">
             <div class="header-left">
-              <el-switch v-model="processingRules.packagingSpec.enabled" />
-              <span class="rule-title">包装规格 - 合并规则设置</span>
+              <el-switch v-model="processingRules.packagingSpec.enabled" @click.stop="handleSwitchChange('packagingSpec', $event)" />
+              <span class="rule-title">包装宽度 - 异常值处理</span>
             </div>
             <el-icon>
               <component :is="processingRules.packagingSpec.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -591,11 +767,51 @@
           </div>
           
           <div v-if="!processingRules.packagingSpec.collapsed" class="collapsible-content">
-            <div class="option-row">
-              <el-radio v-model="processingRules.packagingSpec.option" :label="1">取认设置值</el-radio>
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
             </div>
             <div class="option-row">
-              <el-radio v-model="processingRules.packagingSpec.option" :label="2">保持生成</el-radio>
+              <el-radio v-model="processingRules.packagingSpec.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingSpec.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingSpec.option" :label="3">随机生成</el-radio>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 包装高度 - 异常值处理 -->
+        <div class="collapsible-rule-section">
+          <div class="collapsible-header" @click="toggleRule('packagingHeight')">
+            <div class="header-left">
+              <el-switch v-model="processingRules.packagingHeight.enabled" @click.stop="handleSwitchChange('packagingHeight', $event)" />
+              <span class="rule-title">包装高度 - 异常值处理</span>
+            </div>
+            <el-icon>
+              <component :is="processingRules.packagingHeight.collapsed ? icons.ArrowRight : icons.ArrowDown" />
+            </el-icon>
+          </div>
+          
+          <div v-if="!processingRules.packagingHeight.collapsed" class="collapsible-content">
+            <div class="enhanced-rule-description">
+              <el-icon class="description-icon"><InfoFilled /></el-icon>
+              <div class="description-content">
+                <p>系统支持对异常值进行处理，开启此选项可确保导入数据的质量。</p>
+              </div>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingHeight.option" :label="1">删除（跳过该行数据）</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingHeight.option" :label="2">默认值替换</el-radio>
+            </div>
+            <div class="option-row">
+              <el-radio v-model="processingRules.packagingHeight.option" :label="3">随机生成</el-radio>
             </div>
           </div>
         </div>
@@ -632,7 +848,8 @@
 
     <div class="step-actions">
       <div class="left-actions">
-        <el-button @click="goBack"><el-icon><ArrowLeft /></el-icon> 返回</el-button>
+        <el-button @click="goBack" v-if="activeStep === 1" ><el-icon><ArrowLeft /></el-icon> 返回</el-button>
+        <el-button v-if="activeStep > 1" @click="previousStep"><el-icon><ArrowLeft /></el-icon> 上一步</el-button>
       </div>
       <div class="right-actions">
         
@@ -646,6 +863,9 @@
           ref="nextStepButton"
         >下一步<el-icon class="el-icon--right"><ArrowRight /></el-icon></el-button>
         <el-button v-if="activeStep === 3 || activeStep === 1" type="danger" plain @click="cancelOperation">取消操作</el-button>
+        <el-button v-if="activeStep === 3" type="primary" @click="submitAnalysis" class="analysis-btn">
+          <el-icon><DataAnalysis /></el-icon> 提交分析
+        </el-button>
         <el-button v-if="activeStep === 3" type="success" @click="completeImport">完成导入</el-button>
       </div>
     </div>
@@ -709,11 +929,7 @@
             <p>{{ getCurrentGuide().content }}</p>
           </div>
           <div class="guide-footer">
-            <el-button 
-              v-if="currentGuideStep > 1" 
-              type="text" 
-              @click="currentGuideStep--"
-            >上一步</el-button>
+            
             <el-button 
               v-if="currentGuideStep < guideSteps.length" 
               type="primary" 
@@ -735,7 +951,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight, ArrowLeft } from '@element-plus/icons-vue';
+import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight, ArrowLeft, Warning, CircleCheck, Menu, DataAnalysis } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1478,6 +1694,13 @@ const simulateFileProcessing = () => {
   }, 100);
 };
 
+// 返回上一步
+const previousStep = () => {
+  if (activeStep.value > 1) {
+    activeStep.value--;
+  }
+};
+
 // 返回
 const goBack = () => {
   router.push('/');
@@ -1540,21 +1763,50 @@ const handleDownloadTemplate = () => {
 
 // 字段处理规则相关数据
 const processingRules = ref({
-  // 基础编号-特殊字符处理
-  externalCode: false,
-  packagingCode: false,
-  gridCode: false,
-  productionDate: false,
-  shelfLife: false,
+  // 单据编号-特殊字符校验
+  documentNumberValidation: {
+    enabled: false,
+    collapsed: true,
+    externalCode: false,
+    packagingCode: false,
+    gridCode: false,
+    productionDate: false,
+    shelfLife: false,
+    // 新增特殊字符属性
+    atSymbol: false,
+    percentSymbol: false,
+    hyphen: false,
+    dash: false,
+    underscore: false
+  },
   
   // SKU合并规则
-  skuInput: '',
+  skuCombination: {
+    enabled: false,
+    collapsed: true,
+    skuInput: '',
+    // 新增属性
+    externalBatch: false,
+    packagingCode: false,
+    qualityStatus: false,
+    productionDate: false,
+    shelfLife: false
+  },
   
   // 表格规则-默认值
   tableRule: {
     enabled: false,
     collapsed: true,
-    option: 1
+    option: 1,
+    activeTab: 'default',  // 添加此属性
+    defaultType: '销售出库'  // 添加此属性
+  },
+  
+  // 单据项-默认值
+  documentItemRule: {
+    enabled: false,
+    collapsed: true,
+    defaultValue: '标准项'
   },
   
   // 物料规格-合并规则设置
@@ -1611,18 +1863,40 @@ const processingRules = ref({
     enabled: false,
     collapsed: true,
     option: 1
+  },
+  
+  // 包装高度-合并规则设置
+  packagingHeight: {
+    enabled: false,
+    collapsed: true,
+    option: 1
   }
 });
 
 // 定义规则类型，用于索引验证
-type RuleKey = 'tableRule' | 'materialSpec' | 'materialCode' | 'orderStatus' | 
-               'shelfWaveNumber' | 'singleOrder' | 'materialCategory' | 
-               'packagingLength' | 'packagingSpec';
+type RuleKey = 'documentNumberValidation' | 'skuCombination' | 'tableRule' | 'documentItemRule' | 'materialSpec' | 'materialCode' | 
+               'orderStatus' | 'shelfWaveNumber' | 'singleOrder' | 'materialCategory' | 
+               'packagingLength' | 'packagingSpec' | 'packagingHeight';
 
 // 折叠/展开规则面板
 const toggleRule = (rule: RuleKey) => {
   processingRules.value[rule].collapsed = !processingRules.value[rule].collapsed;
+  processingRules.value[rule].enabled = !processingRules.value[rule].collapsed;
 };
+
+// 处理开关点击事件
+const handleSwitchChange = (rule: RuleKey, _event: Event) => {
+  // 当开关状态改变时，同步修改折叠状态
+  processingRules.value[rule].collapsed = !processingRules.value[rule].enabled;
+};
+
+// 添加监听器，监听所有规则的enabled状态
+Object.keys(processingRules.value).forEach((key) => {
+  watch(() => processingRules.value[key as RuleKey].enabled, (newVal) => {
+    // 当开关状态变化时，更新折叠状态
+    processingRules.value[key as RuleKey].collapsed = !newVal;
+  });
+});
 
 onMounted(() => {
   // 从查询参数获取数据
@@ -1634,7 +1908,7 @@ onMounted(() => {
     projectName.value = name?.toString() || `项目 ${id}`;
   } else {
     ElMessage.error('缺少项目信息，无法继续');
-    router.push('/project');
+    router.push('/');
   }
   
   // 初始化引导提示位置
@@ -1653,6 +1927,20 @@ onMounted(() => {
 // const getSkuFieldIndex = () => {
 //   return mappingData.value.findIndex(item => item.targetField === 'sku' && !item.isSkuSource);
 // };
+
+// 提交分析
+const submitAnalysis = () => {
+  ElMessage.success('正在跳转到分析页面...');
+  // 跳转到分析页面，这里的路由路径根据实际项目需要进行调整
+  router.push({
+    path: '/analysis',
+    query: {
+      id: projectId.value,
+      name: projectName.value,
+      type: fileTypeSelected.value
+    }
+  });
+};
 </script>
 
 <style scoped lang="scss">
@@ -1972,7 +2260,7 @@ onMounted(() => {
 .collapsible-rule-section {
   margin-bottom: 15px;
   border: 1px solid #ebeef5;
-  border-radius: 4px;
+  border-radius: 8px;
   background-color: #fff;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
@@ -1980,62 +2268,117 @@ onMounted(() => {
   
   &:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+  
+  &:focus-within {
+    border-color: #c6e2ff;
+    box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
   }
 }
 
 .collapsible-header {
-  padding: 12px 15px;
+  padding: 14px 18px;
   background-color: #f5f7fa;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background-color 0.3s;
+  transition: all 0.3s;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 18px;
+    right: 18px;
+    height: 1px;
+    background-color: #ebeef5;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
   
   .header-left {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 18px;
   }
   
   .rule-title {
     font-size: 15px;
     color: #303133;
+    font-weight: 500;
+    transition: color 0.3s;
   }
   
   &:hover {
     background-color: #e9ecf2;
+    
+    .rule-title {
+      color: #409EFF;
+    }
+    
+    &::after {
+      opacity: 1;
+    }
   }
   
   .el-icon {
-    transition: transform 0.3s;
+    transition: all 0.3s;
     font-size: 18px;
     color: #909399;
   }
 }
 
 .collapsible-content {
-  padding: 15px 0;
+  padding: 20px 0;
   border-top: 1px solid #ebeef5;
-  background-color: #f9f9f9;
-  transition: all 0.3s ease-in-out;
+  background-color: #fcfcfc;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   max-height: 500px;
   overflow: hidden;
+  animation: slideDown 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   
   .option-row {
     padding: 12px 20px;
-    margin: 0 10px 8px;
-    border-radius: 4px;
+    margin: 0 15px 10px;
+    border-radius: 6px;
     background-color: #fff;
     border: 1px solid #ebeef5;
+    transition: all 0.3s;
+    animation: fadeIn 0.3s ease-out forwards;
+    opacity: 0;
+    
+    &:nth-child(1) { animation-delay: 0.1s; }
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.3s; }
     
     &:hover {
-      background-color: #f0f2f5;
+      background-color: #f0f8ff;
+      border-color: #c6e2ff;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+    }
+    
+    &:active {
+      transform: translateY(0);
     }
     
     &:last-child {
       margin-bottom: 10px;
     }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
   }
 }
 
@@ -2574,6 +2917,393 @@ onMounted(() => {
     color: #303133;
     font-size: 14px;
     cursor: pointer;
+  }
+}
+
+.special-chars-list {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+}
+
+.checkbox-item {
+  padding: 5px 15px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.enhanced-rule-description {
+  display: flex;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  padding: 15px;
+  margin: 0 10px 20px;
+  border-left: 4px solid #409EFF;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  animation: fadeInDown 0.5s ease-out;
+
+  &:hover {
+    box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .description-icon {
+    font-size: 22px;
+    color: #409EFF;
+    margin-right: 5px;
+    align-self: flex-start;
+  }
+
+  .description-content {
+    flex: 1;
+
+    p {
+      margin-bottom: 12px;
+      line-height: 1.6;
+      color: #444;
+      font-size: 14px;
+
+      strong {
+        color: #303133;
+        font-weight: 600;
+      }
+    }
+
+    .highlight-text {
+      background-color: rgba(255, 193, 7, 0.2);
+      padding: 2px 4px;
+      border-radius: 3px;
+      color: #b88230;
+      font-weight: 500;
+    }
+
+    .example-box {
+      background-color: #fff;
+      border-radius: 6px;
+      padding: 12px 15px;
+      margin-top: 12px;
+      border: 1px solid #e9e9eb;
+      animation: fadeIn 0.5s ease-out 0.2s backwards;
+
+      .example-title {
+        font-weight: 500;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        color: #303133;
+        font-size: 15px;
+
+        .el-icon {
+          color: #e6a23c;
+          margin-right: 5px;
+          font-size: 16px;
+        }
+      }
+
+      .example-list {
+        padding-left: 20px;
+        margin: 10px 0;
+        
+        li {
+          margin-bottom: 8px;
+          position: relative;
+          padding-left: 5px;
+          animation: slideInRight 0.4s ease-out;
+          animation-fill-mode: both;
+
+          &:nth-child(1) { animation-delay: 0.1s; }
+          &:nth-child(2) { animation-delay: 0.2s; }
+          &:nth-child(3) { animation-delay: 0.3s; }
+
+          .el-tag {
+            margin-right: 5px;
+            border-color: #dcdfe6;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .note-text {
+        font-size: 14px;
+        color: #67c23a;
+        margin-top: 12px;
+        padding-top: 10px;
+        border-top: 1px dashed #e4e7ed;
+        display: flex;
+        align-items: center;
+
+        .el-icon {
+          color: #67c23a;
+          margin-right: 5px;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #409EFF;
+}
+
+.special-chars-section {
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  margin: 0 10px 10px;
+  border: 1px solid #e4e7ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: #409EFF;
+    font-size: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #e4e7ed;
+    
+    .el-icon {
+      font-size: 16px;
+    }
+  }
+}
+
+.special-chars-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  
+  .checkbox-item {
+    padding: 8px 12px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    transition: all 0.3s;
+    flex: 1 0 auto;
+    min-width: 100px;
+    animation: fadeIn 0.4s ease-out;
+    animation-fill-mode: both;
+    border: 1px solid transparent;
+    
+    &:nth-child(1) { animation-delay: 0.1s; }
+    &:nth-child(2) { animation-delay: 0.15s; }
+    &:nth-child(3) { animation-delay: 0.2s; }
+    &:nth-child(4) { animation-delay: 0.25s; }
+    &:nth-child(5) { animation-delay: 0.3s; }
+    
+    &:hover {
+      background-color: #f0f9ff;
+      transform: translateY(-2px);
+      border-color: #c6e2ff;
+    }
+    
+    .el-checkbox {
+      width: 100%;
+      
+      .el-checkbox__label {
+        font-size: 14px;
+      }
+      
+      &.is-checked .el-checkbox__label {
+        color: #409EFF;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.system-support-text {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.default-value-container {
+  display: flex;
+  gap: 10px;
+}
+
+.default-value-item {
+  display: flex;
+  align-items: center;
+}
+
+.default-value-input {
+  width: 100%;
+  max-width: 600px;
+  transition: all 0.3s;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  &:focus-within {
+    box-shadow: 0 2px 12px rgba(64, 158, 255, 0.2);
+  }
+  
+  .el-input__wrapper {
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+  
+  .el-input__prepend {
+    background-color: #409EFF;
+    color: white;
+    font-weight: 500;
+    border-color: #409EFF;
+    min-width: 70px;
+    justify-content: center;
+  }
+}
+
+.default-value-container {
+  padding: 0 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.default-value-item {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.document-type-section {
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  
+  &:hover {
+    border-color: #c6e2ff;
+  }
+  
+  .collapsible-header {
+    background: linear-gradient(to right, #f5f7fa, #f0f8ff);
+    
+    &:hover {
+      background: linear-gradient(to right, #e9ecf2, #e6f1ff);
+    }
+  }
+  
+  .default-value-input {
+    .el-input__inner {
+      transition: all 0.3s;
+    }
+    
+    &:focus-within {
+      .el-input__inner {
+        background-color: #f8faff;
+      }
+    }
+    
+    .el-input__append {
+      background-color: #f4f8ff;
+      color: #409EFF;
+      padding: 0 12px;
+      transition: all 0.3s;
+      
+      &:hover {
+        background-color: #e6f1ff;
+      }
+    }
+  }
+  
+  .enhanced-rule-description {
+    animation: fadeInRight 0.5s ease-out;
+  }
+}
+
+/* 添加分析按钮的样式 */
+.analysis-btn {
+  margin-right: 10px;
+  background-color: #409EFF;
+  border-color: #409EFF;
+  transition: all 0.3s;
+  
+  &:hover {
+    background-color: #66b1ff;
+    border-color: #66b1ff;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.4);
+  }
+  
+  &:active {
+    background-color: #3a8ee6;
+    border-color: #3a8ee6;
+    transform: translateY(0);
   }
 }
 </style> 

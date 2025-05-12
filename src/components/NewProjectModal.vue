@@ -2,6 +2,7 @@
 import { ref, reactive, computed } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
+import 'element-plus/es/components/message/style/css'
 import { regionData } from './regionData'
 
 interface CompanyLocation {
