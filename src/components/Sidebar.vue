@@ -141,6 +141,7 @@ import NewProjectModal from './NewProjectModal.vue'
 import EditProjectModal from './EditProjectModal.vue'
 import FileUploadModal from './FileUploadModal.vue'
 import { useRouter } from 'vue-router'
+import { useProjectStore } from '../stores/project'
 
 interface File {
   id: string
@@ -161,6 +162,7 @@ interface Project {
 const activeProjectId = ref(1)
 const activeFileId = ref('file1')
 const router = useRouter()
+const projectStore = useProjectStore()
 
 const projects = ref<Project[]>([
   {
@@ -293,13 +295,12 @@ const openUploadDialog = (projectId: number) => {
   const project = projects.value.find(p => p.id === projectId);
   if (!project) return;
   
-  // 导航到文件导入页面，使用查询参数
+  // 使用 Pinia store 存储项目信息
+  projectStore.setCurrentProject(projectId, project.name);
+  
+  // 导航到文件导入页面，不再使用查询参数
   router.push({
-    name: 'FileImport',
-    query: {
-      id: projectId.toString(),
-      name: project.name
-    }
+    name: 'FileImport'
   });
 }
 

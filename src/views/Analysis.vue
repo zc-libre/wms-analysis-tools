@@ -2,32 +2,32 @@
   <div class="analysis-container">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h4>南京物流中心项目 - 订单分析任务配置</h4>
+      <h4>{{ projectName }} - 订单分析任务配置</h4>
       <div class="header-actions">
         <el-dropdown trigger="click">
           <el-button type="primary" plain>
-            <i-ep-files /> 加载模板
+            <el-icon><Document /></el-icon> 加载模板 <el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item>标准配送模板</el-dropdown-item>
               <el-dropdown-item>电商配送模板</el-dropdown-item>
               <el-dropdown-item>批发配送模板</el-dropdown-item>
-              <el-dropdown-item>南京项目配置模板</el-dropdown-item>
+              <el-dropdown-item>{{ projectName }}配置模板</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
         <el-button type="primary" plain @click="showSaveTemplateDialog">
-          <i-ep-document-add /> 保存为模板
+            <el-icon><Folder /></el-icon> 保存为模板
         </el-button>
       </div>
     </div>
 
     <!-- 整体分析任务配置 -->
-    <el-card class="config-card">
+    <el-card class="config-card config-card--primary">
       <template #header>
         <div class="card-header">
-          <i-ep-data-analysis class="header-icon" />
+            <el-icon class="header-icon"><Tickets /></el-icon>
           <span>整体分析任务配置</span>
         </div>
       </template>
@@ -39,7 +39,11 @@
           <div class="form-row">
             <div class="form-item">
               <label for="taskName" class="form-label">任务名称</label>
-              <el-input v-model="taskName" placeholder="请输入任务名称" />
+              <el-input 
+                v-model="taskName" 
+                placeholder="请输入任务名称" 
+                :class="{'task-name--eiq': taskType === 'eiq', 'task-name--inventory': taskType === 'inventory'}"
+              />
             </div>
             <div class="form-item">
               <label for="taskType" class="form-label">任务类型</label>
@@ -50,12 +54,10 @@
             </div>
           </div>
         </div>
-
+        
         <!-- 高级参数 -->
         <div class="advanced-toggle" @click="toggleAdvanced('generalAdvanced')">
-          <el-icon :class="generalAdvancedVisible ? 'rotate-icon' : ''">
-            <i-ep-arrow-right />
-          </el-icon>
+          <el-icon :class="generalAdvancedVisible ? 'rotate-icon' : ''"><CaretRight /></el-icon>
           <span>高级参数</span>
         </div>
         <div class="advanced-params" v-show="generalAdvancedVisible">
@@ -87,10 +89,10 @@
     </el-card>
 
     <!-- 出库订单相关参数 -->
-    <el-card class="config-card">
+    <el-card class="config-card config-card--primary">
       <template #header>
         <div class="card-header">
-          <i-ep-box class="header-icon" />
+            <el-icon class="header-icon"><Management /></el-icon>
           <span>出库订单相关参数</span>
         </div>
       </template>
@@ -150,6 +152,25 @@
                         <div class="form-text">多品种订单在总订单中的百分比（1-100%）</div>
                       </div>
                     </div>
+                    <div class="form-row">
+                      <div class="form-item">
+                        <label class="form-label">多品行单比(行：单)</label>
+                        <div class="ratio-input-group">
+                          <!-- <span > =</span> -->
+                          <el-input-number v-model="lineRatio" :min="1"   />
+                          <span>:</span>
+                          <el-input-number v-model="orderRatio" :min="1" />
+                        </div>
+                        <div class="form-text">多品订单中行数与订单数的比例</div>
+                      </div>
+                      <div class="form-item">
+                        <label class="form-label">SKU种类调整模式</label>
+                        <el-radio-group v-model="skuAdjustMode" class="sku-adjust-mode">
+                          <el-radio label="unchanged">不变</el-radio>
+                          <el-radio label="increase">同比增长SKU种类</el-radio>
+                        </el-radio-group>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -196,8 +217,8 @@
                     <span>{{ hour - 1 }}:00</span>
                   </div>
                 </div>
-                <!-- 可视化时间段 -->
-                <div class="time-segment-visual" style="left: 0%; width: 100%;"></div>
+                <!-- 可视化时间段容器 -->
+                <div class="time-segment-visual" id="working-time-visual"></div>
               </div>
               
               <div class="time-segments">
@@ -207,14 +228,14 @@
                     v-model="segment.start" 
                     format="HH:mm"
                     placeholder="开始时间"
-                    @change="updateTimeVisualization('working')" 
+                    @change="() => updateTimeVisualization('working')" 
                   />
                   <span>-</span>
                   <el-time-picker 
                     v-model="segment.end" 
                     format="HH:mm"
                     placeholder="结束时间"
-                    @change="updateTimeVisualization('working')" 
+                    @change="() => updateTimeVisualization('working')" 
                   />
                   <el-button 
                     type="danger" 
@@ -233,6 +254,53 @@
             </div>
           </div>
           
+          <!-- 休息时间段 -->
+          <div class="mb-4">
+            <label class="form-label">休息时间段</label>
+            <div class="timeline-container">
+              <div class="timeline-visualization">
+                <div class="hour-markers">
+                  <div v-for="hour in 24" :key="hour" class="hour-marker">
+                    <span>{{ hour - 1 }}:00</span>
+                  </div>
+                </div>
+                <!-- 可视化时间段容器 -->
+                <div class="time-segment-visual" id="break-time-visual"></div>
+              </div>
+              
+              <div class="time-segments">
+                <div v-for="(segment, index) in breakTimeSegments" :key="'break-'+index" class="time-segment">
+                  <span>时段{{ index + 1 }}：</span>
+                  <el-time-picker 
+                    v-model="segment.start" 
+                    format="HH:mm"
+                    placeholder="开始时间"
+                    @change="() => updateTimeVisualization('break')" 
+                  />
+                  <span>-</span>
+                  <el-time-picker 
+                    v-model="segment.end" 
+                    format="HH:mm"
+                    placeholder="结束时间"
+                    @change="() => updateTimeVisualization('break')" 
+                  />
+                  <el-button 
+                    type="danger" 
+                    circle 
+                    plain 
+                    size="small"
+                    @click="removeTimeSegment(index, 'break')"
+                  >
+                    <el-icon><DeleteIcon /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+              <el-button type="primary" plain size="small" class="mt-2" @click="addTimeSegment('break')">
+                <el-icon><PlusIcon /></el-icon> 添加休息时段
+              </el-button>
+            </div>
+          </div>
+          
           <!-- 订单截单时间 -->
           <div class="mb-4">
             <label class="form-label">订单截单时间</label>
@@ -243,8 +311,8 @@
                     <span>{{ hour - 1 }}:00</span>
                   </div>
                 </div>
-                <!-- 可视化时间点 -->
-                <div id="cutoffTimeVisual"></div>
+                <!-- 可视化时间点容器 -->
+                <div id="cutoffTimeVisual" class="cutoff-time-visual"></div>
               </div>
               
               <div class="time-segments">
@@ -283,8 +351,8 @@
                     <span>{{ hour - 1 }}:00</span>
                   </div>
                 </div>
-                <!-- 可视化时间段 -->
-                <div class="time-segment-visual" style="left: 0%; width: 100%;"></div>
+                <!-- 可视化时间段容器 -->
+                <div class="time-segment-visual" id="push-time-visual"></div>
               </div>
               
               <div class="time-segments">
@@ -294,16 +362,19 @@
                     v-model="segment.start" 
                     format="HH:mm"
                     placeholder="开始时间"
-                    @change="updateTimeVisualization('push')" 
+                    @change="() => updateTimeVisualization('push')" 
                   />
                   <span>-</span>
                   <el-time-picker 
                     v-model="segment.end" 
                     format="HH:mm"
                     placeholder="结束时间"
-                    @change="updateTimeVisualization('push')" 
+                    @change="() => updateTimeVisualization('push')" 
                   />
+                  <span class="form-label-push">推单数量：</span>
+                  <el-input v-model="segment.pushOrderCount"  class="form-item" clearable="true" />
                   <el-button 
+                    class="segment-btn-delete"
                     type="danger" 
                     circle 
                     plain 
@@ -323,9 +394,7 @@
 
         <!-- 高级参数 -->
         <div class="advanced-toggle" @click="toggleAdvanced('outboundAdvanced')">
-          <el-icon :class="outboundAdvancedVisible ? 'rotate-icon' : ''">
-            <i-ep-arrow-right />
-          </el-icon>
+          <el-icon :class="outboundAdvancedVisible ? 'rotate-icon' : ''"><CaretRight /></el-icon>
           <span>高级参数</span>
         </div>
         <div class="advanced-params" v-show="outboundAdvancedVisible">
@@ -341,10 +410,11 @@
     </el-card>
 
     <!-- 库存记录相关参数 -->
-    <el-card class="config-card">
+    <el-card class="config-card config-card--primary">
       <template #header>
         <div class="card-header">
-          <i-ep-box class="header-icon" />
+            <el-icon class="header-icon"><Shop /></el-icon>
+          <!-- <el-icon class="header-icon"><i-ep-box /></el-icon> -->
           <span>库存记录相关参数</span>
         </div>
       </template>
@@ -422,14 +492,14 @@
     <!-- 底部按钮 -->
     <div class="footer-buttons">
       <el-button>
-        <el-icon><i-ep-close /></el-icon> 取消
+        <el-icon><CloseBold /></el-icon> 取消
       </el-button>
       <div>
         <el-button type="primary" plain class="me-2">
-          <el-icon><i-ep-document-save /></el-icon> 保存配置
+            <el-icon><Folder /></el-icon> 保存配置
         </el-button>
         <el-button type="primary" @click="submitTask">
-          <el-icon><i-ep-video-play /></el-icon> 提交任务
+            <el-icon><CaretRight /></el-icon> 提交任务
         </el-button>
       </div>
     </div>
@@ -453,7 +523,7 @@
           />
         </el-form-item>
         <div class="dialog-tip">
-          <el-icon><i-ep-info-filled /></el-icon> 保存后，配置方案将被保存并可在下次导入时使用。
+            <el-icon><InfoFilled /></el-icon> 保存后，配置方案将被保存并可在下次导入时使用。
         </div>
       </el-form>
       <template #footer>
@@ -467,16 +537,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Delete as DeleteIcon, Plus as PlusIcon} from '@element-plus/icons-vue';
+import { ref, onMounted, watch, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { Delete as DeleteIcon, Plus as PlusIcon, ArrowDown } from '@element-plus/icons-vue';
+import { useProjectStore } from '../stores/project'
 
 // 创建router实例
 const router = useRouter()
+const route = useRoute()
+const projectStore = useProjectStore()
+
+// 组件内变量定义
+const projectId = ref<number | null>(null)
+const projectName = ref('')
+const fileType = ref('')
 
 // 基本配置
-const taskName = ref('南京物流中心项目 - 订单分析任务')
+const taskName = ref('')  // 将在onMounted中根据projectName设置
 const taskType = ref('inventory') // 'inventory' - 命中率分析, 'eiq' - 订单EIQ分析
+
+// 监听taskType变化，自动更新taskName
+watch(taskType, (newType) => {
+  const projectPrefix = projectName.value ? `${projectName.value} - ` : ''
+  if (newType === 'inventory') {
+    taskName.value = `${projectPrefix}命中率分析`
+  } else if (newType === 'eiq') {
+    taskName.value = `${projectPrefix}订单EIQ分析`
+  }
+})
 
 // 高级参数控制
 const generalAdvancedVisible = ref(false)
@@ -502,6 +590,9 @@ const selectedOrderFiles = ref(['南京物流中心2025年3月订单数据.excel
 // 出库订单算法模拟参数
 const dailyOrderLimit = ref(100)
 const multiItemRatio = ref(30)
+const lineRatio = ref(1)  // 多品行单比中的行比例
+const orderRatio = ref(1)  // 多品行单比中的单比例
+const skuAdjustMode = ref('unchanged')  // SKU种类调整模式：'unchanged'-不变, 'increase'-同比增长
 const workstationCount = ref(1)
 const slotCount = ref(1)
 const singleItemPicking = ref(false)
@@ -513,6 +604,11 @@ const workingTimeSegments = ref([
   { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59) }
 ])
 
+// 休息时间段
+const breakTimeSegments = ref([
+  { start: new Date(2023, 0, 1, 23, 0), end: new Date(2023, 0, 1, 23, 59) }
+])
+
 // 截单时间
 const cutoffTimes = ref([
   { time: new Date(2023, 0, 1, 12, 0) }
@@ -520,7 +616,7 @@ const cutoffTimes = ref([
 
 // 推单时间段
 const pushTimeSegments = ref([
-  { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59) }
+  { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59), pushOrderCount: '' }
 ])
 
 // 库存来源
@@ -603,35 +699,53 @@ const addTimeSegment = (timeType: string) => {
   
   if (timeType === 'working') {
     workingTimeSegments.value.push(newSegment)
-    updateTimeVisualization('working')
   } else if (timeType === 'push') {
     pushTimeSegments.value.push(newSegment)
-    updateTimeVisualization('push')
+  } else if (timeType === 'break') {
+    breakTimeSegments.value.push(newSegment)
   }
+
+  // 延迟一下更新可视化，确保DOM已更新
+  nextTick(() => {
+    updateTimeVisualization(timeType)
+  })
 }
 
 // 方法 - 删除时间段
 const removeTimeSegment = (index: number, timeType: string) => {
   if (timeType === 'working' && workingTimeSegments.value.length > 1) {
     workingTimeSegments.value.splice(index, 1)
-    updateTimeVisualization('working')
   } else if (timeType === 'push' && pushTimeSegments.value.length > 1) {
     pushTimeSegments.value.splice(index, 1)
-    updateTimeVisualization('push')
+  } else if (timeType === 'break' && breakTimeSegments.value.length > 1) {
+    breakTimeSegments.value.splice(index, 1)
   }
+
+  // 延迟一下更新可视化，确保DOM已更新
+  nextTick(() => {
+    updateTimeVisualization(timeType)
+  })
 }
 
 // 方法 - 添加截单时间点
 const addCutoffTime = () => {
   cutoffTimes.value.push({ time: new Date(2023, 0, 1, 16, 0) })
-  updateCutoffTimeVisualization()
+  
+  // 延迟一下更新可视化，确保DOM已更新
+  nextTick(() => {
+    updateCutoffTimeVisualization()
+  })
 }
 
 // 方法 - 删除截单时间点
 const removeCutoffTime = (index: number) => {
   if (cutoffTimes.value.length > 1) {
     cutoffTimes.value.splice(index, 1)
-    updateCutoffTimeVisualization()
+    
+    // 延迟一下更新可视化，确保DOM已更新
+    nextTick(() => {
+      updateCutoffTimeVisualization()
+    })
   }
 }
 
@@ -673,10 +787,75 @@ const updateCutoffTimeVisualization = () => {
 
 // 方法 - 更新时间轴可视化
 const updateTimeVisualization = (timeType: string) => {
-  // 简化处理不同类型的时间轴可视化
-  // 此处使用timeType参数用于区分不同的时间轴类型
-  console.log(`更新${timeType}时间轴可视化`);
-  // 在实际应用中可能需要更复杂的可视化实现
+  // 获取要处理的时间段数组
+  let timeSegments: { start: Date, end: Date }[] = [];
+  let visualElementId = '';
+  
+  if (timeType === 'working') {
+    timeSegments = workingTimeSegments.value;
+    visualElementId = 'working-time-visual';
+  } else if (timeType === 'break') {
+    timeSegments = breakTimeSegments.value;
+    visualElementId = 'break-time-visual';
+  } else if (timeType === 'push') {
+    timeSegments = pushTimeSegments.value;
+    visualElementId = 'push-time-visual';
+  }
+  
+  // 通过ID直接查找可视化元素
+  const visualElement = document.getElementById(visualElementId);
+  if (!visualElement) {
+    console.error(`找不到可视化元素ID: ${visualElementId}`);
+    return;
+  }
+  
+  console.log(`找到${timeType}可视化容器`, visualElement);
+  
+  // 如果没有时间段数据，清空可视化
+  if (timeSegments.length === 0) {
+    visualElement.innerHTML = '';
+    return;
+  }
+  
+  // 合并所有时间段
+  const visualSegments: {start: number, end: number}[] = [];
+  timeSegments.forEach(segment => {
+    if (!segment.start || !segment.end) return;
+    
+    const startHour = segment.start.getHours();
+    const startMinute = segment.start.getMinutes();
+    const endHour = segment.end.getHours();
+    const endMinute = segment.end.getMinutes();
+    
+    const startPercentage = (startHour * 60 + startMinute) / (24 * 60) * 100;
+    const endPercentage = (endHour * 60 + endMinute) / (24 * 60) * 100;
+    
+    visualSegments.push({
+      start: startPercentage,
+      end: endPercentage
+    });
+  });
+  
+  // 清空现有的可视化元素
+  visualElement.innerHTML = '';
+  
+  // 为每个时间段创建可视化区域
+  visualSegments.forEach(segment => {
+    const width = segment.end - segment.start;
+    
+    // 创建具有明确样式的视觉元素
+    const segmentEl = document.createElement('div');
+    segmentEl.className = 'time-segment-block';
+    segmentEl.style.position = 'absolute';
+    segmentEl.style.left = `${segment.start}%`;
+    segmentEl.style.width = `${width}%`;
+    segmentEl.style.height = '20px';
+    segmentEl.style.backgroundColor = 'rgba(13, 110, 253, 0.5)';
+    segmentEl.style.borderRadius = '4px';
+    
+    console.log(`添加时间段: ${segment.start}% - ${segment.end}%, 宽度: ${width}%`);
+    visualElement.appendChild(segmentEl);
+  });
 }
 
 // 方法 - 显示保存模板对话框
@@ -702,16 +881,66 @@ const saveTemplate = () => {
 
 // 初始化
 onMounted(() => {
+  // 滚动到页面顶部 - 使用nextTick确保DOM更新后滚动生效
+  nextTick(() => {
+    // 使用更直接的DOM方法
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0 // 针对Safari浏览器
+  })
+  
+  // 从 Pinia store 获取项目信息
+  projectId.value = projectStore.currentProjectId
+  projectName.value = projectStore.currentProjectName
+  fileType.value = projectStore.currentFileType
+  
+  if (!projectId.value) {
+    // 尝试从查询参数获取数据（向后兼容）
+    const id = route.query.id
+    const name = route.query.name
+    const type = route.query.type
+    
+    if (id) {
+      projectId.value = parseInt(id.toString(), 10)
+      projectName.value = name?.toString() || `项目 ${id}`
+      fileType.value = type?.toString() || ''
+    } else {
+      // 如果没有项目信息，返回首页
+      router.push('/')
+    }
+  }
+  
+  // 根据当前项目名称和任务类型设置初始任务名称
+  const projectPrefix = projectName.value ? `${projectName.value} - ` : ''
+  if (taskType.value === 'inventory') {
+    taskName.value = `${projectPrefix}命中率分析`
+  } else if (taskType.value === 'eiq') {
+    taskName.value = `${projectPrefix}订单EIQ分析`
+  }
+  
+  // 加载分析数据
+  loadAnalysisData()
+  
   updateOrderSourceOptions()
   updateInventorySourceOptions()
-  updateTimeVisualization('working')
-  updateTimeVisualization('push')
-  updateCutoffTimeVisualization()
+  
+  // 在组件挂载后，初始化所有时间段可视化图表
+  nextTick(() => {
+    updateTimeVisualization('working')
+    updateTimeVisualization('break')
+    updateTimeVisualization('push')
+    updateCutoffTimeVisualization()
+  })
   
   // 模拟使用skuMixAvg和inventoryDepth进行初始化设置
   console.log(`初始化容器混放SKU均值: ${skuMixAvg.value}`)
   console.log(`初始化库存深度: ${inventoryDepth.value}`)
 })
+
+// 加载分析数据
+const loadAnalysisData = () => {
+  // 这里是加载数据的逻辑
+  // 使用 projectId.value 和 fileType.value 获取相应数据
+}
 </script>
 
 <style scoped lang="scss">
@@ -768,8 +997,34 @@ onMounted(() => {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   }
   
+  // 主要卡片样式
+  &--primary {
+    border: 1px solid #e6f0ff;
+    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.1);
+    
+    &:hover {
+      box-shadow: 0 6px 18px rgba(13, 110, 253, 0.18);
+    }
+    
+    .card-header {
+      background-color: #f0f7ff;
+      
+      span {
+        color: #0d6efd;
+        font-size: 18px;
+      }
+      
+      .header-icon {
+        color: #0d6efd;
+        font-size: 20px;
+      }
+    }
+  }
+  
   .card-header {
     display: flex;
+    flex-direction: row;
+    justify-content: center;
     align-items: center;
     gap: 10px;
     padding: 18px 20px;
@@ -788,6 +1043,36 @@ onMounted(() => {
   
   .card-body {
     padding: 20px;
+  }
+}
+
+// 任务名称样式
+.task-name {
+  &--eiq {
+    :deep(.el-input__wrapper) {
+      background-color: #f0f7ff;
+      border: 1px solid #b8daff;
+      box-shadow: 0 0 0 1px #b8daff;
+      
+      &:hover, &:focus {
+        box-shadow: 0 0 0 1px #0d6efd;
+      }
+    }
+    
+    :deep(.el-input__inner) {
+      color: #0d6efd;
+      font-weight: 500;
+    }
+  }
+  
+  &--inventory {
+    :deep(.el-input__wrapper) {
+      background-color: #f8f9fa;
+      
+      &:hover, &:focus {
+        box-shadow: 0 0 0 1px #6c757d;
+      }
+    }
   }
 }
 
@@ -952,6 +1237,7 @@ onMounted(() => {
   border-radius: 8px;
   margin: 20px 0;
   border: 1px solid #dee2e6;
+  overflow: visible; /* 允许子元素溢出 */
 }
 
 .hour-markers {
@@ -982,11 +1268,35 @@ onMounted(() => {
 
 .time-segment-visual {
   height: 20px;
-  background-color: rgba(13, 110, 253, 0.2);
   position: absolute;
-  border-radius: 4px;
   top: 15px;
+  width: 100%;
   z-index: 1;
+  pointer-events: none; /* 确保不会阻止其他元素的点击事件 */
+}
+
+.time-segment-block {
+  position: absolute;
+  height: 20px;
+  background-color: rgba(13, 110, 253, 0.5);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 5;
+  
+  &:hover {
+    background-color: rgba(13, 110, 253, 0.7);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+  }
+}
+
+/* 截单时间点可视化 */
+.cutoff-time-visual {
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
 }
 
 .time-segments {
@@ -1009,6 +1319,15 @@ onMounted(() => {
     border-color: #a8caff;
   }
 }
+.segment-btn-delete {
+  margin-left: 20px;
+}
+  .form-item {
+    width: 300px;
+  }
+  .form-label-push {
+    margin-left: 20px;
+  }
 
 // 底部按钮区域
 .footer-buttons {
@@ -1079,5 +1398,31 @@ onMounted(() => {
 
 .text-warning {
   color: #ffc107;
+}
+
+// 多品行单比样式
+.ratio-input-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  
+  :deep(.el-input-number) {
+    width: 100px;
+    
+    .el-input__wrapper {
+      padding: 0 2px;
+    }
+  }
+  
+  span {
+    color: #606266;
+  }
+}
+
+.sku-adjust-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
 }
 </style> 

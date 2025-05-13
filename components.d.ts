@@ -42,6 +42,7 @@ declare module 'vue' {
     ElFormItem: typeof import('element-plus/es')['ElFormItem']
     ElHeader: typeof import('element-plus/es')['ElHeader']
     ElIcon: typeof import('element-plus/es')['ElIcon']
+    ElIconArrowRight: typeof import('@element-plus/icons-vue')['ArrowRight']
     ElIconDataAnalysis: typeof import('@element-plus/icons-vue')['DataAnalysis']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElInputNumber: typeof import('element-plus/es')['ElInputNumber']

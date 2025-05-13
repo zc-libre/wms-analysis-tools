@@ -104,7 +104,8 @@
             :title="uploadError"
             type="error"
             show-icon
-            :closable="false"
+            :closable="true"
+            :duration="errorMessageDuration"
           ></el-alert>
         </div>
       </div>
@@ -370,7 +371,7 @@
         
         <!-- 单据编号 - 特殊字符校验 -->
         <div class="collapsible-rule-section">
-          <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
+          <!-- <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
             <div class="header-left">
               <el-switch v-model="processingRules.documentNumberValidation.enabled" @click.stop="handleSwitchChange('documentNumberValidation', $event)" />
               <span class="rule-title">单据编号 - 特殊字符校验</span>
@@ -378,11 +379,10 @@
             <el-icon>
               <component :is="processingRules.documentNumberValidation.collapsed ? icons.ArrowRight : icons.ArrowDown" />
             </el-icon>
-          </div>
+          </div> -->
           
           <div v-if="!processingRules.documentNumberValidation.collapsed" class="collapsible-content">
             <p class="rule-description">注意：开启后，系统将进行特殊字符处理，将特殊字符去除（如横线、空格、下划线等）。建议开启此选项，避免因特殊字符导致系统不能识别相同物料。</p>
-            
             <div class="special-chars-section">
               <div class="special-chars-list">
                 <div class="checkbox-item">
@@ -907,6 +907,17 @@
           </div>
         </div>
         
+        <div class="processing-status">
+          <div class="status-item">
+            <span class="status-label">当前状态:</span>
+            <span class="status-value">{{ fileProcessingStatus.processingStep }}</span>
+          </div>
+          <div class="status-item" v-if="fileProcessingStatus.totalRows > 0">
+            <span class="status-label">已处理行数:</span>
+            <span class="status-value">{{ fileProcessingStatus.processedRows }} / {{ fileProcessingStatus.totalRows }}</span>
+          </div>
+        </div>
+        
         <div class="processing-notice">
           文件较大时处理可能需要几分钟，请耐心等待...
         </div>
@@ -948,16 +959,52 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight, ArrowLeft, Warning, CircleCheck, Menu, DataAnalysis } from '@element-plus/icons-vue';
+// 导入xlsx库用于解析Excel文件
+import * as XLSX from 'xlsx';
+import { useProjectStore } from '../stores/project';
 
 const route = useRoute();
 const router = useRouter();
+const projectStore = useProjectStore();
 const fileTypeSelected = ref('')
 // 步骤控制
 const activeStep = ref(1);
+
+// 错误提示自动关闭相关变量
+const errorMessageTimer = ref<number | null>(null);
+const errorMessageDuration = 5000; // 错误消息显示时间，单位毫秒
+
+// 处理错误消息函数，设置定时自动清除
+const handleErrorMessage = (errorMsg: string) => {
+  // 先清除可能存在的旧定时器
+  clearErrorMessageTimer();
+  
+  // 设置错误信息
+  uploadError.value = errorMsg;
+  
+  // 设置定时器，自动清除错误信息
+  errorMessageTimer.value = window.setTimeout(() => {
+    uploadError.value = '';
+    errorMessageTimer.value = null;
+  }, errorMessageDuration);
+};
+
+// 清除错误消息定时器
+const clearErrorMessageTimer = () => {
+  if (errorMessageTimer.value !== null) {
+    window.clearTimeout(errorMessageTimer.value);
+    errorMessageTimer.value = null;
+  }
+};
+
+// 组件销毁前清除定时器
+onBeforeUnmount(() => {
+  clearErrorMessageTimer();
+});
 
 // 引导相关状态
 const showGuide = ref(true); // 是否显示引导
@@ -1137,116 +1184,17 @@ const updateGuidePosition = async () => {
   }
 };
 
-// 监听引导步骤变化，更新位置
-watch(currentGuideStep, () => {
-  updateGuidePosition();
+// 文件处理状态
+const fileProcessingStatus = ref({
+  totalRows: 0,
+  processedRows: 0,
+  processingStep: '准备解析', // '解析数据', '验证字段', '准备导入', '完成'
 });
 
-// 监听窗口尺寸变化，更新引导位置
-window.addEventListener('resize', () => {
-  if (showGuide.value && !guideCompleted.value) {
-    updateGuidePosition();
-  }
-});
-
-// 引导相关方法
-const nextGuideStep = () => {
-  currentGuideStep.value++;
-};
-
-const completeGuide = () => {
-  guideCompleted.value = true;
-};
-
-const skipGuide = () => {
-  guideCompleted.value = true;
-};
-
-// 引导自动下一步函数
-const autoAdvanceGuide = () => {
-  // 仅当引导开启且未完成时生效
-  if (!showGuide.value || guideCompleted.value) return;
-  
-  const currentStep = currentGuideStep.value;
-  const hasFilesUploaded = uploadedFiles.value.length > 0;
-  
-  // 根据不同条件自动进入下一步
-  if (currentStep === 1 && fileTypeSelected.value) {
-    // 第一步完成，自动进入第二步
-    setTimeout(() => {
-      currentGuideStep.value = 2;
-    }, 800);
-  } else if (currentStep === 2 && hasFilesUploaded) {
-    // 如果已经上传了文件，自动进入第四步
-    setTimeout(() => {
-      currentGuideStep.value = 4;
-    }, 800);
-  } else if (currentStep === 3 && hasFilesUploaded) {
-    // 第三步完成，自动进入第四步
-    setTimeout(() => {
-      currentGuideStep.value = 4;
-    }, 800);
-  }
-};
-
-// 持续监听用户交互
-const setupInteractionObserver = () => {
-  // 监控文件选择变化
-  watch(fileTypeSelected, () => {
-    updateGuidePosition();
-    autoAdvanceGuide();
-  });
-  
-  // 监控文件上传变化
-  watch(uploadedFiles, () => {
-    updateGuidePosition();
-    autoAdvanceGuide();
-  });
-  
-  // 监控步骤变化
-  watch(activeStep, () => {
-    if (activeStep.value > 1 && showGuide.value && !guideCompleted.value) {
-      completeGuide();
-    }
-  });
-  
-  // 设置DOM变化监听，实时追踪目标元素变化
-  nextTick(() => {
-    if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver(() => {
-        if (showGuide.value && !guideCompleted.value) {
-          updateGuidePosition();
-        }
-      });
-      
-      // 监听整个步骤内容区域
-      const stepContent = document.querySelector('.step-content');
-      if (stepContent) {
-        observer.observe(stepContent, { 
-          childList: true, 
-          subtree: true, 
-          attributes: true,
-          attributeFilter: ['style', 'class']
-        });
-      }
-    }
-  });
-  
-  // 监听滚动事件，保持引导框位置与目标元素同步
-  window.addEventListener('scroll', () => {
-    if (showGuide.value && !guideCompleted.value) {
-      updateGuidePosition();
-    }
-  }, { passive: true });
-  
-  // 监听焦点变化
-  document.addEventListener('focusin', () => {
-    if (showGuide.value && !guideCompleted.value) {
-      // 如果焦点在某个相关元素上，更新引导位置
-      updateGuidePosition();
-    }
-  });
-};
+// 文件内容相关
+const fileData = ref<any[]>([]);
+const fileHeaders = ref<string[]>([]);
+const previewData = ref<Record<string, string>>({});
 
 // 文件处理进度相关
 const showProcessingDialog = ref(false);
@@ -1497,27 +1445,26 @@ const handleFileChange = (file: any) => {
   // 验证文件
   const validationResult = validateFile(file);
   if (!validationResult.valid) {
-    uploadError.value = validationResult.error || '文件验证失败';
+    handleErrorMessage(validationResult.error || '文件验证失败');
     return;
   }
   
   // 清除之前的错误信息
+  clearErrorMessageTimer();
   uploadError.value = '';
   
-  // 模拟添加文件到上传列表
+  // 添加文件到上传列表
   const now = new Date();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
   
   uploadedFiles.value.push({
     name: file.name,
-    date: formattedDate
+    date: formattedDate,
+    size: formatFileSize(file.size)
   });
   
-  // 启动文件处理进度模拟
-  simulateFileProcessing();
-  
-  // 自动更新引导位置
-  updateGuidePosition();
+  // 启动实际文件处理进度
+  processFileWithProgress(file.raw || file);
   
   // 文件上传后，根据当前引导步骤自动前进
   if (showGuide.value && !guideCompleted.value) {
@@ -1530,10 +1477,24 @@ const handleFileChange = (file: any) => {
   }
 };
 
+// 格式化文件大小
+const formatFileSize = (size: number): string => {
+  if (size < 1024) {
+    return size + ' B';
+  } else if (size < 1024 * 1024) {
+    return (size / 1024).toFixed(2) + ' KB';
+  } else if (size < 1024 * 1024 * 1024) {
+    return (size / 1024 / 1024).toFixed(2) + ' MB';
+  } else {
+    return (size / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+  }
+};
+
 // 删除上传的文件
 const removeFile = (index: number) => {
   uploadedFiles.value.splice(index, 1);
   // 清除错误信息
+  clearErrorMessageTimer();
   uploadError.value = '';
 };
 
@@ -1551,14 +1512,21 @@ const validateFile = (file: any): { valid: boolean, error?: string } => {
     };
   }
   
-  // 这里可以添加更多的文件验证逻辑
-  // 例如检查文件大小、检查文件结构等
-  
-  // 模拟检查文件内容
-  if (fileName.includes('error') || fileName.includes('invalid')) {
+  // 检查文件大小
+  const maxSize = 200 * 1024 * 1024; // 200MB
+  if (file.size > maxSize) {
     return {
       valid: false,
-      error: '上传失败: 缺失首行标题，请确保Excel文件包含完整的表头信息。'
+      error: `文件大小超过限制。最大支持 200MB，当前文件大小: ${formatFileSize(file.size)}`
+    };
+  }
+  
+  // 已上传文件检查
+  const fileExists = uploadedFiles.value.some(uploadedFile => uploadedFile.name === file.name);
+  if (fileExists) {
+    return {
+      valid: false,
+      error: `文件 "${file.name}" 已存在，请删除后重新上传或更换文件名`
     };
   }
   
@@ -1567,7 +1535,12 @@ const validateFile = (file: any): { valid: boolean, error?: string } => {
 
 // 查看明细
 const viewDetails = () => {
-  ElMessage.info('查看文件明细');
+  projectStore.setFileType(fileTypeSelected.value);
+  
+  // 导航到文件明细页面，不再使用查询参数
+  router.push({
+    path: '/cleanout-result'
+  });
 };
 
 // 下一步
@@ -1643,61 +1616,6 @@ const validateStep2 = () => {
   }
   
   return true;
-};
-
-// 模拟文件处理进度
-const simulateFileProcessing = () => {
-  // 重置进度状态
-  showProcessingDialog.value = true;
-  processingPercentage.value = 0;
-  currentStep.value = 1;
-  processingComplete.value = false;
-  
-  // 模拟解析数据阶段 (0%-30%)
-  const parseDataInterval = setInterval(() => {
-    if (processingPercentage.value < 30) {
-      processingPercentage.value += 2;
-    } else {
-      clearInterval(parseDataInterval);
-      currentStep.value = 2; // 进入验证字段阶段
-      
-      // 模拟验证字段阶段 (30%-60%)
-      const validateFieldsInterval = setInterval(() => {
-        if (processingPercentage.value < 60) {
-          processingPercentage.value += 3;
-        } else {
-          clearInterval(validateFieldsInterval);
-          currentStep.value = 3; // 进入准备导入阶段
-          
-          // 模拟准备导入阶段 (60%-90%)
-          const prepareImportInterval = setInterval(() => {
-            if (processingPercentage.value < 90) {
-              processingPercentage.value += 2;
-            } else {
-              clearInterval(prepareImportInterval);
-              currentStep.value = 4; // 进入完成阶段
-              
-              // 模拟完成阶段 (90%-100%)
-              const completeInterval = setInterval(() => {
-                if (processingPercentage.value < 100) {
-                  processingPercentage.value += 1;
-                } else {
-                  clearInterval(completeInterval);
-                  processingComplete.value = true;
-                  
-                  // 延迟关闭对话框
-                  setTimeout(() => {
-                    showProcessingDialog.value = false;
-                    ElMessage.success('文件处理完成');
-                  }, 1000);
-                }
-              }, 100);
-            }
-          }, 150);
-        }
-      }, 150);
-    }
-  }, 100);
 };
 
 // 返回上一步
@@ -1905,16 +1823,22 @@ Object.keys(processingRules.value).forEach((key) => {
 });
 
 onMounted(() => {
-  // 从查询参数获取数据
-  const id = route.query.id;
-  const name = route.query.name;
+  // 从 Pinia store 获取项目信息
+  projectId.value = projectStore.currentProjectId;
+  projectName.value = projectStore.currentProjectName;
   
-  if (id) {
-    projectId.value = parseInt(id.toString(), 10);
-    projectName.value = name?.toString() || `项目 ${id}`;
-  } else {
-    ElMessage.error('缺少项目信息，无法继续');
-    router.push('/');
+  if (!projectId.value) {
+    // 尝试从查询参数获取数据（向后兼容旧版本）
+    const id = route.query.id;
+    const name = route.query.name;
+    
+    if (id) {
+      projectId.value = parseInt(id.toString(), 10);
+      projectName.value = name?.toString() || `项目 ${id}`;
+    } else {
+      ElMessage.error('缺少项目信息，无法继续');
+      router.push('/');
+    }
   }
   
   // 初始化引导提示位置
@@ -1936,16 +1860,316 @@ onMounted(() => {
 
 // 提交分析
 const submitAnalysis = () => {
- //s ElMessage.success('正在跳转到分析页面...');
-  // 跳转到分析页面，这里的路由路径根据实际项目需要进行调整
+  // 确保将所有必要项目信息保存到全局状态
+  projectStore.setCurrentProject(projectId.value!, projectName.value);
+  projectStore.setFileType(fileTypeSelected.value);
+  
+  // 导航到分析页面，不再使用查询参数
   router.push({
-    path: '/analysis',
-    query: {
-      id: projectId.value,
-      name: projectName.value,
-      type: fileTypeSelected.value
+    path: '/analysis'
+  });
+};
+
+// 引导相关方法
+const nextGuideStep = () => {
+  currentGuideStep.value++;
+};
+
+const completeGuide = () => {
+  guideCompleted.value = true;
+};
+
+const skipGuide = () => {
+  guideCompleted.value = true;
+};
+
+// 引导自动下一步函数
+const autoAdvanceGuide = () => {
+  // 仅当引导开启且未完成时生效
+  if (!showGuide.value || guideCompleted.value) return;
+  
+  const currentStep = currentGuideStep.value;
+  const hasFilesUploaded = uploadedFiles.value.length > 0;
+  
+  // 根据不同条件自动进入下一步
+  if (currentStep === 1 && fileTypeSelected.value) {
+    // 第一步完成，自动进入第二步
+    setTimeout(() => {
+      currentGuideStep.value = 2;
+    }, 800);
+  } else if (currentStep === 2 && hasFilesUploaded) {
+    // 如果已经上传了文件，自动进入第四步
+    setTimeout(() => {
+      currentGuideStep.value = 4;
+    }, 800);
+  } else if (currentStep === 3 && hasFilesUploaded) {
+    // 第三步完成，自动进入第四步
+    setTimeout(() => {
+      currentGuideStep.value = 4;
+    }, 800);
+  }
+};
+
+// 持续监听用户交互
+const setupInteractionObserver = () => {
+  // 监控文件选择变化
+  watch(fileTypeSelected, () => {
+    updateGuidePosition();
+    autoAdvanceGuide();
+  });
+  
+  // 监控文件上传变化
+  watch(uploadedFiles, () => {
+    updateGuidePosition();
+    autoAdvanceGuide();
+  });
+  
+  // 监控步骤变化
+  watch(activeStep, () => {
+    if (activeStep.value > 1 && showGuide.value && !guideCompleted.value) {
+      completeGuide();
     }
   });
+  
+  // 设置DOM变化监听，实时追踪目标元素变化
+  nextTick(() => {
+    if (typeof MutationObserver !== 'undefined') {
+      const observer = new MutationObserver(() => {
+        if (showGuide.value && !guideCompleted.value) {
+          updateGuidePosition();
+        }
+      });
+      
+      // 监听整个步骤内容区域
+      const stepContent = document.querySelector('.step-content');
+      if (stepContent) {
+        observer.observe(stepContent, { 
+          childList: true, 
+          subtree: true, 
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        });
+      }
+    }
+  });
+  
+  // 监听滚动事件，保持引导框位置与目标元素同步
+  window.addEventListener('scroll', () => {
+    if (showGuide.value && !guideCompleted.value) {
+      updateGuidePosition();
+    }
+  }, { passive: true });
+  
+  // 监听焦点变化
+  document.addEventListener('focusin', () => {
+    if (showGuide.value && !guideCompleted.value) {
+      // 如果焦点在某个相关元素上，更新引导位置
+      updateGuidePosition();
+    }
+  });
+};
+
+// 监听引导步骤变化，更新位置
+watch(currentGuideStep, () => {
+  updateGuidePosition();
+});
+
+// 监听窗口尺寸变化，更新引导位置
+window.addEventListener('resize', () => {
+  if (showGuide.value && !guideCompleted.value) {
+    updateGuidePosition();
+  }
+});
+
+// 文件解析函数
+const parseFile = async (file: File): Promise<{
+  headers: string[],
+  data: any[],
+  previewData: Record<string, string>
+}> => {
+  return new Promise((resolve, reject) => {
+    // 重置处理状态
+    fileProcessingStatus.value.processingStep = '解析数据';
+    fileProcessingStatus.value.processedRows = 0;
+    
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        // 开始解析
+        const data = e.target?.result;
+        
+        if (!data) {
+          throw new Error('无法读取文件内容');
+        }
+        
+        // 使用 xlsx 解析文件
+        const workbook = XLSX.read(data, { type: 'binary' });
+        
+        // 获取第一个工作表
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // 将工作表转换为JSON对象数组
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        
+        if (jsonData.length === 0) {
+          throw new Error('文件中没有数据');
+        }
+        
+        // 获取表头（第一行）
+        const headers = jsonData[0].map(String);
+        
+        // 检查是否有表头
+        if (headers.length === 0) {
+          throw new Error('文件缺少表头信息');
+        }
+        
+        // 构建数据行（跳过表头）
+        const rows = [];
+        // 用于存储每列的预览数据
+        const preview: Record<string, string> = {};
+        
+        // 获取预览数据（第二行，如果存在）
+        if (jsonData.length > 1) {
+          const previewRow = jsonData[1];
+          for (let i = 0; i < headers.length; i++) {
+            const header = headers[i];
+            const value = previewRow[i];
+            if (value !== undefined) {
+              preview[header] = String(value);
+            }
+          }
+        }
+        
+        // 更新总行数
+        fileProcessingStatus.value.totalRows = jsonData.length - 1; // 减去表头
+        
+        // 处理每一行数据，更新进度
+        for (let i = 1; i < jsonData.length; i++) {
+          const row: Record<string, any> = {};
+          for (let j = 0; j < headers.length; j++) {
+            const header = headers[j];
+            const value = jsonData[i][j];
+            row[header] = value;
+          }
+          rows.push(row);
+          
+          // 更新处理行数，每10行更新一次
+          if (i % 10 === 0) {
+            fileProcessingStatus.value.processedRows = i;
+            // 给UI一点时间来更新
+            await new Promise(r => setTimeout(r, 0));
+          }
+        }
+        
+        // 完成处理
+        fileProcessingStatus.value.processedRows = jsonData.length - 1;
+        fileProcessingStatus.value.processingStep = '验证字段';
+        
+        resolve({
+          headers,
+          data: rows,
+          previewData: preview
+        });
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('文件读取失败'));
+    };
+    
+    // 读取文件内容
+    reader.readAsBinaryString(file);
+  });
+};
+
+// 根据表头更新字段映射
+const updateFieldMappings = (headers: string[]) => {
+  // 更新源字段列表
+  sourceFields.value = headers;
+  
+  // 尝试自动匹配字段
+  const mappingsByTarget: Record<string, string> = {
+    'orderNumber': ['单据编号', '订单编号', 'order_id', 'orderId', 'order_number'],
+    'sku': ['sku', 'item_sku', 'SKU', 'product_sku', 'productSku', '物料编码'],
+    'quantity': ['quantity', 'qty', '数量', 'amount', '需求数量'],
+    'orderDate': ['订单日期', '日期', 'order_date', 'date', '单据时间'],
+    'materialCode': ['物料编码', '物料编号', 'material_code', 'materialCode', '料号']
+  };
+  
+  // 尝试自动匹配必填字段
+  mappingData.value = mappingData.value.map(item => {
+    // 如果是必填字段，尝试自动匹配
+    if (item.isRequired) {
+      const targets = mappingsByTarget[item.targetField];
+      if (targets) {
+        // 查找匹配的表头
+        const matchedHeader = headers.find(header => {
+          return targets.some(target => 
+            header.toLowerCase().includes(target.toLowerCase())
+          );
+        });
+        
+        // 如果找到匹配的表头，更新
+        if (matchedHeader) {
+          item.sourceField = [matchedHeader];
+        }
+      }
+    }
+    return item;
+  });
+};
+
+// 处理文件上传
+const processFileWithProgress = async (file: File) => {
+  try {
+    // 显示处理对话框
+    showProcessingDialog.value = true;
+    processingPercentage.value = 0;
+    currentStep.value = 1;
+    processingComplete.value = false;
+    
+    // 解析文件 (0%-60%)
+    const result = await parseFile(file);
+    fileData.value = result.data;
+    fileHeaders.value = result.headers;
+    previewData.value = result.previewData;
+    processingPercentage.value = 60;
+    currentStep.value = 2;
+    
+    // 验证字段并更新映射 (60%-80%)
+    await new Promise(resolve => setTimeout(resolve, 200)); // 给UI一点时间
+    fileProcessingStatus.value.processingStep = '验证字段';
+    updateFieldMappings(result.headers);
+    processingPercentage.value = 80;
+    currentStep.value = 3;
+    
+    // 准备导入 (80%-100%)
+    await new Promise(resolve => setTimeout(resolve, 300));
+    fileProcessingStatus.value.processingStep = '准备导入';
+    processingPercentage.value = 100;
+    currentStep.value = 4;
+    processingComplete.value = true;
+    
+    // 延迟关闭对话框
+    setTimeout(() => {
+      showProcessingDialog.value = false;
+      ElMessage.success('文件处理完成');
+    }, 1000);
+  } catch (error: any) {
+    processingComplete.value = false;
+    showProcessingDialog.value = false;
+    handleErrorMessage(`文件处理失败: ${error.message}`);
+    
+    // 移除已上传的文件
+    const index = uploadedFiles.value.findIndex(item => item.name === file.name);
+    if (index !== -1) {
+      uploadedFiles.value.splice(index, 1);
+    }
+  }
 };
 </script>
 
@@ -2004,6 +2228,107 @@ const submitAnalysis = () => {
 
 .import-steps {
   margin-bottom: 30px;
+  padding: 16px 20px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+
+  /* 使用Vue 3兼容的::v-deep选择器 */
+  ::v-deep(.el-step__head) {
+    &.is-process {
+      color: #409EFF;
+      border-color: #409EFF;
+    }
+    
+    &.is-success {
+      color: #67C23A;
+      border-color: #67C23A;
+    }
+  }
+
+  ::v-deep(.el-step__icon) {
+    width: 24px;
+    height: 24px;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  ::v-deep(.el-step__icon.is-text) {
+    border-width: 2px;
+    background-color: #fff;
+  }
+
+  ::v-deep(.el-step__icon.is-text.is-process) {
+    background-color: #409EFF;
+    color: #fff;
+  }
+
+  ::v-deep(.el-step__icon.is-text.is-success) {
+    background-color: #67C23A;
+    color: #fff;
+  }
+
+  ::v-deep(.el-step__icon.is-icon.is-process) {
+    color: #409EFF;
+  }
+
+  ::v-deep(.el-step__icon.is-icon.is-success) {
+    color: #67C23A;
+  }
+
+  ::v-deep(.el-step__title) {
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  ::v-deep(.el-step__title.is-process) {
+    font-weight: 600;
+    color: #409EFF;
+    transform: scale(1.05);
+  }
+
+  ::v-deep(.el-step__title.is-success) {
+    color: #67C23A;
+  }
+
+  ::v-deep(.el-step__line) {
+    height: 2px;
+    background-color: #e4e7ed;
+  }
+
+  ::v-deep(.el-step__line-inner) {
+    height: 100%;
+    border-width: 0;
+    background-color: #67C23A;
+    transition: all 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  }
+
+  /* 悬浮效果 */
+  ::v-deep(.el-step:hover .el-step__icon) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* 激活状态动画效果 */
+  ::v-deep(.el-step.is-process .el-step__icon) {
+    animation: pulse-icon 1.5s infinite alternate;
+  }
+}
+
+/* 脉冲动画 */
+@keyframes pulse-icon {
+  0% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(64, 158, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0);
+  }
 }
 
 .step-content {
@@ -3310,6 +3635,37 @@ const submitAnalysis = () => {
     background-color: #3a8ee6;
     border-color: #3a8ee6;
     transform: translateY(0);
+  }
+}
+
+/* 文件处理状态信息样式 */
+.processing-status {
+  margin: 20px 0;
+  padding: 10px 15px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+
+  .status-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 5px 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    .status-label {
+      color: #606266;
+      font-size: 14px;
+    }
+    
+    .status-value {
+      color: #303133;
+      font-weight: 500;
+      font-size: 14px;
+    }
   }
 }
 </style> 

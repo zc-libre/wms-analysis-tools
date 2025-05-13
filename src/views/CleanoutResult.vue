@@ -201,8 +201,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { Download, Document, Loading, InfoFilled } from '@element-plus/icons-vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useProjectStore } from '../stores/project';
 
-// 状态变量
+// 组件内变量定义
+const route = useRoute();
+const router = useRouter();
+const projectStore = useProjectStore();
+
+const projectId = ref<number | null>(null);
+const projectName = ref('');
+const fileType = ref('');
+
 const docType = ref('all');
 const uploadDate = ref('all');
 const searchFileName = ref('');
@@ -358,9 +368,36 @@ const downloadReport = (file) => {
 
 // 页面加载时获取数据
 onMounted(() => {
-  // 实际应用中这里应该调用API获取真实数据
-  console.log('页面已加载，获取清洗结果数据');
+  // 从 Pinia store 获取项目信息
+  projectId.value = projectStore.currentProjectId;
+  projectName.value = projectStore.currentProjectName;
+  fileType.value = projectStore.currentFileType;
+  
+  if (!projectId.value) {
+    // 尝试从查询参数获取数据（向后兼容）
+    const id = route.query.id;
+    const name = route.query.name;
+    const type = route.query.type;
+    
+    if (id) {
+      projectId.value = parseInt(id.toString(), 10);
+      projectName.value = name?.toString() || `项目 ${id}`;
+      fileType.value = type?.toString() || '';
+    } else {
+      // 如果没有项目信息，返回首页
+      router.push('/');
+    }
+  }
+  
+  // 加载数据
+  loadData();
 });
+
+// 加载清洗数据
+const loadData = () => {
+  // 这里是加载数据的逻辑
+  // 使用 projectId.value 和 fileType.value 获取相应数据
+};
 
 // 获取文件类型标签类型
 const getFileTypeTagType = (fileType) => {
