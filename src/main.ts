@@ -7,6 +7,7 @@ import router from './router'
 import pinia from './stores'
 import 'element-plus/es/components/message/style/css'
 import 'element-plus/es/components/message-box/style/css'
+import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 
 // Import custom styles (including Sass variables and element overrides)
 import '@/styles/main.scss'
@@ -21,7 +22,9 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-app.use(ElementPlus)
+app.use(ElementPlus, {
+  locale: zhCn, // 设置语言为中文
+})
 app.use(router)
 app.use(pinia)
 

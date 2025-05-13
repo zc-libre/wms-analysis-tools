@@ -1,7 +1,7 @@
 ---
-description:
+description: 本规范提供了在 Vue 3 + TypeScript 项目中使用 Sass 和 BEM 方法论的最佳实践指南。遵循这些规范可确保样式代码的一致性、可维护性和可扩展性。
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
 # Sass & BEM 最佳实践规范
 

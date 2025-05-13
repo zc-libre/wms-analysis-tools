@@ -69,6 +69,14 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   {
+    path: '/cleanout-result',
+    name: 'CleanoutResult',
+    component: () => import('@/views/CleanoutResult.vue'),
+    meta: {
+      title: '清洗结果'
+    }
+  },
+  {
     path: '/analysis',
     name: 'Analysis',
     component: () => import('@/views/Analysis.vue'),

@@ -1486,6 +1486,12 @@ const deleteScheme = () => {
 
 // 文件变更处理
 const handleFileChange = (file: any) => {
+  // 增加文件类型选择的校验
+  if (!fileTypeSelected.value) {
+    ElMessage.warning('请先选择导入文件类型');
+    return;  // 如果未选择文件类型，则中断上传
+  }
+  
   selectedFile.value = file;
   
   // 验证文件
@@ -1930,7 +1936,7 @@ onMounted(() => {
 
 // 提交分析
 const submitAnalysis = () => {
-  ElMessage.success('正在跳转到分析页面...');
+ //s ElMessage.success('正在跳转到分析页面...');
   // 跳转到分析页面，这里的路由路径根据实际项目需要进行调整
   router.push({
     path: '/analysis',
