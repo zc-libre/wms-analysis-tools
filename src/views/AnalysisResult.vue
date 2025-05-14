@@ -11,7 +11,6 @@ import {
   View, 
   CaretRight,
   Video,
-  VideoPause,
   Goods,
   TrendCharts,
   Aim,
@@ -129,6 +128,11 @@ const analysisRecords = reactive([
 
 // 当前选中的分析记录ID
 const selectedRecordId = ref(1)
+
+// 骨架屏显示控制
+const showSkeletonScreen = ref(false)
+// 当前处理中的记录 ID
+const processingRecordId = ref(null)
 
 // 分析记录数据映射 - 为每个记录ID存储对应的完整数据
 const recordDataMap = reactive({
@@ -1998,24 +2002,39 @@ const viewAnalysisRecord = (record: any) => {
   try {
     console.log(`加载分析记录: ${record.title}, ID: ${record.id}`)
     
-    // 如果记录正在处理中，显示提示
+    // 如果记录正在处理中，显示骨架屏
     if (record.status === 'processing') {
       ElMessage({
         message: `分析记录"${record.title}"正在处理中，数据可能不完整`,
         type: 'warning'
       })
+      
+      // 设置选中的记录 ID
+      selectedRecordId.value = record.id
+      // 更新页面标题
+      document.querySelector('.page-header-title').textContent = recordDataMap[record.id].title
+      
+      // 显示骨架屏
+      showSkeletonScreen.value = true
+      processingRecordId.value = record.id
+      
+      return // 不加载数据，直接返回
     } else {
       ElMessage({
         message: `已加载分析记录: ${record.title}`,
         type: 'success'
       })
+      
+      // 如果此前显示骨架屏，现在加载完整数据，则隐藏骨架屏
+      showSkeletonScreen.value = false
+      processingRecordId.value = null
     }
     
     // 更新选中的记录ID
     selectedRecordId.value = record.id
     
     // 更新页面标题和各个数据集
-    document.querySelector('.page-header h2').textContent = recordDataMap[record.id].title
+    document.querySelector('.page-header-title').textContent = recordDataMap[record.id].title
     
     // 清空并重新填充数据数组
     hitRateData.splice(0, hitRateData.length, ...recordDataMap[record.id].hitRateData)
@@ -2245,6 +2264,93 @@ const deleteAllAnalysisRecords = () => {
     // 用户取消删除
   })
 }
+
+// 暂停分析
+const pauseAnalysis = (record: any) => {
+  ElMessageBox.confirm(
+    `确定要暂停此分析吗？`, 
+    '提示', 
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    try {
+      console.log(`暂停分析: ${record.title}, ID: ${record.id}`)
+      
+      // 在实际项目中，这里应该调用API暂停分析任务
+      record.status = 'paused'
+      
+      ElMessage({
+        message: `已暂停分析任务: ${record.title}`,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('暂停分析任务时出错:', error)
+      ElMessage.error('暂停分析任务失败')
+    }
+  }).catch(() => {
+    // 用户取消操作
+    console.log('用户取消暂停分析')
+  })
+}
+
+// 恢复分析
+const resumeAnalysis = (record: any) => {
+  ElMessageBox.confirm(
+    `确定要继续分析吗？`, 
+    '提示', 
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    try {
+      console.log(`恢复分析: ${record.title}, ID: ${record.id}`)
+      
+      // 在实际项目中，这里应该调用API恢复分析任务
+      record.status = 'processing'
+      
+      ElMessage({
+        message: `已恢复分析任务: ${record.title}`,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('恢复分析任务时出错:', error)
+      ElMessage.error('恢复分析任务失败')
+    }
+  }).catch(() => {
+    // 用户取消操作
+    console.log('用户取消恢复分析')
+  })
+}
+
+// 处理记录状态按钮的点击
+const handleStatusAction = (record: any) => {
+  if (record.status === 'processing') {
+    // 处理分析中状态 - 暂停
+    pauseAnalysis(record);
+  } else if (record.status === 'paused') {
+    // 处理暂停状态 - 恢复
+    resumeAnalysis(record);
+  } else {
+    // 处理其他状态(completed等) - 查看
+    viewAnalysisRecord(record);
+  }
+}
+
+// 获取状态按钮的提示文本
+const getStatusButtonTitle = (record: any) => {
+  if (record.status === 'processing') {
+    return '暂停分析';
+  } else if (record.status === 'paused') {
+    return '继续分析';
+  } else {
+    return '查看分析';
+  }
+}
 </script>
 
 <template>
@@ -2311,12 +2417,22 @@ const deleteAllAnalysisRecords = () => {
               <div class="record-status processing" v-else-if="record.status === 'processing'">
                 <span class="status-icon"></span>分析中
               </div>
+              <div class="record-status paused" v-else-if="record.status === 'paused'">
+                已暂停
+              </div>
             </div>
             <div class="record-actions">
-              <el-button type="text" @click.stop="viewAnalysisRecord(record)">
-                <el-icon><View /></el-icon>
+              <!-- 状态按钮：根据记录状态显示不同按钮和功能 -->
+              <el-button 
+                type="text" 
+                @click.stop="handleStatusAction(record)"
+                :title="getStatusButtonTitle(record)"
+              >
+                <el-icon v-if="record.status === 'processing'"><VideoPause /></el-icon>
+                <el-icon v-else-if="record.status === 'paused'"><CaretRight /></el-icon>
+                <el-icon v-else><View /></el-icon>
               </el-button>
-              <el-button type="text" @click.stop="deleteAnalysisRecord(record)">
+              <el-button type="text" @click.stop="deleteAnalysisRecord(record)" title="删除">
                 <el-icon><Delete /></el-icon>
               </el-button>
             </div>
@@ -2332,7 +2448,7 @@ const deleteAllAnalysisRecords = () => {
     <div class="main-content">
       <!-- 页面头部 -->
       <div class="page-header">
-        <h2>南京3月销售订单分析</h2>
+        <div class="page-header-title">南京3月销售订单分析</div>
         <div class="header-actions">
           <el-button type="primary" @click="reAnalyze">
             <el-icon><Refresh /></el-icon>
@@ -2348,7 +2464,19 @@ const deleteAllAnalysisRecords = () => {
       <!-- 命中率分析结论 -->
       <div class="section-card">
         <h3 class="section-title">命中率分析结论</h3>
-        <el-table :data="hitRateData" border style="width: 100%">
+        <!-- 骨架屏 -->
+        <div v-if="showSkeletonScreen" class="skeleton-table-container">
+          <div class="skeleton-message skeleton-message-small">
+            <div class="skeleton-spinner skeleton-spinner-small"></div>
+            <p>命中率分析正在进行中，请稍后查看结果</p>
+          </div>
+          <div class="skeleton-table">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-row" v-for="i in 3" :key="i"></div>
+          </div>
+        </div>
+        <!-- 实际表格内容 -->
+        <el-table v-else :data="hitRateData" border style="width: 100%">
           <el-table-column prop="dateType" label="日期类型" width="120" fixed="left"/>
           <el-table-column prop="date" label="日期" width="120" />
           <el-table-column prop="timeMode" label="时效模式" width="100" />
@@ -2478,146 +2606,176 @@ const deleteAllAnalysisRecords = () => {
               <transition name="fade-transform" mode="out-in">
                 <!-- 表格视图 -->
                 <div v-if="viewMode === 'table'" class="table-view" key="table">
-                  <el-table v-if="activeTab === 'dailyEIQ'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
-                    <el-table-column prop="orderType" label="订单类型" min-width="120" />
-                    <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                    <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                    <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                    <el-table-column prop="unitPallet" label="单均行" min-width="100" />
-                    <el-table-column prop="unitPiece" label="单均个" min-width="100" />
-                    <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
-                  </el-table>
+                  <!-- 骨架屏 -->
+                  <div v-if="showSkeletonScreen" class="skeleton-screen">
+                    <div class="skeleton-message">
+                      <div class="skeleton-spinner"></div>
+                      <p>数据分析正在进行中，请稍后查看结果</p>
+                    </div>
+                    <div class="skeleton-table">
+                      <div class="skeleton-header"></div>
+                      <div class="skeleton-row" v-for="i in 8" :key="i"></div>
+                    </div>
+                  </div>
                   
-                  <el-table v-else-if="activeTab === 'periodEIQ'" :data="periodEIQData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="time" label="时间" min-width="100" />
-                    <el-table-column prop="orderType" label="订单类型" min-width="100" />
-                    <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                    <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                    <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                    <el-table-column prop="unitLine" label="单均行" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 单品分析 -->
-                  <el-table v-else-if="activeTab === 'singleProductAnalysis'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="商品编码" min-width="120" />
-                    <el-table-column prop="quantity" label="商品名称" min-width="150" />
-                    <el-table-column prop="orderCount" label="单位" min-width="80" />
-                    <el-table-column prop="demandCount" label="销售数量" min-width="100" />
-                    <el-table-column prop="volume" label="销售频次" min-width="100" />
-                    <el-table-column prop="unitPallet" label="销售占比" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 动销分析 -->
-                  <el-table v-else-if="activeTab === 'salesMovementAnalysis'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="动销率" min-width="100" />
-                    <el-table-column prop="quantity" label="动销频次" min-width="100" />
-                    <el-table-column prop="orderCount" label="商品数量" min-width="100" />
-                    <el-table-column prop="demandCount" label="滞销商品" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 命中率分析结论 -->
-                  <el-table v-else-if="activeTab === 'hitRateAnalysisConclusion'" :data="hitRateData" border style="width: 100%">
-                    <el-table-column prop="dateType" label="日期类型" min-width="120" fixed="left"/>
-                    <el-table-column prop="date" label="日期" min-width="120" />
-                    <el-table-column prop="timeMode" label="时效模式" min-width="100" />
-                    <el-table-column prop="totalOrders" label="全天总订单行" min-width="120" />
-                    <el-table-column prop="totalContainerRuns" label="全天总容器搬运次数" min-width="160" />
-                    <el-table-column prop="avgHitRate" label="平均命中率" min-width="120" />
-                  </el-table>
-                  
-                  <!-- 整体命中率 -->
-                  <el-table v-else-if="activeTab === 'overallHitRate'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="时段" min-width="100" />
-                    <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单数" min-width="100" />
-                    <el-table-column prop="demandCount" label="命中率" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 整体命中率明细 -->
-                  <el-table v-else-if="activeTab === 'overallHitRateDetail'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="时段" min-width="100" />
-                    <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单号" min-width="150" />
-                    <el-table-column prop="demandCount" label="商品编码" min-width="120" />
-                    <el-table-column prop="volume" label="商品名称" min-width="180" />
-                    <el-table-column prop="unitPallet" label="命中率" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 工作站命中率 -->
-                  <el-table v-else-if="activeTab === 'workstationHitRate'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="工作站" min-width="120" />
-                    <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单数" min-width="100" />
-                    <el-table-column prop="demandCount" label="命中率" min-width="100" />
-                  </el-table>
-                  
-                  <!-- 工作站命中率明细 -->
-                  <el-table v-else-if="activeTab === 'workstationHitRateDetail'" :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                    <el-table-column prop="orderType" label="工作站" min-width="120" />
-                    <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单号" min-width="150" />
-                    <el-table-column prop="demandCount" label="商品编码" min-width="120" />
-                    <el-table-column prop="volume" label="商品名称" min-width="180" />
-                    <el-table-column prop="unitPallet" label="命中率" min-width="100" />
-                  </el-table>
-                  
-                  <el-table v-else :data="orderDetailData" border style="width: 100%">
-                    <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
-                    <el-table-column prop="orderType" label="订单类型" min-width="120" />
-                    <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                    <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                    <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                    <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                    <el-table-column prop="unitPallet" label="单均行" min-width="100" />
-                    <el-table-column prop="unitPiece" label="单均个" min-width="100" />
-                    <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
-                  </el-table>
+                  <!-- 实际表格内容 -->
+                  <template v-else>
+                    <el-table v-if="activeTab === 'dailyEIQ'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
+                      <el-table-column prop="orderType" label="订单类型" min-width="120" />
+                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                      <el-table-column prop="unitPallet" label="单均行" min-width="100" />
+                      <el-table-column prop="unitPiece" label="单均个" min-width="100" />
+                      <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
+                    </el-table>
+                    
+                    <el-table v-else-if="activeTab === 'periodEIQ'" :data="periodEIQData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="time" label="时间" min-width="100" />
+                      <el-table-column prop="orderType" label="订单类型" min-width="100" />
+                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                      <el-table-column prop="unitLine" label="单均行" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 单品分析 -->
+                    <el-table v-else-if="activeTab === 'singleProductAnalysis'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="商品编码" min-width="120" />
+                      <el-table-column prop="quantity" label="商品名称" min-width="150" />
+                      <el-table-column prop="orderCount" label="单位" min-width="80" />
+                      <el-table-column prop="demandCount" label="销售数量" min-width="100" />
+                      <el-table-column prop="volume" label="销售频次" min-width="100" />
+                      <el-table-column prop="unitPallet" label="销售占比" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 动销分析 -->
+                    <el-table v-else-if="activeTab === 'salesMovementAnalysis'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="动销率" min-width="100" />
+                      <el-table-column prop="quantity" label="动销频次" min-width="100" />
+                      <el-table-column prop="orderCount" label="商品数量" min-width="100" />
+                      <el-table-column prop="demandCount" label="滞销商品" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 命中率分析结论 -->
+                    <el-table v-else-if="activeTab === 'hitRateAnalysisConclusion'" :data="hitRateData" border style="width: 100%">
+                      <el-table-column prop="dateType" label="日期类型" min-width="120" fixed="left"/>
+                      <el-table-column prop="date" label="日期" min-width="120" />
+                      <el-table-column prop="timeMode" label="时效模式" min-width="100" />
+                      <el-table-column prop="totalOrders" label="全天总订单行" min-width="120" />
+                      <el-table-column prop="totalContainerRuns" label="全天总容器搬运次数" min-width="160" />
+                      <el-table-column prop="avgHitRate" label="平均命中率" min-width="120" />
+                    </el-table>
+                    
+                    <!-- 整体命中率 -->
+                    <el-table v-else-if="activeTab === 'overallHitRate'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="时段" min-width="100" />
+                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单数" min-width="100" />
+                      <el-table-column prop="demandCount" label="命中率" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 整体命中率明细 -->
+                    <el-table v-else-if="activeTab === 'overallHitRateDetail'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="时段" min-width="100" />
+                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单号" min-width="150" />
+                      <el-table-column prop="demandCount" label="商品编码" min-width="120" />
+                      <el-table-column prop="volume" label="商品名称" min-width="180" />
+                      <el-table-column prop="unitPallet" label="命中率" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 工作站命中率 -->
+                    <el-table v-else-if="activeTab === 'workstationHitRate'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="工作站" min-width="120" />
+                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单数" min-width="100" />
+                      <el-table-column prop="demandCount" label="命中率" min-width="100" />
+                    </el-table>
+                    
+                    <!-- 工作站命中率明细 -->
+                    <el-table v-else-if="activeTab === 'workstationHitRateDetail'" :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
+                      <el-table-column prop="orderType" label="工作站" min-width="120" />
+                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单号" min-width="150" />
+                      <el-table-column prop="demandCount" label="商品编码" min-width="120" />
+                      <el-table-column prop="volume" label="商品名称" min-width="180" />
+                      <el-table-column prop="unitPallet" label="命中率" min-width="100" />
+                    </el-table>
+                    
+                    <el-table v-else :data="orderDetailData" border style="width: 100%">
+                      <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
+                      <el-table-column prop="orderType" label="订单类型" min-width="120" />
+                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                      <el-table-column prop="unitPallet" label="单均行" min-width="100" />
+                      <el-table-column prop="unitPiece" label="单均个" min-width="100" />
+                      <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
+                    </el-table>
+                  </template>
                 </div>
 
                 <!-- 图表视图 -->
                 <div v-else class="chart-view" key="chart">
-                  <div v-if="activeTab === 'dailyEIQ' || activeTab === 'periodEIQ'" class="filter-info">
-                    当前数据日期: {{ selectedDate ? new Date(selectedDate).toLocaleDateString() : '全部' }}
-                  </div>
-                  <div ref="chartRef" class="chart-container">
-                    <div v-if="activeTab === 'dailyEIQ'" class="chart-grid">
-                      <div id="chart1" class="chart-item"></div>
-                      <div id="chart2" class="chart-item"></div>
-                      <div id="chart3" class="chart-item"></div>
-                      <div id="chart4" class="chart-item"></div>
+                  <!-- 骨架屏 -->
+                  <div v-if="showSkeletonScreen" class="skeleton-screen">
+                    <div class="skeleton-message">
+                      <div class="skeleton-spinner"></div>
+                      <p>数据分析正在进行中，请稍后查看结果</p>
                     </div>
-                    <div v-else-if="activeTab === 'periodEIQ'" class="chart-grid">
-                      <div id="periodChart1" class="chart-item"></div>
-                      <div id="periodChart2" class="chart-item"></div>
-                      <div id="periodChart3" class="chart-item"></div>
-                      <div id="periodChart4" class="chart-item"></div>
-                    </div>
-                    <div v-else class="single-chart-container">
-                      <!-- 为每个选项卡提供一个具有唯一ID的容器 -->
-                      <div v-if="activeTab === 'orderTypeEIQ'" id="chart-orderTypeEIQ" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'EAnalysis'" id="chart-EAnalysis" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'QAnalysis'" id="chart-QAnalysis" class="chart-full"></div>
-                      <!-- 新增选项卡的图表容器 -->
-                      <div v-else-if="activeTab === 'singleProductAnalysis'" id="chart-singleProductAnalysis" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'salesMovementAnalysis'" id="chart-salesMovementAnalysis" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'hitRateAnalysisConclusion'" id="chart-hitRateAnalysisConclusion" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'overallHitRate'" id="chart-overallHitRate" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'overallHitRateDetail'" id="chart-overallHitRateDetail" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'workstationHitRate'" id="chart-workstationHitRate" class="chart-full"></div>
-                      <div v-else-if="activeTab === 'workstationHitRateDetail'" id="chart-workstationHitRateDetail" class="chart-full"></div>
-                      <div v-else id="chart-default" class="chart-full"></div>
+                    <div class="skeleton-chart">
+                      <div class="skeleton-chart-header"></div>
+                      <div class="skeleton-chart-body"></div>
                     </div>
                   </div>
+                  
+                  <!-- 实际图表内容 -->
+                  <template v-else>
+                    <div v-if="activeTab === 'dailyEIQ' || activeTab === 'periodEIQ'" class="filter-info">
+                      当前数据日期: {{ selectedDate ? new Date(selectedDate).toLocaleDateString() : '全部' }}
+                    </div>
+                    <div ref="chartRef" class="chart-container">
+                      <div v-if="activeTab === 'dailyEIQ'" class="chart-grid">
+                        <div id="chart1" class="chart-item"></div>
+                        <div id="chart2" class="chart-item"></div>
+                        <div id="chart3" class="chart-item"></div>
+                        <div id="chart4" class="chart-item"></div>
+                      </div>
+                      <div v-else-if="activeTab === 'periodEIQ'" class="chart-grid">
+                        <div id="periodChart1" class="chart-item"></div>
+                        <div id="periodChart2" class="chart-item"></div>
+                        <div id="periodChart3" class="chart-item"></div>
+                        <div id="periodChart4" class="chart-item"></div>
+                      </div>
+                      <div v-else class="single-chart-container">
+                        <!-- 为每个选项卡提供一个具有唯一ID的容器 -->
+                        <div v-if="activeTab === 'orderTypeEIQ'" id="chart-orderTypeEIQ" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'EAnalysis'" id="chart-EAnalysis" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'QAnalysis'" id="chart-QAnalysis" class="chart-full"></div>
+                        <!-- 新增选项卡的图表容器 -->
+                        <div v-else-if="activeTab === 'singleProductAnalysis'" id="chart-singleProductAnalysis" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'salesMovementAnalysis'" id="chart-salesMovementAnalysis" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'hitRateAnalysisConclusion'" id="chart-hitRateAnalysisConclusion" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'overallHitRate'" id="chart-overallHitRate" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'overallHitRateDetail'" id="chart-overallHitRateDetail" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'workstationHitRate'" id="chart-workstationHitRate" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'workstationHitRateDetail'" id="chart-workstationHitRateDetail" class="chart-full"></div>
+                        <div v-else id="chart-default" class="chart-full"></div>
+                      </div>
+                    </div>
+                  </template>
                 </div>
               </transition>
             </div>
@@ -2789,6 +2947,47 @@ const deleteAllAnalysisRecords = () => {
 
 .record-status.processing {
   background-color: #e6a23c;
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  padding: 2px 8px;
+  box-shadow: 0 0 5px rgba(230, 162, 60, 0.5);
+  animation: pulse 2s infinite;
+}
+
+.record-status.paused {
+  background-color: #909399;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(230, 162, 60, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 5px rgba(230, 162, 60, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(230, 162, 60, 0);
+  }
+}
+
+.status-icon {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+  margin-right: 5px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 0.2; }
+  50% { opacity: 1; }
+  100% { opacity: 0.2; }
 }
 
 .record-actions {
@@ -2807,7 +3006,7 @@ const deleteAllAnalysisRecords = () => {
 
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 10px;
   height: 100%;
   overflow: auto;
   background-color: #f5f7fa;
@@ -2817,12 +3016,13 @@ const deleteAllAnalysisRecords = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
 }
 
-.page-header h2 {
+.page-header-title {
   margin: 0;
   font-weight: 500;
+  font-size: 16px;
 }
 
 .header-actions {
@@ -2834,14 +3034,14 @@ const deleteAllAnalysisRecords = () => {
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   padding: 15px;
 }
 
 .section-title {
   margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
+  margin-bottom: 10px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -2849,7 +3049,7 @@ const deleteAllAnalysisRecords = () => {
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 15px;
+  padding: 5px 15px;
 }
 
 .tab-header {
@@ -3288,5 +3488,157 @@ const deleteAllAnalysisRecords = () => {
 :deep(.el-dropdown-menu__item .el-icon) {
   margin-right: 10px;
   font-size: 16px;
+}
+
+.skeleton-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.skeleton-message {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 15px 25px;
+  background-color: #f0f9ff;
+  border-radius: 6px;
+  border-left: 4px solid #409eff;
+  width: 100%;
+  max-width: 600px;
+}
+
+.skeleton-message p {
+  margin: 0;
+  font-size: 16px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.skeleton-spinner {
+  width: 28px;
+  height: 28px;
+  border: 4px solid rgba(64, 158, 255, 0.2);
+  border-top: 4px solid #409eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.skeleton-table {
+  width: 100%;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-header {
+  height: 50px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.skeleton-row {
+  height: 40px;
+  background: linear-gradient(90deg, #f5f5f5 25%, #e8e8e8 50%, #f5f5f5 75%);
+  margin-bottom: 10px;
+  border-radius: 4px;
+  opacity: 0.8;
+}
+
+.skeleton-row:nth-child(even) {
+  opacity: 0.6;
+}
+
+.skeleton-chart {
+  width: 100%;
+  height: 400px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-chart-header {
+  height: 50px;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  margin-bottom: 15px;
+}
+
+.skeleton-chart-body {
+  height: calc(100% - 65px);
+  background-color: #f9f9f9;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-chart-body::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    45deg,
+    #f0f0f0,
+    #f0f0f0 10px,
+    #f5f5f5 10px,
+    #f5f5f5 20px
+  );
+  opacity: 0.4;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.skeleton-table-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.skeleton-message-small {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background-color: #f0f9ff;
+  border-radius: 6px;
+  border-left: 4px solid #409eff;
+  width: 100%;
+  max-width: 500px;
+}
+
+.skeleton-spinner-small {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(64, 158, 255, 0.2);
+  border-top: 3px solid #409eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 15px;
 }
 </style>

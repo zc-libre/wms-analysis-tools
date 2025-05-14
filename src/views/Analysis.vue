@@ -109,7 +109,7 @@
               <!-- 数据文件选项 -->
               <div :class="['multi-select-card', orderSourceFile ? 'active' : '']">
                 <div :class="['multi-select-header', orderSourceFile ? 'active' : '']" @click="toggleMultiSelect('orderSourceFile')">
-                  <el-checkbox v-model="orderSourceFile" @change="updateOrderSourceOptions" />
+                  <el-checkbox v-model="orderSourceFile" @change="() => toggleMultiSelect('orderSourceFile')" />
                   <span class="multi-select-title">数据文件</span>
                 </div>
                 <div class="multi-select-body" v-show="orderSourceFile">
@@ -133,7 +133,7 @@
               <!-- 算法模拟选项 -->
               <div :class="['multi-select-card', orderSourceSim ? 'active' : '']">
                 <div :class="['multi-select-header', orderSourceSim ? 'active' : '']" @click="toggleMultiSelect('orderSourceSim')">
-                  <el-checkbox v-model="orderSourceSim" @change="updateOrderSourceOptions" />
+                  <el-checkbox v-model="orderSourceSim" @change="() => toggleMultiSelect('orderSourceSim')" />
                   <span class="multi-select-title">算法模拟</span>
                 </div>
                 <div class="multi-select-body" v-show="orderSourceSim">
@@ -431,7 +431,7 @@
               <!-- 数据文件选项 -->
               <div :class="['multi-select-card', inventorySourceFile ? 'active' : '']">
                 <div :class="['multi-select-header', inventorySourceFile ? 'active' : '']" @click="toggleMultiSelect('inventorySourceFile')">
-                  <el-checkbox v-model="inventorySourceFile" @change="updateInventorySourceOptions" />
+                  <el-checkbox v-model="inventorySourceFile" @change="() => toggleMultiSelect('inventorySourceFile')" />
                   <span class="multi-select-title">数据文件</span>
                 </div>
                 <div class="multi-select-body" v-show="inventorySourceFile">
@@ -451,7 +451,7 @@
               <!-- 算法模拟选项 -->
               <div :class="['multi-select-card', inventorySourceSim ? 'active' : '']">
                 <div :class="['multi-select-header', inventorySourceSim ? 'active' : '']" @click="toggleMultiSelect('inventorySourceSim')">
-                  <el-checkbox v-model="inventorySourceSim" @change="updateInventorySourceOptions" />
+                  <el-checkbox v-model="inventorySourceSim" @change="() => toggleMultiSelect('inventorySourceSim')" />
                   <span class="multi-select-title">算法模拟</span>
                 </div>
                 <div class="multi-select-body" v-show="inventorySourceSim">
@@ -1026,7 +1026,7 @@ const loadAnalysisData = () => {
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     padding: 18px 20px;
     border-bottom: 1px solid rgba(0,0,0,.1);
     
@@ -1133,7 +1133,7 @@ const loadAnalysisData = () => {
   user-select: none;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   font-weight: 500;
   transition: all 0.2s ease;
   padding: 8px 0;
@@ -1203,7 +1203,7 @@ const loadAnalysisData = () => {
 
 .multi-select-title {
   font-weight: 600;
-  margin-left: 10px;
+  margin-left: 14px;
   color: #495057;
 }
 
@@ -1333,11 +1333,39 @@ const loadAnalysisData = () => {
 .footer-buttons {
   display: flex;
   justify-content: space-between;
-  margin-top: 40px;
-  padding: 20px 0;
+  margin-top: 10px;
+  padding: 10px 0;
   
   .btn {
     min-width: 120px;
+  }
+}
+
+// 按钮图标间距 - 新增
+:deep(.el-button) {
+  .el-icon {
+    margin-right: 8px;
+    
+    & + span {
+      margin-left: 4px;
+    }
+    
+    &.el-icon--right {
+      margin-right: 0;
+      margin-left: 8px;
+    }
+  }
+  
+  i {
+    margin-right: 8px;
+  }
+}
+
+// el-radio 和 el-checkbox 中的图标间距调整
+:deep(.el-radio), :deep(.el-checkbox) {
+  i, .el-icon {
+    margin-right: 8px;
+    vertical-align: middle;
   }
 }
 
@@ -1355,7 +1383,7 @@ const loadAnalysisData = () => {
   margin-top: 15px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 // 工具类
@@ -1424,5 +1452,23 @@ const loadAnalysisData = () => {
   flex-direction: column;
   align-items: flex-start;
   gap: 5px;
+}
+
+// 时段操作按钮间距
+.time-segment {
+  & > .el-button {
+    :deep(.el-icon) {
+      margin: 0; // 圆形按钮内不需要间距
+    }
+  }
+}
+
+// 添加时段按钮的图标间距
+.mt-2 {
+  &.el-button {
+    :deep(.el-icon) {
+      margin-right: 6px; // 适当调整添加按钮的图标间距
+    }
+  }
 }
 </style> 
