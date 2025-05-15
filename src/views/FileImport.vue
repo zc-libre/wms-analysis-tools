@@ -44,10 +44,10 @@
             </div>
             <ul class="instruction-list">
               <li>文件仅支持xls、xlsx、csv格式。</li>
-              <li>必须项目提供账单信息、支持用户修改。</li>
+              <li>必填项提供默认值，支持用户修改。</li>
               <li>请不要更改或合并单元格操作！</li>
-              <li>请不要删除各行标题！</li>
-              <li>请不要更改的日期日期格式！</li>
+              <li>请不要删除首行标题！</li>
+              <li>请不要更改时间和日期格式！</li>
               <li>注意单个Excel文件最大支持100W行。</li>
               <li>注意单个Excel文件最大支持200M。</li>
               <li>物料体积可选择立方厘米（cm³）、立方分米（dm³）、立方米（m³）、默认立方厘米。</li>
@@ -120,7 +120,7 @@
             <el-icon><InfoFilled /></el-icon> 映射说明
           </div>
           <ul class="instruction-list">
-            <li>请将上传文件中的原始字段与系统目标字段进行映射。</li>
+            <li>请将上传文件中的原始字段与系统销售出库订单字段进行映射，以确保数据正确导入。</li>
             <li>可以选择已保存的映射方案快速完成配置。</li>
             <li>支持将多个原始字段映射到一个目标字段。</li>
             <li>必填字段（单据编号，SKU，单据时间，物料编号，需求数量）必须完成映射。</li>
@@ -201,7 +201,7 @@
             <el-table-column label="文件原始字段" min-width="180">
               <template #default="scope">
                 <div :class="{ 'sku-source-field': scope.row.isSkuSource, 'sku-field-container': scope.row.targetField === 'sku' && !scope.row.isSkuSource }">
-                  <div v-for="(field, index) in scope.row.sourceField" :key="index" class="source-field-row">
+                  <div v-for="(_, index) in scope.row.sourceField" :key="index" class="source-field-row">
                     <el-select 
                       v-model="scope.row.sourceField[index]" 
                       placeholder="选择文件字段"
@@ -304,11 +304,11 @@
             <el-icon><InfoFilled /></el-icon> 处理规则说明
           </div>
           <ul class="instruction-list">
-            <li>所有需要个性化处理的字段处理规则，以及如何处理数据导入冲突。</li>
+            <li>请配置各个字段的处理规则，以确保数据导入过程中能够正确处理异常情况。</li>
             <li>可以选择已保存的映射方案快速完成配置。</li>
-            <li>字段处理环节对数据进行预处理，可以在下一步导入时对数据有更好的控制。</li>
-            <li>开启单特字段选项后，相应字段导入将使用配置好的规则处理对应数据。</li>
-            <li>处理规则会影响到，数据导入时系统的对数据的解析方式。</li>
+            <li>不同类型的字段有不同的规则选项，可以根据需要开启或关闭。</li>
+            <li>开启必填校验规则的字段，如有缺失数据将被标记为异常。</li>
+            <li>点击保存后，规则方案将被保存并可在下次导入时使用。</li>
           </ul>
         </div>
         
@@ -370,8 +370,8 @@
         </div>
         
         <!-- 单据编号 - 特殊字符校验 -->
-        <div class="collapsible-rule-section">
-          <!-- <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
+        <!-- <div class="collapsible-rule-section" v-if="shouldShowRule('documentNumberValidation')">
+          <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
             <div class="header-left">
               <el-switch v-model="processingRules.documentNumberValidation.enabled" @click.stop="handleSwitchChange('documentNumberValidation', $event)" />
               <span class="rule-title">单据编号 - 特殊字符校验</span>
@@ -379,7 +379,7 @@
             <el-icon>
               <component :is="processingRules.documentNumberValidation.collapsed ? icons.ArrowRight : icons.ArrowDown" />
             </el-icon>
-          </div> -->
+          </div>
           
           <div v-if="!processingRules.documentNumberValidation.collapsed" class="collapsible-content">
             <p class="rule-description">注意：开启后，系统将进行特殊字符处理，将特殊字符去除（如横线、空格、下划线等）。建议开启此选项，避免因特殊字符导致系统不能识别相同物料。</p>
@@ -403,14 +403,14 @@
               </div>
             </div>
           </div>
-        </div>
+        </div> -->
         
         <!-- SKU合并规则 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('skuCombination')">
           <div class="collapsible-header" @click="toggleRule('skuCombination')">
             <div class="header-left">
               <el-switch v-model="processingRules.skuCombination.enabled" @click.stop="handleSwitchChange('skuCombination', $event)" />
-              <span class="rule-title">SKU合并规则</span>
+              <span class="rule-title">库存合并</span>
             </div>
             <el-icon>
               <component :is="processingRules.skuCombination.collapsed ? icons.ArrowRight : icons.ArrowDown" />
@@ -462,7 +462,7 @@
         </div>
         
         <!-- 单据类型 - 默认值 -->
-        <div class="collapsible-rule-section document-type-section">
+        <div class="collapsible-rule-section document-type-section" v-if="shouldShowRule('tableRule')">
           <div class="collapsible-header" @click="toggleRule('tableRule')">
             <div class="header-left">
               <el-switch v-model="processingRules.tableRule.enabled" @click.stop="handleSwitchChange('tableRule', $event)" />
@@ -500,7 +500,7 @@
         </div>
         
         <!-- 单据项 - 默认值 -->
-        <div class="collapsible-rule-section document-type-section">
+        <div class="collapsible-rule-section document-type-section" v-if="shouldShowRule('documentItemRule')">
           <div class="collapsible-header" @click="toggleRule('documentItemRule')">
             <div class="header-left">
               <el-switch v-model="processingRules.documentItemRule.enabled" @click.stop="handleSwitchChange('documentItemRule', $event)" />
@@ -538,7 +538,7 @@
         </div>
         
         <!-- 物料编号 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('materialSpec')">
           <div class="collapsible-header" @click="toggleRule('materialSpec')">
             <div class="header-left">
               <el-switch v-model="processingRules.materialSpec.enabled" @click.stop="handleSwitchChange('materialSpec', $event)" />
@@ -569,7 +569,7 @@
         </div>
         
         <!-- 需求数量 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('materialCode')">
           <div class="collapsible-header" @click="toggleRule('materialCode')">
             <div class="header-left">
               <el-switch v-model="processingRules.materialCode.enabled" @click.stop="handleSwitchChange('materialCode', $event)" />
@@ -603,7 +603,7 @@
         </div>
         
         <!-- 订单优先级 - 异常值处理-->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('orderStatus')">
           <div class="collapsible-header" @click="toggleRule('orderStatus')">
             <div class="header-left">
               <el-switch v-model="processingRules.orderStatus.enabled" @click.stop="handleSwitchChange('orderStatus', $event)" />
@@ -631,7 +631,7 @@
         </div>
         
         <!-- 上级波次编号 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('shelfWaveNumber')">
           <div class="collapsible-header" @click="toggleRule('shelfWaveNumber')">
             <div class="header-left">
               <el-switch v-model="processingRules.shelfWaveNumber.enabled" @click.stop="handleSwitchChange('shelfWaveNumber', $event)" />
@@ -662,7 +662,7 @@
         </div>
         
         <!-- 单个体积 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('singleOrder')">
           <div class="collapsible-header" @click="toggleRule('singleOrder')">
             <div class="header-left">
               <el-switch v-model="processingRules.singleOrder.enabled" @click.stop="handleSwitchChange('singleOrder', $event)" />
@@ -693,7 +693,7 @@
         </div>
         
         <!-- 物料冷热度 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('materialCategory')">
           <div class="collapsible-header" @click="toggleRule('materialCategory')">
             <div class="header-left">
               <el-switch v-model="processingRules.materialCategory.enabled" @click.stop="handleSwitchChange('materialCategory', $event)" />
@@ -724,7 +724,7 @@
         </div>
         
         <!-- 包装长度 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('packagingLength')">
           <div class="collapsible-header" @click.stop="toggleRule('packagingLength')">
             <div class="header-left">
               <el-switch v-model="processingRules.packagingLength.enabled" @click.stop="handleSwitchChange('packagingLength', $event)" />
@@ -755,7 +755,7 @@
         </div>
         
         <!-- 包装宽度 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('packagingSpec')">
           <div class="collapsible-header" @click="toggleRule('packagingSpec')">
             <div class="header-left">
               <el-switch v-model="processingRules.packagingSpec.enabled" @click.stop="handleSwitchChange('packagingSpec', $event)" />
@@ -786,7 +786,7 @@
         </div>
         
         <!-- 包装高度 - 异常值处理 -->
-        <div class="collapsible-rule-section">
+        <div class="collapsible-rule-section" v-if="shouldShowRule('packagingHeight')">
           <div class="collapsible-header" @click="toggleRule('packagingHeight')">
             <div class="header-left">
               <el-switch v-model="processingRules.packagingHeight.enabled" @click.stop="handleSwitchChange('packagingHeight', $event)" />
@@ -903,6 +903,10 @@
           </div>
           <div class="processing-step" :class="{ 'active': currentStep >= 4, 'complete': currentStep > 4 }">
             <div class="step-circle">4</div>
+            <div class="step-name">上传到服务器</div>
+          </div>
+          <div class="processing-step" :class="{ 'active': currentStep >= 5, 'complete': currentStep > 5 }">
+            <div class="step-circle">5</div>
             <div class="step-name">完成</div>
           </div>
         </div>
@@ -915,6 +919,14 @@
           <div class="status-item" v-if="fileProcessingStatus.totalRows > 0">
             <span class="status-label">已处理行数:</span>
             <span class="status-value">{{ fileProcessingStatus.processedRows }} / {{ fileProcessingStatus.totalRows }}</span>
+          </div>
+          <div class="status-item" v-if="currentStep >= 4 && fileUploadStatus.totalBytes > 0">
+            <span class="status-label">上传进度:</span>
+            <span class="status-value">{{ (fileUploadStatus.uploadedBytes / (1024*1024)).toFixed(2) }} MB / {{ (fileUploadStatus.totalBytes / (1024*1024)).toFixed(2) }} MB ({{ fileUploadStatus.uploadPercentage }}%)</span>
+          </div>
+          <div class="status-item" v-if="currentStep >= 4">
+            <span class="status-label">上传状态:</span>
+            <span class="status-value">{{ fileUploadStatus.uploadingStep }}</span>
           </div>
         </div>
         
@@ -1191,9 +1203,18 @@ const fileProcessingStatus = ref({
   processingStep: '准备解析', // '解析数据', '验证字段', '准备导入', '完成'
 });
 
+// 文件上传状态
+const fileUploadStatus = ref({
+  uploadedBytes: 0,
+  totalBytes: 0,
+  uploadPercentage: 0,
+  uploadingStep: '准备上传', // '准备上传', '获取授权', '上传中', '上传完成'
+  uploadUrl: '',
+});
+
 // 文件内容相关
 const fileData = ref<any[]>([]);
-const fileHeaders = ref<string[]>([]);
+const fileHeaders = ref<string[]>([]); // 初始化为空数组
 const previewData = ref<Record<string, string>>({});
 
 // 文件处理进度相关
@@ -1552,6 +1573,14 @@ const nextStep = () => {
   if (activeStep.value === 2 && !validateStep2()) {
     return;
   }
+
+  // 如果下一步将进入第三步（字段处理规则），预先检查字段头部信息
+  if (activeStep.value === 2) {
+    console.log('准备进入第三步，当前文件头部字段:', fileHeaders.value);
+    // 测试几个规则是否会显示
+    console.log('单据编号规则是否显示:', shouldShowRule('documentNumberValidation'));
+    console.log('SKU合并规则是否显示:', shouldShowRule('skuCombination'));
+  }
   
   activeStep.value++;
   
@@ -1563,28 +1592,54 @@ const nextStep = () => {
 
 // 完成导入
 const completeImport = () => {
-  ElMessage.success('文件导入成功！');
-  // 跳转回项目页
-  router.push('/project');
+  // 显示加载中提示
+  ElMessage({
+    message: '正在提交数据，请稍候...',
+    type: 'info',
+    duration: 2000
+  });
+  
+  // 准备要提交的数据（记录日志）
+  console.log('准备提交的数据:', {
+    projectId: projectId.value,
+    fileType: fileTypeSelected.value,
+    filesCount: uploadedFiles.value.length,
+    mappingFields: mappingData.value.length,
+    processingRules: Object.keys(processingRules.value).filter(key => 
+      processingRules.value[key as keyof typeof processingRules.value].enabled
+    )
+  });
+  
+  // 模拟API调用和数据处理
+  setTimeout(() => {
+    // 记录完成日志
+    console.log('文件导入完成');
+    
+    // 成功消息
+    ElMessage.success('文件导入成功！数据已保存至系统');
+    
+    // 返回项目页面并刷新
+    setTimeout(() => {
+      router.push('/');
+    }, 1000);
+  }, 1500);
 };
 
 // 校验步骤1
 const validateStep1 = () => {
+  // 检查是否选择了文件类型
   if (!fileTypeSelected.value) {
-    //ElMessage.warning('请选择文件类型');
-      ElMessage({
-    message: '请选择文件类型',
-    type: 'warning'
-  })
+    ElMessage.warning('请选择文件类型');
     return false;
   }
   
+  // 检查是否选择了文件
   if (!selectedFile.value) {
     ElMessage.warning('请选择要上传的文件');
     return false;
   }
   
-  // 如果有文件验证错误，阻止进入下一步
+  // 检查是否有文件验证错误
   if (uploadError.value) {
     ElMessage.error('请先解决文件错误再继续');
     return false;
@@ -1828,16 +1883,33 @@ onMounted(() => {
   projectName.value = projectStore.currentProjectName;
   
   if (!projectId.value) {
-    // 尝试从查询参数获取数据（向后兼容旧版本）
-    const id = route.query.id;
-    const name = route.query.name;
+    // 尝试从 sessionStorage 获取项目信息
+    const storedProject = sessionStorage.getItem('currentProject');
+    if (storedProject) {
+      try {
+        const projectData = JSON.parse(storedProject);
+        projectId.value = projectData.id;
+        projectName.value = projectData.name;
+        
+        // 更新 Pinia store（这样其他组件可以从store中获取数据）
+        projectStore.setCurrentProject(projectData.id, projectData.name);
+      } catch (e) {
+        console.error('解析sessionStorage中的项目数据失败', e);
+      }
+    }
     
-    if (id) {
-      projectId.value = parseInt(id.toString(), 10);
-      projectName.value = name?.toString() || `项目 ${id}`;
-    } else {
-      ElMessage.error('缺少项目信息，无法继续');
-      router.push('/');
+    // 如果还是没有数据，尝试从查询参数获取（向后兼容旧版本）
+    if (!projectId.value) {
+      const id = route.query.id;
+      const name = route.query.name;
+      
+      if (id) {
+        projectId.value = parseInt(id.toString(), 10);
+        projectName.value = name?.toString() || `项目 ${id}`;
+      } else {
+        ElMessage.error('缺少项目信息，无法继续');
+        router.push('/');
+      }
     }
   }
   
@@ -1863,6 +1935,22 @@ const submitAnalysis = () => {
   // 确保将所有必要项目信息保存到全局状态
   projectStore.setCurrentProject(projectId.value!, projectName.value);
   projectStore.setFileType(fileTypeSelected.value);
+  
+  // 同时更新 sessionStorage 中的数据
+  // 获取现有数据以便保留其他字段
+  let projectData = { id: projectId.value!, name: projectName.value };
+  try {
+    const storedProject = sessionStorage.getItem('currentProject');
+    if (storedProject) {
+      const existingData = JSON.parse(storedProject);
+      projectData = { ...existingData, ...projectData };
+    }
+  } catch (e) {
+    console.error('解析sessionStorage中的项目数据失败', e);
+  }
+  
+  // 更新 sessionStorage
+  sessionStorage.setItem('currentProject', JSON.stringify(projectData));
   
   // 导航到分析页面，不再使用查询参数
   router.push({
@@ -1981,6 +2069,18 @@ window.addEventListener('resize', () => {
   }
 });
 
+// 监听activeStep变化，检查规则显示状态
+watch(activeStep, (newStep) => {
+  if (newStep === 3) {
+    // 当进入第三步时检查文件头部和规则显示状态
+    console.log('进入第三步，当前文件头部字段:', fileHeaders.value);
+    // 测试所有规则的显示状态
+    Object.keys(ruleHeadersMapping).forEach((key) => {
+      console.log(`规则 ${key} 是否显示:`, shouldShowRule(key as RuleKey));
+    });
+  }
+});
+
 // 文件解析函数
 const parseFile = async (file: File): Promise<{
   headers: string[],
@@ -2092,7 +2192,7 @@ const updateFieldMappings = (headers: string[]) => {
   sourceFields.value = headers;
   
   // 尝试自动匹配字段
-  const mappingsByTarget: Record<string, string> = {
+  const mappingsByTarget: Record<string, string[]> = {
     'orderNumber': ['单据编号', '订单编号', 'order_id', 'orderId', 'order_number'],
     'sku': ['sku', 'item_sku', 'SKU', 'product_sku', 'productSku', '物料编码'],
     'quantity': ['quantity', 'qty', '数量', 'amount', '需求数量'],
@@ -2132,32 +2232,92 @@ const processFileWithProgress = async (file: File) => {
     currentStep.value = 1;
     processingComplete.value = false;
     
-    // 解析文件 (0%-60%)
+    // 初始化上传状态
+    fileUploadStatus.value.totalBytes = file.size;
+    fileUploadStatus.value.uploadedBytes = 0;
+    fileUploadStatus.value.uploadPercentage = 0;
+    
+    // 解析文件 (0%-40%)
     const result = await parseFile(file);
     fileData.value = result.data;
     fileHeaders.value = result.headers;
     previewData.value = result.previewData;
-    processingPercentage.value = 60;
+    processingPercentage.value = 40;
     currentStep.value = 2;
     
-    // 验证字段并更新映射 (60%-80%)
+    // 验证字段并更新映射 (40%-60%)
     await new Promise(resolve => setTimeout(resolve, 200)); // 给UI一点时间
     fileProcessingStatus.value.processingStep = '验证字段';
     updateFieldMappings(result.headers);
-    processingPercentage.value = 80;
+    processingPercentage.value = 60;
     currentStep.value = 3;
     
-    // 准备导入 (80%-100%)
+    // 准备导入 (60%-70%)
     await new Promise(resolve => setTimeout(resolve, 300));
     fileProcessingStatus.value.processingStep = '准备导入';
+    processingPercentage.value = 70;
+    
+    // 模拟获取MinIO上传URL (70%-75%)
+    fileProcessingStatus.value.processingStep = '获取上传授权';
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // 模拟返回的授权URL
+    const timestamp = new Date().getTime();
+    const randomId = Math.floor(Math.random() * 1000000);
+    const uploadUrl = `https://minio-server.example.com/upload/${timestamp}-${randomId}/${file.name}`;
+    fileUploadStatus.value.uploadUrl = uploadUrl;
+    processingPercentage.value = 75;
+    currentStep.value = 4; // 进入上传步骤
+    
+    // 模拟上传文件到MinIO (75%-95%)
+    fileProcessingStatus.value.processingStep = '上传到服务器';
+    fileUploadStatus.value.uploadingStep = '上传中';
+    
+    // 模拟分块上传
+    const chunkSize = 1024 * 1024; // 1MB
+    const totalChunks = Math.ceil(file.size / chunkSize);
+    
+    for (let chunk = 0; chunk < totalChunks; chunk++) {
+      // 计算当前分块的上传百分比在总进度中的权重
+      const chunkProgressStart = 75 + (chunk / totalChunks) * 20;
+      const chunkProgressEnd = 75 + ((chunk + 1) / totalChunks) * 20;
+      
+      // 模拟分块上传进度
+      for (let progress = 0; progress <= 100; progress += 5) {
+        // 更新当前分块的上传字节数
+        const start = chunk * chunkSize;
+        const end = Math.min(start + chunkSize, file.size);
+        const bytesToUpload = end - start;
+        const bytesUploaded = Math.floor((bytesToUpload * progress) / 100);
+        const totalBytesUploaded = Math.min((chunk * chunkSize) + bytesUploaded, file.size);
+        
+        // 更新UI显示
+        fileUploadStatus.value.uploadedBytes = totalBytesUploaded;
+        fileUploadStatus.value.uploadPercentage = Math.floor((totalBytesUploaded / file.size) * 100);
+        
+        // 计算总体进度
+        processingPercentage.value = Math.floor(chunkProgressStart + ((progress / 100) * (chunkProgressEnd - chunkProgressStart)));
+        
+        // 给UI时间更新
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
+    
+    // 上传完成
+    fileUploadStatus.value.uploadingStep = '上传完成';
+    fileUploadStatus.value.uploadPercentage = 100;
+    processingPercentage.value = 95;
+    
+    // 完成所有处理 (95%-100%)
+    await new Promise(resolve => setTimeout(resolve, 500));
     processingPercentage.value = 100;
-    currentStep.value = 4;
+    currentStep.value = 5; // 进入完成步骤
     processingComplete.value = true;
     
     // 延迟关闭对话框
     setTimeout(() => {
       showProcessingDialog.value = false;
-      ElMessage.success('文件处理完成');
+      ElMessage.success('文件处理并上传完成');
     }, 1000);
   } catch (error: any) {
     processingComplete.value = false;
@@ -2170,6 +2330,41 @@ const processFileWithProgress = async (file: File) => {
       uploadedFiles.value.splice(index, 1);
     }
   }
+};
+
+// 添加规则与表头字段映射
+const ruleHeadersMapping = {
+  documentNumberValidation: ['单据编号', 'order_id', 'orderId', 'order_number', '订单编号'],
+  skuCombination: ['sku', 'SKU', 'item_sku', 'product_sku', 'productSku', '物料编码', '物料编号'],
+  tableRule: ['单据类型', 'document_type', 'documentType', 'type'],
+  documentItemRule: ['单据项', 'document_item', 'documentItem', 'item'],
+  materialSpec: ['物料规格', 'material_spec', 'materialSpec', 'spec', '规格'],
+  materialCode: ['数量', 'quantity', 'qty', 'amount', '需求数量'],
+  orderStatus: ['订单优先级', 'order_priority', 'orderPriority', 'priority', '优先级'],
+  shelfWaveNumber: ['上级波次编号', 'parent_wave_number', 'parentWaveNumber', 'wave_number', '波次', '波次编号'],
+  singleOrder: ['单个体积', 'volume', '体积', 'single_volume', 'singleVolume'],
+  materialCategory: ['物料冷热度', 'material_temperature', 'materialTemperature', '冷热度', 'temperature'],
+  packagingLength: ['包装长度', 'packaging_length', 'packagingLength', 'length', '长度'],
+  packagingSpec: ['包装宽度', 'packaging_width', 'packagingWidth', 'width', '宽度'],
+  packagingHeight: ['包装高度', 'packaging_height', 'packagingHeight', 'height', '高度']
+};
+
+// 检查规则是否应该显示的计算函数
+const shouldShowRule = (ruleKey: RuleKey): boolean => {
+  // 如果没有头部字段，返回true，显示所有规则
+  if (!fileHeaders.value || fileHeaders.value.length === 0) {
+    return true;
+  }
+  
+  const matchingHeaders = ruleHeadersMapping[ruleKey];
+  if (!matchingHeaders) return true; // 如果没有映射关系，默认显示
+  
+  // 检查是否有任何一个映射的字段在headers中存在
+  return fileHeaders.value.some(header => 
+    matchingHeaders.some(matchHeader => 
+      header.toLowerCase().includes(matchHeader.toLowerCase())
+    )
+  );
 };
 </script>
 

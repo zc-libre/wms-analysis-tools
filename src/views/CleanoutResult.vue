@@ -18,7 +18,7 @@
       
       <!-- 上传成功 -->
       <div class="summary-card green-border">
-        <div class="card-title">上传成功</div>
+        <div class="card-title">清洗成功</div>
         <div class="card-value">{{ successFiles }}</div>
         <!-- <div class="card-percentage">{{ successPercentage }}</div> -->
         <div class="progress-container">
@@ -38,7 +38,7 @@
       
       <!-- 上传失败 -->
       <div class="summary-card red-border">
-        <div class="card-title">上传失败</div>
+        <div class="card-title">清洗失败</div>
         <div class="card-value">{{ failedFiles }}</div>
         <!-- <div class="card-percentage">{{ failedPercentage }}</div> -->
         <div class="progress-container">
@@ -162,18 +162,18 @@
               type="primary" 
               size="small" 
               plain
-              icon="Download"
               @click="downloadOriginal(scope.row)"
             >
+              <el-icon><Download /></el-icon>
               下载原始文件
             </el-button>
             <el-button 
               type="success" 
               size="small" 
               plain
-              icon="Document"
               @click="downloadReport(scope.row)"
             >
+              <el-icon><Document /></el-icon>
               下载清洗报告
             </el-button>
           </div>
@@ -185,10 +185,9 @@
     <div class="pagination-container">
         <el-pagination
         background
-      v-model:current-page="currentPage4"
+      v-model:current-page="currentPage"
       v-model:page-size="pageSize"
       :page-sizes="[100, 200, 300, 400]"
-      :size="size"
       layout="total, sizes, prev, pager, next, jumper"
       :total="filteredFileList.length"
       @size-change="handleSizeChange"
@@ -198,9 +197,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { Download, Document, Loading, InfoFilled } from '@element-plus/icons-vue';
+import { Loading, InfoFilled, Download, Document } from '@element-plus/icons-vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '../stores/project';
 
@@ -232,19 +231,6 @@ const failedRecords = ref(13327);
 const successRecordsPercentage = computed(() => '95.4%');
 const failedRecordsPercentage = computed(() => '4.6%');
 
-// 计算百分比
-const successPercentage = computed(() => {
-  return ((successFiles.value / totalFiles.value) * 100).toFixed(1) + '%';
-});
-
-const processingPercentage = computed(() => {
-  return ((processingFiles.value / totalFiles.value) * 100).toFixed(1) + '%';
-});
-
-const failedPercentage = computed(() => {
-  return ((failedFiles.value / totalFiles.value) * 100).toFixed(1) + '%';
-});
-
 // 计算进度条宽度
 const successWidth = computed(() => {
   return (successFiles.value / totalFiles.value) * 100 + '%';
@@ -265,7 +251,7 @@ const fileList = ref([
     fileName: '2025年4月订单.xlsx',
     fileType: '订单文件',
     uploadDate: '2025-04-25',
-    status: '上传成功',
+    status: '清洗成功',
     totalCount: 1245,
     successCount: 1233,
     failCount: 12
@@ -283,7 +269,7 @@ const fileList = ref([
     fileName: '库存盘点_Q1.xlsx',
     fileType: '库存文件',
     uploadDate: '2025-04-15',
-    status: '上传成功',
+    status: '清洗成功',
     totalCount: 3782,
     successCount: 3774,
     failCount: 8
@@ -293,7 +279,7 @@ const fileList = ref([
     fileName: '物料主数据_更新版.xlsx',
     fileType: '物料主数据文件',
     uploadDate: '2025-04-10',
-    status: '上传成功',
+    status: '清洗成功',
     totalCount: 926,
     successCount: 926,
     failCount: 0
@@ -311,7 +297,7 @@ const fileList = ref([
     fileName: '2025年3月订单.xlsx',
     fileType: '订单文件',
     uploadDate: '2025-04-02',
-    status: '上传成功',
+    status: '清洗成功',
     totalCount: 1543,
     successCount: 1528,
     failCount: 15
@@ -321,7 +307,7 @@ const fileList = ref([
     fileName: '库存异常数据.xlsx',
     fileType: '库存文件',
     uploadDate: '2025-04-20',
-    status: '上传失败',
+    status: '清洗失败',
     totalCount: 0,
     successCount: 0,
     failCount: 0
@@ -331,7 +317,7 @@ const fileList = ref([
     fileName: '物料清单错误数据.xlsx',
     fileType: '物料主数据文件',
     uploadDate: '2025-04-18',
-    status: '上传失败',
+    status: '清洗失败',
     totalCount: 0,
     successCount: 0,
     failCount: 0
@@ -339,29 +325,37 @@ const fileList = ref([
 ]);
 
 // 获取状态对应的CSS类
-const getStatusClass = (status) => {
+const getStatusClass = (status: string) => {
   switch (status) {
-    case '上传成功': return 'status-success';
+    case '清洗成功': return 'status-success';
     case '正在清洗': return 'status-processing';
-    case '上传失败': return 'status-failed';
+    case '清洗失败': return 'status-failed';
     default: return '';
   }
 };
 
 // 页面切换处理
-const handlePageChange = (page) => {
+const handlePageChange = (page: number) => {
   currentPage.value = page;
   // 实际应用中这里应该调用API获取对应页的数据
 };
 
+// 页面大小变更处理
+const handleSizeChange = (size: number) => {
+  pageSize.value = size;
+  // 重置当前页码
+  currentPage.value = 1;
+  // 实际应用中这里应该调用API获取对应页的数据
+};
+
 // 下载原始文件
-const downloadOriginal = (file) => {
+const downloadOriginal = (file: any) => {
   console.log('下载原始文件:', file.fileName);
   // 实际应用中这里应该调用API下载文件
 };
 
 // 下载清洗报告
-const downloadReport = (file) => {
+const downloadReport = (file: any) => {
   console.log('下载清洗报告:', file.fileName);
   // 实际应用中这里应该调用API下载清洗报告
 };
@@ -374,18 +368,35 @@ onMounted(() => {
   fileType.value = projectStore.currentFileType;
   
   if (!projectId.value) {
-    // 尝试从查询参数获取数据（向后兼容）
-    const id = route.query.id;
-    const name = route.query.name;
-    const type = route.query.type;
+    // 尝试从 sessionStorage 获取项目信息
+    const storedProject = sessionStorage.getItem('currentProject');
+    if (storedProject) {
+      try {
+        const projectData = JSON.parse(storedProject);
+        projectId.value = projectData.id;
+        projectName.value = projectData.name;
+        
+        // 更新 Pinia store（这样其他组件可以从store中获取数据）
+        projectStore.setCurrentProject(projectData.id, projectData.name);
+      } catch (e) {
+        console.error('解析sessionStorage中的项目数据失败', e);
+      }
+    }
     
-    if (id) {
-      projectId.value = parseInt(id.toString(), 10);
-      projectName.value = name?.toString() || `项目 ${id}`;
-      fileType.value = type?.toString() || '';
-    } else {
-      // 如果没有项目信息，返回首页
-      router.push('/');
+    // 如果还是没有数据，尝试从查询参数获取（向后兼容）
+    if (!projectId.value) {
+      const id = route.query.id;
+      const name = route.query.name;
+      const type = route.query.type;
+      
+      if (id) {
+        projectId.value = parseInt(id.toString(), 10);
+        projectName.value = name?.toString() || `项目 ${id}`;
+        fileType.value = type?.toString() || '';
+      } else {
+        // 如果没有项目信息，返回首页
+        router.push('/');
+      }
     }
   }
   
@@ -400,7 +411,7 @@ const loadData = () => {
 };
 
 // 获取文件类型标签类型
-const getFileTypeTagType = (fileType) => {
+const getFileTypeTagType = (fileType: string) => {
   switch (fileType) {
     case '订单文件': return 'success';
     case '库存文件': return 'info';
@@ -417,9 +428,9 @@ const filteredFileList = computed(() => {
   if (activeTab.value === 'all') {
     return fileList.value;
   } else if (activeTab.value === 'success') {
-    return fileList.value.filter(file => file.status === '上传成功');
+    return fileList.value.filter(file => file.status === '清洗成功');
   } else if (activeTab.value === 'failed') {
-    return fileList.value.filter(file => file.status === '上传失败');
+    return fileList.value.filter(file => file.status === '清洗失败');
   }
   return fileList.value;
 });

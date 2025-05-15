@@ -61,7 +61,7 @@
           <div class="project-info">
             <div class="project-title-actions">
               <el-tooltip :content="project.name" placement="top">
-                <span class="project-title">{{ project.name }}</span>
+                <span  class="project-title">{{ project.name }}</span>
               </el-tooltip>
               <div class="project-actions">
                 <el-button
@@ -106,6 +106,7 @@
               <div
                 v-for="file in project.files"
                 :key="file.id"
+                :title="file.name"
                 class="file-item"
                 :class="{ active: activeFileId === file.id }"
                 @click.stop="setActiveFile(file.id)"
@@ -142,6 +143,9 @@ import EditProjectModal from './EditProjectModal.vue'
 import FileUploadModal from './FileUploadModal.vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '../stores/project'
+import { useViewStateStore } from '../stores/viewState'
+import { storeToRefs } from 'pinia'
+import { ElMessage } from 'element-plus'
 
 interface File {
   id: string
@@ -163,6 +167,9 @@ const activeProjectId = ref(1)
 const activeFileId = ref('file1')
 const router = useRouter()
 const projectStore = useProjectStore()
+const viewStateStore = useViewStateStore()
+// 从viewStateStore获取activeOrderDataType，以便后续判断当前标签页
+const { activeOrderDataType } = storeToRefs(viewStateStore)
 
 const projects = ref<Project[]>([
   {
@@ -173,8 +180,9 @@ const projects = ref<Project[]>([
     filesVisible: true,
     files: [
       { id: 'file1', name: '销售出库订单_202503.xlsx', date: '2025-03-20', size: '3.4MB' },
-      { id: 'file2', name: '销售出库订单_202502.xlsx', date: '2025-02-15', size: '2.8MB' },
-      { id: 'file3', name: '销售出库订单_202501.xlsx', date: '2025-01-10', size: '3.1MB' }
+      { id: 'file2', name: '物料主数据_202502.xlsx', date: '2025-02-15', size: '2.8MB' },
+      { id: 'file3', name: '入库单据_202501.xlsx', date: '2025-01-10', size: '3.1MB' },
+      { id: 'file4', name: '库存记录_202412.xlsx', date: '2024-12-05', size: '2.9MB' }
     ]
   },
   {
@@ -184,18 +192,20 @@ const projects = ref<Project[]>([
     location: '上海市嘉定区',
     filesVisible: false,
     files: [
-      { id: 'file4', name: '销售出库订单_202503_SH.xlsx', date: '2025-03-18', size: '4.2MB' },
-      { id: 'file5', name: '销售出库订单_202502_SH.xlsx', date: '2025-02-12', size: '3.5MB' }
+      { id: 'file5', name: '销售出库订单_202503_SH.xlsx', date: '2025-03-18', size: '4.2MB' },
+      { id: 'file6', name: '物料主数据_202502_SH.xlsx', date: '2025-02-12', size: '3.5MB' },
+      { id: 'file7', name: '入库单据_202501_SH.xlsx', date: '2025-01-15', size: '2.7MB' }
     ]
   },
-   {
+  {
     id: 3,
     name: '广州配送中心项目',
     company: '广东分公司',
     location: '广州市番禺区',
     filesVisible: false,
     files: [
-      { id: 'file6', name: '销售出库订单_202503_GZ.xlsx', date: '2025-03-19', size: '3.8MB' }
+      { id: 'file8', name: '销售出库订单_202503_GZ.xlsx', date: '2025-03-19', size: '3.8MB' },
+      { id: 'file9', name: '库存记录_202502_GZ.xlsx', date: '2025-02-20', size: '3.2MB' }
     ]
   }
 ])
@@ -217,6 +227,48 @@ const setActiveProject = (projectId: number) => {
 
 const setActiveFile = (fileId: string) => {
   activeFileId.value = fileId
+  const project = projects.value.find(p => p.files.some(f => f.id === fileId))
+  if (project) {
+    const file = project.files.find(f => f.id === fileId)
+    if (file) {
+      let mappedType: string | null = null
+      const fileNameLower = file.name.toLowerCase()
+
+      // 根据文件名确定文件类型
+      if (fileNameLower.includes('销售出库订单')) {
+        mappedType = 'salesOrder'
+      } else if (fileNameLower.includes('物料主数据')) {
+        mappedType = 'materialData'
+      } else if (fileNameLower.includes('入库单据')) {
+        mappedType = 'inboundOrder'
+      } else if (fileNameLower.includes('库存记录')) {
+        mappedType = 'inventoryRecord'
+      }
+
+      // 判断当前选中标签页与文件类型是否相同
+      if (mappedType && mappedType !== activeOrderDataType.value) {
+        console.log(`文件类型 ${mappedType} 与当前选中标签页 ${activeOrderDataType.value || '无'} 不一致，将自动切换标签页`)
+      } else if (mappedType && mappedType === activeOrderDataType.value) {
+        console.log(`文件类型 ${mappedType} 与当前选中标签页一致，无需切换`)
+      } else if (!mappedType) {
+        console.log(`无法识别文件 ${file.name} 的类型，将使用默认类型`)
+      }
+
+      // 无论是否一致，都设置activeOrderContext，这将触发OrderData.vue中的watch实现自动切换
+      viewStateStore.setActiveOrderContext(mappedType, file.name)
+
+      if (mappedType) {
+        // 导航到OrderData视图，如果当前不在该视图
+        const currentRoute = router.currentRoute.value;
+        if (currentRoute.name !== 'OrderData') {
+          router.push({ name: 'OrderData' }); 
+        }
+      } else {
+        // 如果文件类型无法识别，可以提供适当的反馈
+        ElMessage.warning('无法识别的文件类型');
+      }
+    }
+  }
 }
 
 // 新建项目对话框可见性
@@ -297,6 +349,14 @@ const openUploadDialog = (projectId: number) => {
   
   // 使用 Pinia store 存储项目信息
   projectStore.setCurrentProject(projectId, project.name);
+  
+  // 同时将项目信息存储到 sessionStorage
+  sessionStorage.setItem('currentProject', JSON.stringify({
+    id: project.id,
+    name: project.name,
+    company: project.company,
+    location: project.location
+  }));
   
   // 导航到文件导入页面，不再使用查询参数
   router.push({

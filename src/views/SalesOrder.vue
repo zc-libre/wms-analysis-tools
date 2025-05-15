@@ -1,111 +1,81 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Plus, View, Document } from '@element-plus/icons-vue'
+import { reactive, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Search, Plus, Document } from '@element-plus/icons-vue'
 
-// 搜索条件
+// Define props
+const props = defineProps<{
+  items: any[] | null,
+  isLoading: boolean
+}>()
+
+// 搜索条件 (UI占位)
 const searchForm = reactive({
   orderNumber: '',
   sku: '',
-  dateRange: []
+  // dateRange: [] // dateRange was not used in the template, removing for now
 })
 
-// 表格数据
-const tableData = ref<any[]>([])
-const loading = ref(false)
-const totalItems = ref(0)
-const currentPage = ref(1)
-const pageSize = ref(10)
+// 表格数据现在直接来自 props.items
+// const tableData = ref<any[]>([])
+// const loading = ref(false) // Replaced by props.isLoading
+// const totalItems = ref(0) // Pagination logic needs rework if data is from props
+// const currentPage = ref(1)
+// const pageSize = ref(10)
 
-// 获取销售出库订单数据
+// 计算属性，用于在模板中更方便地访问 items
+const displayData = computed(() => props.items || [])
+
+// 获取销售出库订单数据 - 此方法不再由此组件负责
+/*
 const fetchOrderData = async () => {
-  loading.value = true
-  
-  try {
-    // 实际项目中，这里应该调用API接口获取数据
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 模拟数据 - 实际项目应通过API获取
-    const mockData = Array.from({ length: 9 }, (_, index) => ({
-      id: `12345678${index + 1}`,
-      sku: ['CC_BB_AA', 'DD_EE_FF', 'GG_HH_II'][index % 3],
-      orderType: '销售出库',
-      projectItem: `项目${Math.floor(index / 3) + 1}`,
-      orderDate: `2025-03-${25 - index} ${(15 - index % 7) % 12 + 9}:${10 + index * 5}:40`,
-      materialCode: `345678${9 - index % 3}`,
-      quantity: 678 - index * 50 + (index % 3 === 2 ? 0.75 : (index % 3 === 1 ? 0.5 : 0))
-    }))
-
-    // 模拟基于搜索条件的过滤
-    const filteredData = mockData.filter(item => {
-      const matchOrderNumber = !searchForm.orderNumber || item.id.includes(searchForm.orderNumber);
-      const matchSku = !searchForm.sku || item.sku.includes(searchForm.sku);
-      
-      // 日期范围过滤
-      let matchDate = true;
-      if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-        const orderDate = new Date(item.orderDate);
-        const startDate = new Date(searchForm.dateRange[0]);
-        const endDate = new Date(searchForm.dateRange[1]);
-        matchDate = orderDate >= startDate && orderDate <= endDate;
-      }
-      
-      return matchOrderNumber && matchSku && matchDate;
-    });
-
-    totalItems.value = filteredData.length;
-
-    // 模拟分页
-    const startIndex = (currentPage.value - 1) * pageSize.value;
-    const endIndex = startIndex + pageSize.value;
-    tableData.value = filteredData.slice(startIndex, endIndex);
-  } catch (error) {
-    ElMessage.error('获取销售出库订单失败');
-  } finally {
-    loading.value = false;
-  }
+  // ... (logic removed) ...
 }
+*/
 
-// 处理搜索
+// 处理搜索 - 此方法需要调整或移除，搜索应通知父组件
 const handleSearch = () => {
-  currentPage.value = 1;
-  fetchOrderData();
+  // currentPage.value = 1;
+  // fetchOrderData();
+  ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
 }
 
-// 重置搜索
+// 重置按钮在模板中没有了，对应函数也可以移除
+/*
 const handleReset = () => {
   searchForm.orderNumber = '';
   searchForm.sku = '';
-  searchForm.dateRange = [];
-  currentPage.value = 1;
-  fetchOrderData();
+  ElMessage.info('重置功能需要父组件配合实现，当前仅为UI占位。');
 }
+*/
 
-// 新增订单
+// 新增订单 - 暂时保留，但可能也需要提升
 const handleAddOrder = () => {
-  ElMessage.info('触发新增销售出库订单操作');
+  ElMessage.info('触发新增销售出库订单操作 (UI占位)');
 }
 
-// 查看订单详情
+// 查看订单详情 - 暂时保留
 const handleViewDetail = (row: any) => {
-  ElMessage.info(`查看订单详情：${row.id}`);
+  ElMessage.info(`查看订单详情：${row.id} (UI占位)`);
 }
 
-// 处理分页变化
+// 处理分页变化 - 此方法需要调整或移除，分页应由父组件或store处理
 const handlePageChange = (page: number) => {
-  currentPage.value = page;
-  fetchOrderData();
+  // currentPage.value = page;
+  // fetchOrderData();
+  ElMessage.info(`分页变化: ${page} (功能需父组件配合，UI占位)`);
 }
 
-// 页面加载时获取数据
+// 页面加载时获取数据 - 不再需要
+/*
 onMounted(() => {
-  fetchOrderData();
+  // fetchOrderData();
 })
+*/
 </script>
 
 <template>
   <div class="view-container">
-    <!-- 搜索与操作区域 -->
     <div class="action-bar">
       <el-form :inline="true" :model="searchForm" class="search-area">
         <el-form-item label="单据编号">
@@ -116,7 +86,14 @@ onMounted(() => {
             @keyup.enter="handleSearch"
           />
         </el-form-item>
-        
+        <el-form-item label="SKU">
+          <el-input 
+            v-model="searchForm.sku" 
+            placeholder="请输入SKU" 
+            clearable 
+            @keyup.enter="handleSearch"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
         </el-form-item>
@@ -127,17 +104,19 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 表格区域 -->
     <div class="table-container">
-      <el-table :data="tableData" v-loading="loading" stripe height="100%">
-        <el-table-column prop="id" label="单据编号"  sortable />
-        <el-table-column prop="sku" label="SKU"  sortable />
+      <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无销售出库订单数据" />
+      <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+        <el-table-column prop="id" label="单据编号" sortable />
+        <el-table-column prop="customer" label="客户" sortable />
+        <el-table-column prop="amount" label="金额" sortable />
+        <el-table-column prop="orderDate" label="单据时间" width="160" sortable />
+        <el-table-column prop="sku" label="SKU" sortable />
         <el-table-column prop="orderType" label="单据类型" />
         <el-table-column prop="projectItem" label="单据项"  />
-        <el-table-column prop="orderDate" label="单据时间" width="160" sortable />
         <el-table-column prop="materialCode" label="物料编号" />
-        <el-table-column prop="quantity" label="需求数量"  sortable />
-        <el-table-column label="操作"  fixed="right">
+        <el-table-column prop="quantity" label="需求数量" sortable />
+        <el-table-column label="操作" fixed="right" width="100">
           <template #default="scope">
             <el-button type="primary" size="small" link :icon="Document" @click="handleViewDetail(scope.row)">
               查看详情
@@ -147,14 +126,13 @@ onMounted(() => {
       </el-table>
     </div>
 
-    <!-- 分页区域 -->
-    <div class="pagination-container">
+    <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
       <el-pagination
         background
-        layout="prev, pager, next"
-        :total="totalItems"
-        :page-size="pageSize"
-        v-model:current-page="currentPage"
+        layout="prev, pager, next, jumper, ->, total"
+        :total="displayData.length" 
+        :page-size="10" 
+        :current-page="1"
         @current-change="handlePageChange"
       />
     </div>
@@ -164,6 +142,8 @@ onMounted(() => {
 <style scoped lang="scss">
 .view-container {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .action-bar {
@@ -174,32 +154,41 @@ onMounted(() => {
   gap: 1rem;
   margin-bottom: 1rem;
   flex-direction: row;
+  flex-shrink: 0; /* Prevent action bar from shrinking */
 }
 
 .search-area {
   flex: 1;
   min-width: 300px;
+  display: flex; /* Align items in search area */
+  gap: 10px; /* Add gap between search form items */
 }
 
 .operation-buttons {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0px;
+  /* margin-top: 0px; */ /* Removed as el-form-item might handle alignment */
 }
 
 .table-container {
   margin-bottom: 1rem;
+  flex-grow: 1; /* Allow table to take available space */
+  overflow: hidden; /* Prevent table from overflowing container */
 }
 
 .pagination-container {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0; /* Prevent pagination from shrinking */
+  padding-top: 1rem; /* Add some space above pagination */
 }
 
-// Utilities
+// Utilities (can be removed if not used elsewhere or defined globally)
+/*
 .d-flex { display: flex; }
 .justify-content-between { justify-content: space-between; }
 .justify-content-end { justify-content: flex-end; }
 .mb-3 { margin-bottom: 1rem; }
 .mt-3 { margin-top: 1rem; }
+*/
 </style> 

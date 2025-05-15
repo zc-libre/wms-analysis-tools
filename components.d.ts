@@ -88,6 +88,7 @@ declare module 'vue' {
     TheNavbar: typeof import('./src/components/layout/TheNavbar.vue')['default']
     TheSidebar: typeof import('./src/components/layout/TheSidebar.vue')['default']
     TopBar: typeof import('./src/components/TopBar.vue')['default']
+    UserProfile: typeof import('./src/components/UserProfile.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

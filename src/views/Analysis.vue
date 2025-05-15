@@ -198,14 +198,7 @@
             </div>
           </div>
           
-          <!-- 物料热度分类 -->
-          <div class="mb-4">
-            <label class="form-label">物料热度分类</label>
-            <el-radio-group v-model="materialHeatSource">
-              <el-radio label="masterData">物料主数据</el-radio>
-              <el-radio label="orderData">订单数据分析</el-radio>
-            </el-radio-group>
-          </div>
+          
           
           <!-- 工作时间段 -->
           <div class="mb-4">
@@ -479,6 +472,25 @@
                         <el-input-number v-model="skuMixMin" :min="1" :max="999" class="full-width" />
                         <div class="form-text">单个容器中最少的SKU数量</div>
                       </div>
+                      <div class="form-item">
+                        <label class="form-label">容器混放SKU均值</label>
+                        <el-input-number v-model="skuMixAvg" :min="1" :max="999" class="full-width" />
+                        <div class="form-text">单个容器中平均的SKU数量</div>
+                      </div>
+                    </div>
+                    <div class="form-row">
+                      <div class="form-item">
+                        <label class="form-label">库存深度</label>
+                        <el-input v-model="inventoryDepth" placeholder="以逗号分隔，最长10位，默认值为1" class="full-width" />
+                        <div class="form-text">以逗号分隔，最长10位，默认值为1</div>
+                      </div>
+                      <div class="form-item">
+                      <label class="form-label">物料热度分类</label>
+                      <el-radio-group v-model="materialHeatSource">
+                        <el-radio label="masterData">物料主数据</el-radio>
+                        <el-radio label="orderData">订单数据分析</el-radio>
+                      </el-radio-group>
+                    </div>
                     </div>
                   </div>
                 </div>
@@ -600,13 +612,13 @@ const materialHeatSource = ref('masterData')
 const considerVolume = ref(false)
 
 // 工作时间段
-const workingTimeSegments = ref([
-  { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59) }
+const workingTimeSegments = ref<WorkingTimeSegment[]>([
+  { start: new Date(2023, 0, 1, 8, 0), end: new Date(2023, 0, 1, 18, 0) }
 ])
 
 // 休息时间段
-const breakTimeSegments = ref([
-  { start: new Date(2023, 0, 1, 23, 0), end: new Date(2023, 0, 1, 23, 59) }
+const breakTimeSegments = ref<BreakTimeSegment[]>([
+  { start: new Date(2023, 0, 1, 12, 0), end: new Date(2023, 0, 1, 13, 30) }
 ])
 
 // 截单时间
@@ -615,8 +627,8 @@ const cutoffTimes = ref([
 ])
 
 // 推单时间段
-const pushTimeSegments = ref([
-  { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59), pushOrderCount: '' }
+const pushTimeSegments = ref<PushTimeSegment[]>([
+  { start: new Date(2023, 0, 1, 0, 0), end: new Date(2023, 0, 1, 23, 59), pushOrderCount: '0' }
 ])
 
 // 库存来源
@@ -692,23 +704,27 @@ const updateInventorySourceOptions = () => {
 
 // 方法 - 添加时间段
 const addTimeSegment = (timeType: string) => {
-  const newSegment = { 
+  const baseSegment: BaseTimeSegment = { 
     start: new Date(2023, 0, 1, 8, 0), 
     end: new Date(2023, 0, 1, 17, 0) 
-  }
+  };
   
   if (timeType === 'working') {
-    workingTimeSegments.value.push(newSegment)
+    workingTimeSegments.value.push(baseSegment);
   } else if (timeType === 'push') {
-    pushTimeSegments.value.push(newSegment)
+    const pushSegment: PushTimeSegment = { 
+      ...baseSegment, 
+      pushOrderCount: '0' 
+    };
+    pushTimeSegments.value.push(pushSegment);
   } else if (timeType === 'break') {
-    breakTimeSegments.value.push(newSegment)
+    breakTimeSegments.value.push(baseSegment);
   }
 
   // 延迟一下更新可视化，确保DOM已更新
   nextTick(() => {
-    updateTimeVisualization(timeType)
-  })
+    updateTimeVisualization(timeType);
+  });
 }
 
 // 方法 - 删除时间段
@@ -788,7 +804,7 @@ const updateCutoffTimeVisualization = () => {
 // 方法 - 更新时间轴可视化
 const updateTimeVisualization = (timeType: string) => {
   // 获取要处理的时间段数组
-  let timeSegments: { start: Date, end: Date }[] = [];
+  let timeSegments: BaseTimeSegment[] = [];
   let visualElementId = '';
   
   if (timeType === 'working') {
@@ -894,18 +910,35 @@ onMounted(() => {
   fileType.value = projectStore.currentFileType
   
   if (!projectId.value) {
-    // 尝试从查询参数获取数据（向后兼容）
-    const id = route.query.id
-    const name = route.query.name
-    const type = route.query.type
+    // 尝试从 sessionStorage 获取项目信息
+    const storedProject = sessionStorage.getItem('currentProject')
+    if (storedProject) {
+      try {
+        const projectData = JSON.parse(storedProject)
+        projectId.value = projectData.id
+        projectName.value = projectData.name
+        
+        // 更新 Pinia store（这样其他组件可以从store中获取数据）
+        projectStore.setCurrentProject(projectData.id, projectData.name)
+      } catch (e) {
+        console.error('解析sessionStorage中的项目数据失败', e)
+      }
+    }
     
-    if (id) {
-      projectId.value = parseInt(id.toString(), 10)
-      projectName.value = name?.toString() || `项目 ${id}`
-      fileType.value = type?.toString() || ''
-    } else {
-      // 如果没有项目信息，返回首页
-      router.push('/')
+    // 尝试从查询参数获取数据（向后兼容）
+    if (!projectId.value) {
+      const id = route.query.id
+      const name = route.query.name
+      const type = route.query.type
+      
+      if (id) {
+        projectId.value = parseInt(id.toString(), 10)
+        projectName.value = name?.toString() || `项目 ${id}`
+        fileType.value = type?.toString() || ''
+      } else {
+        // 如果没有项目信息，返回首页
+        router.push('/')
+      }
     }
   }
   
@@ -941,6 +974,19 @@ const loadAnalysisData = () => {
   // 这里是加载数据的逻辑
   // 使用 projectId.value 和 fileType.value 获取相应数据
 }
+
+// 定义时间段接口
+interface BaseTimeSegment {
+  start: Date;
+  end: Date;
+}
+
+interface PushTimeSegment extends BaseTimeSegment {
+  pushOrderCount: string;
+}
+
+type WorkingTimeSegment = BaseTimeSegment;
+type BreakTimeSegment = BaseTimeSegment;
 </script>
 
 <style scoped lang="scss">
