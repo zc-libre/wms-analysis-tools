@@ -40,15 +40,6 @@ const handleSearch = () => {
   ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
 }
 
-// 重置按钮在模板中没有了，对应函数也可以移除
-/*
-const handleReset = () => {
-  searchForm.orderNumber = '';
-  searchForm.sku = '';
-  ElMessage.info('重置功能需要父组件配合实现，当前仅为UI占位。');
-}
-*/
-
 // 新增订单 - 暂时保留，但可能也需要提升
 const handleAddOrder = () => {
   ElMessage.info('触发新增销售出库订单操作 (UI占位)');
@@ -76,20 +67,12 @@ onMounted(() => {
 
 <template>
   <div class="view-container">
-    <div class="action-bar">
+    <div class="action-bar" v-if="displayData.length > 0">
       <el-form :inline="true" :model="searchForm" class="search-area">
         <el-form-item label="单据编号">
           <el-input 
             v-model="searchForm.orderNumber" 
             placeholder="请输入单据编号" 
-            clearable 
-            @keyup.enter="handleSearch"
-          />
-        </el-form-item>
-        <el-form-item label="SKU">
-          <el-input 
-            v-model="searchForm.sku" 
-            placeholder="请输入SKU" 
             clearable 
             @keyup.enter="handleSearch"
           />
