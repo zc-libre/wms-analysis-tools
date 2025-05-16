@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
 import MainContent from '../components/layout/MainContent.vue'
 import Sidebar from '../components/Sidebar.vue'
 

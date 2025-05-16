@@ -1,5 +1,5 @@
 <template>
-  <div class="analysis-container">
+  <div class="analysis-container" ref="analysisContainerRef">
     <!-- 页面头部 -->
     <div class="page-header">
       <h4>{{ projectName }} - 订单分析任务配置</h4>
@@ -559,6 +559,8 @@ const router = useRouter()
 const route = useRoute()
 const projectStore = useProjectStore()
 
+const analysisContainerRef = ref<HTMLDivElement | null>(null); 
+
 // 组件内变量定义
 const projectId = ref<number | null>(null)
 const projectName = ref('')
@@ -899,9 +901,7 @@ const saveTemplate = () => {
 onMounted(() => {
   // 滚动到页面顶部 - 使用nextTick确保DOM更新后滚动生效
   nextTick(() => {
-    // 使用更直接的DOM方法
-    document.documentElement.scrollTop = 0
-    document.body.scrollTop = 0 // 针对Safari浏览器
+    analysisContainerRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   })
   
   // 从 Pinia store 获取项目信息

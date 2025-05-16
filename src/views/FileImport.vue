@@ -1,5 +1,5 @@
 <template>
-  <div class="file-import-container">
+  <div class="file-import-container" ref="fileImportContainerRef">
     <div class="import-header">
       <h2>文件导入</h2>
       <p>请按照步骤导入并处理您的数据文件</p>
@@ -191,18 +191,27 @@ import type { UploadFile } from 'element-plus';
 import { Document, Close, DataAnalysis, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useProjectStore } from '../stores/project';
-import Step1ImportFile from '@/components/FileImport/Step1ImportFile.vue';
-import Step2FieldMapping from '@/components/FileImport/Step2FieldMapping.vue';
-import Step3ProcessingRules from '@/components/FileImport/Step3ProcessingRules.vue';
+import Step1ImportFile from '@/components/import/Step1ImportFile.vue';
+import Step2FieldMapping from '@/components/import/Step2FieldMapping.vue';
+import Step3ProcessingRules from '@/components/import/Step3ProcessingRules.vue';
 
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
 const fileTypeSelected = ref('');
 const activeStep = ref(1);
+const fileImportContainerRef = ref<HTMLDivElement | null>(null);
 
 // Define ref for Step2FieldMapping component instance (single definition)
 const step2FieldMappingRef = ref<InstanceType<typeof Step2FieldMapping> | null>(null);
+
+// {{MODIFICATIONS}}
+watch(activeStep, async () => {
+  await nextTick();
+  if (fileImportContainerRef.value) {
+    fileImportContainerRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+});
 
 // Simplified parent error handling, child handles its own UI errors for uploads.
 // Parent can show global messages for things like processing errors.

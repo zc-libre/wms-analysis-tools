@@ -235,9 +235,7 @@ watch(() => props.fileTypeSelected, (newType, oldType) => {
 // Copied and adapted styles from FileImport.vue for Step 1
 // Renamed classes to be unique to this component to avoid potential conflicts if global styles exist.
 // Using a common prefix like -step1 is a simple way.
-.step-body-step1 {
-  // Basic structure, can be enhanced
-}
+
 
 .full-width-step1 {
   width: 20%; // Original was 20%
