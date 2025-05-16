@@ -12,102 +12,19 @@
     </el-steps>
 
     <div class="step-content">
-      <!-- 步骤1: 导入文件 -->
+      <!-- 步骤1: 导入文件 - Replaced with Step1ImportFile component -->
       <div v-if="activeStep === 1" class="step-body">
-        <el-select 
-          clearable 
-          v-model="fileTypeSelected" 
-          placeholder="请选择导入文件类型" 
-          class="full-width"
-          ref="fileTypeSelect"
-        >
-            <el-option value="销售出库订单" label="销售出库订单" />
-            <el-option value="物料主数据" label="物料主数据" />
-            <el-option value="入库单据" label="入库单据" />
-            <el-option value="库存记录" label="库存记录" />
-          </el-select>
-        
-        <!-- 添加下载模板链接 -->
-        <div v-if="fileTypeSelected" class="download-template" ref="downloadTemplate">
-          <el-link type="primary" @click="handleDownloadTemplate">
-            <el-icon><Download /></el-icon>
-            下载{{ fileTypeSelected }}导入模板
-          </el-link>
-        </div>
-        
-        <!-- 添加带边框的容器 -->
-        <div class="import-area-bordered">
-          <!-- 导入说明部分 -->
-          <div class="import-instructions">
-            <div class="instruction-header">
-              <el-icon><InfoFilled /></el-icon> 导入说明
-            </div>
-            <ul class="instruction-list">
-              <li>文件仅支持xls、xlsx、csv格式。</li>
-              <li>必填项提供默认值，支持用户修改。</li>
-              <li>请不要更改或合并单元格操作！</li>
-              <li>请不要删除首行标题！</li>
-              <li>请不要更改时间和日期格式！</li>
-              <li>注意单个Excel文件最大支持100W行。</li>
-              <li>注意单个Excel文件最大支持200M。</li>
-              <li>物料体积可选择立方厘米（cm³）、立方分米（dm³）、立方米（m³）、默认立方厘米。</li>
-            </ul>
-          </div>
-
-          <!-- 将 el-card 替换为普通 div -->
-          <div> 
-            <div class="file-select-area" ref="fileUploadArea">
-              <el-upload
-                class="upload-area"
-                drag
-                action="#"
-                :auto-upload="false"
-                :on-change="handleFileChange"
-                :show-file-list="false"
-              >
-                <div class="upload-content">
-                  <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-                  <div class="el-upload__text">
-                    拖拽文件到此处或<em>点击上传</em>
-                  </div>
-                  <div class="el-upload__tip">
-                    支持 .xls, .xlsx, .csv 格式文件
-                  </div>
-                </div>
-              </el-upload>
-            </div>
-          </div>
-        </div> <!-- 结束带边框的容器 -->
-
-        <!-- 已上传文件列表 -->
-        <div class="uploaded-files" v-if="uploadedFiles.length > 0">
-          <div v-for="(file, index) in uploadedFiles" :key="index" class="file-item">
-            <div class="file-info">
-              <span class="file-name">{{ file.name }}</span>
-              <span class="file-date">{{ file.date }}</span>
-            </div>
-            <el-button 
-              type="danger" 
-              circle 
-              plain 
-              size="small"
-              @click="removeFile(index)"
-            >
-              <el-icon><DeleteIcon /></el-icon>
-            </el-button>
-          </div>
-        </div>
-
-        <!-- 上传错误提示 -->
-        <div class="upload-error" v-if="uploadError">
-          <el-alert
-            :title="uploadError"
-            type="error"
-            show-icon
-            :closable="true"
-            :duration="errorMessageDuration"
-          ></el-alert>
-        </div>
+        <Step1ImportFile 
+          :file-type-selected="fileTypeSelected" 
+          :current-guide-step="currentGuideStep" 
+          :show-guide="showGuide" 
+          :guide-completed="guideCompleted"
+          @update:fileTypeSelected="fileTypeSelected = $event"
+          @download-template-clicked="handleDownloadTemplate"
+          @file-changed-raw="handleFileChange" 
+          @element-ready="handleChildElementReady" 
+          @guide-interaction="handleChildGuideInteraction"
+        />
       </div>
 
       <!-- 步骤2: 字段映射 -->
@@ -368,43 +285,7 @@
             </el-form-item>
           </el-form>
         </div>
-        
-        <!-- 单据编号 - 特殊字符校验 -->
-        <!-- <div class="collapsible-rule-section" v-if="shouldShowRule('documentNumberValidation')">
-          <div class="collapsible-header" @click="toggleRule('documentNumberValidation')">
-            <div class="header-left">
-              <el-switch v-model="processingRules.documentNumberValidation.enabled" @click.stop="handleSwitchChange('documentNumberValidation', $event)" />
-              <span class="rule-title">单据编号 - 特殊字符校验</span>
-            </div>
-            <el-icon>
-              <component :is="processingRules.documentNumberValidation.collapsed ? icons.ArrowRight : icons.ArrowDown" />
-            </el-icon>
-          </div>
-          
-          <div v-if="!processingRules.documentNumberValidation.collapsed" class="collapsible-content">
-            <p class="rule-description">注意：开启后，系统将进行特殊字符处理，将特殊字符去除（如横线、空格、下划线等）。建议开启此选项，避免因特殊字符导致系统不能识别相同物料。</p>
-            <div class="special-chars-section">
-              <div class="special-chars-list">
-                <div class="checkbox-item">
-                  <el-checkbox v-model="processingRules.documentNumberValidation.atSymbol">@</el-checkbox>
-                </div>
-                <div class="checkbox-item">
-                  <el-checkbox v-model="processingRules.documentNumberValidation.percentSymbol">%</el-checkbox>
-                </div>
-                <div class="checkbox-item">
-                  <el-checkbox v-model="processingRules.documentNumberValidation.hyphen">-</el-checkbox>
-                </div>
-                <div class="checkbox-item">
-                  <el-checkbox v-model="processingRules.documentNumberValidation.dash">—</el-checkbox>
-                </div>
-                <div class="checkbox-item">
-                  <el-checkbox v-model="processingRules.documentNumberValidation.underscore">_</el-checkbox>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div> -->
-        
+              
         <!-- SKU合并规则 -->
         <div class="collapsible-rule-section" v-if="shouldShowRule('skuCombination')">
           <div class="collapsible-header" @click="toggleRule('skuCombination')">
@@ -971,142 +852,131 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onBeforeUnmount } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { UploadFilled, InfoFilled, Delete as DeleteIcon, Document, Download, Close, Plus, ArrowDown, ArrowRight, ArrowLeft, Warning, CircleCheck, Menu, DataAnalysis } from '@element-plus/icons-vue';
-// 导入xlsx库用于解析Excel文件
+import type { UploadFile } from 'element-plus';
+import { InfoFilled, Delete as DeleteIcon, Document, Close, Plus, ArrowDown, ArrowRight, ArrowLeft, Warning, CircleCheck, Menu, DataAnalysis } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useProjectStore } from '../stores/project';
+import Step1ImportFile from '@/components/FileImport/Step1ImportFile.vue';
 
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
 const fileTypeSelected = ref('')
-// 步骤控制
 const activeStep = ref(1);
 
-// 错误提示自动关闭相关变量
-const errorMessageTimer = ref<number | null>(null);
-const errorMessageDuration = 5000; // 错误消息显示时间，单位毫秒
-
-// 处理错误消息函数，设置定时自动清除
-const handleErrorMessage = (errorMsg: string) => {
-  // 先清除可能存在的旧定时器
-  clearErrorMessageTimer();
-  
-  // 设置错误信息
-  uploadError.value = errorMsg;
-  
-  // 设置定时器，自动清除错误信息
-  errorMessageTimer.value = window.setTimeout(() => {
-    uploadError.value = '';
-    errorMessageTimer.value = null;
-  }, errorMessageDuration);
+// Simplified parent error handling, child handles its own UI errors for uploads.
+// Parent can show global messages for things like processing errors.
+const handleParentErrorMessage = (errorMsg: string) => {
+  ElMessage.error(errorMsg);
 };
 
-// 清除错误消息定时器
-const clearErrorMessageTimer = () => {
-  if (errorMessageTimer.value !== null) {
-    window.clearTimeout(errorMessageTimer.value);
-    errorMessageTimer.value = null;
-  }
-};
+const showGuide = ref(true);
+const currentGuideStep = ref(1);
+const guideCompleted = ref(false);
+const guideTargetElements = ref<Record<string, any>>({});
 
-// 组件销毁前清除定时器
-onBeforeUnmount(() => {
-  clearErrorMessageTimer();
-});
-
-// 引导相关状态
-const showGuide = ref(true); // 是否显示引导
-const currentGuideStep = ref(1); // 当前引导步骤
-const guideCompleted = ref(false); // 引导是否完成
-
-// 将图标组件添加到变量中以便在模板中使用
 const icons = {
   ArrowDown,
   ArrowRight
 };
 
-// 引导步骤数据
-const guideSteps = [
+interface GuideStep {
+  id: number;
+  title: string;
+  content: string;
+  targetName: string;
+  placement: string;
+  [key: string]: any;
+}
+
+const guideStepsRaw: GuideStep[] = [
   {
     id: 1,
     title: '第一步：选择文件类型',
     content: '请先从下拉菜单中选择您需要导入的文件类型，不同的文件类型有不同的模板格式。',
-    target: 'fileTypeSelect',
+    targetName: 'fileTypeSelect',
     placement: 'bottom'
   },
   {
     id: 2,
     title: '第二步：下载模板',
     content: '点击下载按钮获取导入模板。您需要按照模板格式准备数据，确保数据能正确导入系统。',
-    target: 'downloadTemplate',
+    targetName: 'downloadTemplate',
     placement: 'bottom'
   },
   {
     id: 3,
     title: '第三步：上传文件',
     content: '请将按照模板格式准备好的文件拖拽到此区域或点击上传。支持Excel和CSV格式的文件。',
-    target: 'fileUploadArea',
+    targetName: 'fileUploadArea',
     placement: 'top'
   },
   {
     id: 4,
     title: '最后一步：继续',
     content: '文件上传并验证成功后，点击"下一步"按钮进入字段映射环节。',
-    target: 'nextStepButton',
+    targetName: 'nextStepButton',
     placement: 'left'
   }
 ];
 
-// 获取当前引导步骤
-const getCurrentGuide = () => {
-  const step = guideSteps.find(step => step.id === currentGuideStep.value) || guideSteps[0];
+const guideSteps = ref<GuideStep[]>(guideStepsRaw.map(s => ({ ...s })));
+
+const getCurrentGuide = (): GuideStep => {
+  const stepConfig = guideSteps.value.find((step: GuideStep) => step.id === currentGuideStep.value);
+  let currentStepDetails: GuideStep = stepConfig || guideSteps.value[0];
   
-  // 动态调整引导内容，使其更加上下文相关
-  if (step.id === 1 && fileTypeSelected.value) {
-    step.content = `您已选择 "${fileTypeSelected.value}"，现在可以下载对应的模板文件了。`;
-  } else if (step.id === 2 && fileTypeSelected.value) {
-    step.content = `请下载 "${fileTypeSelected.value}" 的导入模板，按照模板格式准备您的数据文件，以保证导入成功。`;
-  } else if (step.id === 3 && uploadedFiles.value.length > 0) {
-    step.content = '文件已上传成功！您可以点击页面上的"下一步"按钮继续操作。';
-  } else if (step.id === 4 && uploadedFiles.value.length > 0) {
-    step.content = `您已成功上传 ${uploadedFiles.value.length} 个文件，点击"下一步"按钮进入字段映射环节。`;
+  let stepOutput = { ...currentStepDetails }; 
+
+  if (stepOutput.id === 1 && fileTypeSelected.value) {
+    stepOutput.content = `您已选择 "${fileTypeSelected.value}"，现在可以下载对应的模板文件了。`;
+  } else if (stepOutput.id === 2 && fileTypeSelected.value) {
+    stepOutput.content = `请下载 "${fileTypeSelected.value}" 的导入模板，按照模板格式准备您的数据文件，以保证导入成功。`;
   }
-  
-  return step;
+  // Removed uploadedFiles.value.length check here. The guide content might need adjustment
+  // or rely on a different flag if it needs to reflect the number of uploaded files.
+  else if (stepOutput.id === 3 /* && uploadedFiles.value.length > 0 */) { 
+    stepOutput.content = '文件已选择！您可以点击页面上的"下一步"按钮继续操作。'; // Adjusted message
+  } else if (stepOutput.id === 4 /* && uploadedFiles.value.length > 0 */) {
+    stepOutput.content = `文件已准备好，点击"下一步"按钮进入字段映射环节。`; // Adjusted message
+  }
+  return stepOutput;
 };
 
-// 引导相关元素引用
-const fileTypeSelect = ref(null);
-const downloadTemplate = ref(null);
-const fileUploadArea = ref(null);
-const nextStepButton = ref(null);
-
-// 引导弹出框样式
+const nextStepButton = ref<any>(null);
 const guidePopupStyle = ref({});
-// 目标元素高亮样式
 const spotlightStyle = ref({});
 
-// 更新引导弹出框位置和目标元素高亮
 const updateGuidePosition = async () => {
   await nextTick();
-  
   const currentGuide = getCurrentGuide();
-  const targetRefName = currentGuide.target;
-  const targetElement = targetRefName ? eval(targetRefName).value : null;
+  const targetName = currentGuide.targetName;
+  let targetElementInstance: any = null;
+
+  if (targetName === 'nextStepButton') {
+    targetElementInstance = nextStepButton.value;
+  } else if (guideTargetElements.value[targetName]) {
+    targetElementInstance = guideTargetElements.value[targetName];
+  }
   
-  if (targetElement && targetElement.$el) {
-    const rect = targetElement.$el.getBoundingClientRect();
-    const placement = currentGuide.placement;
-    
-    // 计算视口尺寸
+  const targetDOMElement = targetElementInstance?.$el || targetElementInstance;
+
+  if (targetDOMElement) {
+    const rect = targetDOMElement.getBoundingClientRect();
+    let placement = currentGuide.placement;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // 考虑滚动位置，更新高亮区域样式
+    // Declare these variables once
+    const popupWidth = Math.min(320, viewportWidth * 0.8);
+    const popupHeight = 150; 
+    const arrowSize = 10;
+    const margin = 15;
+    let top, left; // Declare top and left here, assign below
+
     spotlightStyle.value = {
       top: `${rect.top}px`,
       left: `${rect.left}px`,
@@ -1115,59 +985,64 @@ const updateGuidePosition = async () => {
       transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)'
     };
     
-    // 弹出框的尺寸（根据不同屏幕大小调整）
-    const popupWidth = Math.min(320, viewportWidth * 0.8);
-    const popupHeight = 150; // 估计高度
-    const arrowSize = 10; // 箭头大小
-    const margin = 15; // 与目标元素的间距
-    
-    let top, left;
-    
     // 智能计算最佳放置位置，避免溢出屏幕
     // 优先使用指定的位置，但如果空间不足则自动调整
     if (placement === 'top' && rect.top > popupHeight + margin + arrowSize) {
       // 顶部有足够空间
       top = rect.top - popupHeight - margin - arrowSize;
       left = rect.left + rect.width / 2 - popupWidth / 2;
+      // currentGuide.placement = 'bottom'; // Do not modify currentGuide.placement here, it's reactive state
+      placement = 'bottom';
     } else if (placement === 'bottom' && viewportHeight - rect.bottom > popupHeight + margin + arrowSize) {
       // 底部有足够空间
       top = rect.bottom + margin + arrowSize;
       left = rect.left + rect.width / 2 - popupWidth / 2;
+      // currentGuide.placement = 'top';
+      placement = 'top';
     } else if (placement === 'left' && rect.left > popupWidth + margin + arrowSize) {
       // 左侧有足够空间
       top = rect.top + rect.height / 2 - popupHeight / 2;
-      left = rect.left - popupWidth - margin - arrowSize;
+      left = rect.left - popupWidth - margin + arrowSize;
+      // currentGuide.placement = 'right';
+      placement = 'right';
     } else if (placement === 'right' && viewportWidth - rect.right > popupWidth + margin + arrowSize) {
       // 右侧有足够空间
       top = rect.top + rect.height / 2 - popupHeight / 2;
       left = rect.right + margin + arrowSize;
+      // currentGuide.placement = 'left';
+      placement = 'left';
     } else {
       // 根据可用空间自动选择位置
       if (viewportHeight - rect.bottom > popupHeight + margin + arrowSize) {
         // 放底部
         top = rect.bottom + margin + arrowSize;
         left = rect.left + rect.width / 2 - popupWidth / 2;
-        currentGuide.placement = 'bottom';
+        // currentGuide.placement = 'bottom';
+        placement = 'bottom';
       } else if (rect.top > popupHeight + margin + arrowSize) {
         // 放顶部
         top = rect.top - popupHeight - margin - arrowSize;
         left = rect.left + rect.width / 2 - popupWidth / 2;
-        currentGuide.placement = 'top';
+        // currentGuide.placement = 'top';
+        placement = 'top';
       } else if (viewportWidth - rect.right > popupWidth + margin + arrowSize) {
         // 放右侧
         top = rect.top + rect.height / 2 - popupHeight / 2;
         left = rect.right + margin + arrowSize;
-        currentGuide.placement = 'right';
+        // currentGuide.placement = 'right';
+        placement = 'right';
       } else if (rect.left > popupWidth + margin + arrowSize) {
         // 放左侧
         top = rect.top + rect.height / 2 - popupHeight / 2;
-        left = rect.left - popupWidth - margin - arrowSize;
-        currentGuide.placement = 'left';
+        left = rect.left - popupWidth - margin + arrowSize;
+        // currentGuide.placement = 'left';
+        placement = 'left';
       } else {
         // 居中显示（最后手段）
         top = (viewportHeight - popupHeight) / 2;
         left = (viewportWidth - popupWidth) / 2;
-        currentGuide.placement = 'center';
+        // currentGuide.placement = 'center';
+        placement = 'center';
       }
     }
     
@@ -1190,7 +1065,8 @@ const updateGuidePosition = async () => {
     setTimeout(() => {
       const popup = document.querySelector('.guide-popup');
       if (popup) {
-        popup.className = `guide-popup guide-placement-${currentGuide.placement}`;
+        // popup.className = `guide-popup guide-placement-${currentGuide.placement}`; // Use the resolved placement
+        popup.className = `guide-popup guide-placement-${placement}`;
       }
     }, 0);
   }
@@ -1227,7 +1103,7 @@ const processingComplete = ref(false);
 const projectId = ref<number | null>(null);
 const projectName = ref('');
 
-const selectedFile = ref(null);
+const selectedFile = ref<File | null>(null); // Keep as File, as .raw is File type
 
 // 上传文件相关
 interface UploadedFile {
@@ -1444,7 +1320,6 @@ const deleteScheme = () => {
   if (!selectedMappingScheme.value) {
     return;
   }
-  
   const index = mappingSchemes.value.findIndex(scheme => scheme.id === selectedMappingScheme.value);
   if (index !== -1) {
     mappingSchemes.value.splice(index, 1);
@@ -1454,43 +1329,54 @@ const deleteScheme = () => {
 };
 
 // 文件变更处理
-const handleFileChange = (file: any) => {
-  // 增加文件类型选择的校验
+const handleFileChange = (uploadFileFromChild: UploadFile, 
+                          callbacks: { 
+                            showError: (msg: string) => void; 
+                            addFileToList: (fileInfo: { name: string; date: string; size?: string }) => void; 
+                            clearError: () => void; 
+                          }) => { 
+  const file = uploadFileFromChild.raw;
+  if (!file) {
+    callbacks.showError('无法获取原始文件数据');
+    return;
+  }
+
   if (!fileTypeSelected.value) {
-    ElMessage.warning('请先选择导入文件类型');
-    return;  // 如果未选择文件类型，则中断上传
+    // Parent can still show a global message, or rely on child's handling if appropriate
+    ElMessage.warning('请先选择导入文件类型'); 
+    // callbacks.showError('请先选择导入文件类型'); // Or use child's error display
+    return;  
   }
   
   selectedFile.value = file;
   
-  // 验证文件
-  const validationResult = validateFile(file);
+  const validationResult = validateFile(file); // Parent still validates the raw file
   if (!validationResult.valid) {
-    handleErrorMessage(validationResult.error || '文件验证失败');
+    callbacks.showError(validationResult.error || '文件验证失败');
     return;
   }
   
-  // 清除之前的错误信息
-  clearErrorMessageTimer();
-  uploadError.value = '';
+  callbacks.clearError(); // Clear any previous error in child UI
   
-  // 添加文件到上传列表
+  // Add to child's list successfully
   const now = new Date();
   const formattedDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-  
-  uploadedFiles.value.push({
+  callbacks.addFileToList({
     name: file.name,
     date: formattedDate,
-    size: formatFileSize(file.size)
+    size: formatFileSize(file.size) 
   });
   
-  // 启动实际文件处理进度
-  processFileWithProgress(file.raw || file);
+  // Proceed with parent-level processing (reading file content, etc.)
+  processFileWithProgress(file);
   
-  // 文件上传后，根据当前引导步骤自动前进
+  // Guide logic in parent remains largely the same
   if (showGuide.value && !guideCompleted.value) {
-    // 如果当前是步骤3（上传文件），则自动进入步骤4
-    if (currentGuideStep.value === 3) {
+    // This uses parent's uploadedFiles.length, which is now removed. 
+    // The condition for auto-advancing guide step 3 should be re-evaluated.
+    // For now, we assume that if a file is processed by `processFileWithProgress`,
+    // it implies a successful upload for guide purposes.
+    if (currentGuideStep.value === 3) { 
       setTimeout(() => {
         currentGuideStep.value = 4;
       }, 800);
@@ -1498,7 +1384,6 @@ const handleFileChange = (file: any) => {
   }
 };
 
-// 格式化文件大小
 const formatFileSize = (size: number): string => {
   if (size < 1024) {
     return size + ' B';
@@ -1509,14 +1394,6 @@ const formatFileSize = (size: number): string => {
   } else {
     return (size / 1024 / 1024 / 1024).toFixed(2) + ' GB';
   }
-};
-
-// 删除上传的文件
-const removeFile = (index: number) => {
-  uploadedFiles.value.splice(index, 1);
-  // 清除错误信息
-  clearErrorMessageTimer();
-  uploadError.value = '';
 };
 
 // 检查文件是否有效
@@ -1971,48 +1848,49 @@ const skipGuide = () => {
   guideCompleted.value = true;
 };
 
-// 引导自动下一步函数
-const autoAdvanceGuide = () => {
-  // 仅当引导开启且未完成时生效
-  if (!showGuide.value || guideCompleted.value) return;
-  
-  const currentStep = currentGuideStep.value;
-  const hasFilesUploaded = uploadedFiles.value.length > 0;
-  
-  // 根据不同条件自动进入下一步
-  if (currentStep === 1 && fileTypeSelected.value) {
-    // 第一步完成，自动进入第二步
-    setTimeout(() => {
-      currentGuideStep.value = 2;
-    }, 800);
-  } else if (currentStep === 2 && hasFilesUploaded) {
-    // 如果已经上传了文件，自动进入第四步
-    setTimeout(() => {
-      currentGuideStep.value = 4;
-    }, 800);
-  } else if (currentStep === 3 && hasFilesUploaded) {
-    // 第三步完成，自动进入第四步
-    setTimeout(() => {
-      currentGuideStep.value = 4;
-    }, 800);
+// {{ 添加方法以处理子组件发出的引导交互 }}
+const handleChildGuideInteraction = (payload: { type: 'skip' | 'next-step-clicked' | 'completed' }) => {
+  if (payload.type === 'skip') {
+    skipGuide();
+  } else if (payload.type === 'next-step-clicked') {
+    nextGuideStep();
+  } else if (payload.type === 'completed') {
+    completeGuide();
   }
 };
 
-// 持续监听用户交互
+const handleChildElementReady = (payload: { name: string, element: any }) => {
+  guideTargetElements.value[payload.name] = payload.element;
+  if (showGuide.value && !guideCompleted.value) {
+    const currentGuideData = getCurrentGuide();
+    if (currentGuideData.targetName === payload.name) {
+      updateGuidePosition();
+    }
+  }
+};
+
+const autoAdvanceGuide = () => {
+  if (!showGuide.value || guideCompleted.value) return;
+  const currentStepVal = currentGuideStep.value;
+  // const fileIsSelectedForProcessing = !!selectedFile.value; // Ensure this line is actually removed
+
+  if (currentStepVal === 1 && fileTypeSelected.value) {
+    setTimeout(() => { currentGuideStep.value = 2; }, 800);
+  } 
+  // Further auto-advance logic might need review based on precise UX needs after component split
+};
+
 const setupInteractionObserver = () => {
-  // 监控文件选择变化
   watch(fileTypeSelected, () => {
     updateGuidePosition();
     autoAdvanceGuide();
   });
   
-  // 监控文件上传变化
-  watch(uploadedFiles, () => {
-    updateGuidePosition();
-    autoAdvanceGuide();
-  });
+  // watch(uploadedFiles, () => { // uploadedFiles is no longer in parent
+  //   updateGuidePosition();
+  //   autoAdvanceGuide();
+  // });
   
-  // 监控步骤变化
   watch(activeStep, () => {
     if (activeStep.value > 1 && showGuide.value && !guideCompleted.value) {
       completeGuide();
@@ -2322,24 +2200,22 @@ const processFileWithProgress = async (file: File) => {
   } catch (error: any) {
     processingComplete.value = false;
     showProcessingDialog.value = false;
-    handleErrorMessage(`文件处理失败: ${error.message}`);
+    // Call the corrected and simplified error handler
+    handleParentErrorMessage(`文件处理失败: ${error.message}`); 
     
-    // 移除已上传的文件
-    const index = uploadedFiles.value.findIndex(item => item.name === file.name);
-    if (index !== -1) {
-      uploadedFiles.value.splice(index, 1);
-    }
+    // No need to interact with child's uploadedFiles list here, 
+    // as the error is from parent's processing, not initial upload by child.
+    // Child will have already added the file to its list if it passed its own initial checks.
   }
 };
 
-// 添加规则与表头字段映射
 const ruleHeadersMapping = {
   documentNumberValidation: ['单据编号', 'order_id', 'orderId', 'order_number', '订单编号'],
   skuCombination: ['sku', 'SKU', 'item_sku', 'product_sku', 'productSku', '物料编码', '物料编号'],
   tableRule: ['单据类型', 'document_type', 'documentType', 'type'],
   documentItemRule: ['单据项', 'document_item', 'documentItem', 'item'],
   materialSpec: ['物料规格', 'material_spec', 'materialSpec', 'spec', '规格'],
-  materialCode: ['数量', 'quantity', 'qty', 'amount', '需求数量'],
+  materialCode: ['数量', 'quantity', 'qty', 'amount', '需求数量'], 
   orderStatus: ['订单优先级', 'order_priority', 'orderPriority', 'priority', '优先级'],
   shelfWaveNumber: ['上级波次编号', 'parent_wave_number', 'parentWaveNumber', 'wave_number', '波次', '波次编号'],
   singleOrder: ['单个体积', 'volume', '体积', 'single_volume', 'singleVolume'],
@@ -2349,23 +2225,19 @@ const ruleHeadersMapping = {
   packagingHeight: ['包装高度', 'packaging_height', 'packagingHeight', 'height', '高度']
 };
 
-// 检查规则是否应该显示的计算函数
 const shouldShowRule = (ruleKey: RuleKey): boolean => {
-  // 如果没有头部字段，返回true，显示所有规则
   if (!fileHeaders.value || fileHeaders.value.length === 0) {
     return true;
   }
-  
-  const matchingHeaders = ruleHeadersMapping[ruleKey];
-  if (!matchingHeaders) return true; // 如果没有映射关系，默认显示
-  
-  // 检查是否有任何一个映射的字段在headers中存在
+  const matchingHeaders = ruleHeadersMapping[ruleKey as keyof typeof ruleHeadersMapping]; 
+  if (!matchingHeaders) return true; 
   return fileHeaders.value.some(header => 
     matchingHeaders.some(matchHeader => 
       header.toLowerCase().includes(matchHeader.toLowerCase())
     )
   );
 };
+
 </script>
 
 <style scoped lang="scss">
