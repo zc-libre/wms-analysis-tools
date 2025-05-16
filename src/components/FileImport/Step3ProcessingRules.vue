@@ -556,10 +556,7 @@ const ruleHeadersMapping: Record<RuleKey, string[]> = {
 
 const toggleRule = (rule: RuleKey) => {
   processingRules.value[rule].collapsed = !processingRules.value[rule].collapsed;
-  // Original FileImport had a line to auto-enable when expanded, which might be desired:
-  // if (!processingRules.value[rule].collapsed) {
-  //   processingRules.value[rule].enabled = true;
-  // }
+  processingRules.value[rule].enabled = !processingRules.value[rule].collapsed;
 };
 
 const handleSwitchChange = (rule: RuleKey, _event: Event) => { // _event might not be needed if not used

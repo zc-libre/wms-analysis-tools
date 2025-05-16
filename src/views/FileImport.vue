@@ -221,6 +221,7 @@
           v-model:newSchemeDescriptionProp="newSchemeDescription"
           @delete-scheme="deleteScheme"
           @save-scheme="saveCurrentScheme"
+          @toggle-rule="toggleRule"
         />
       </div>
     </div>
@@ -1263,10 +1264,10 @@ const toggleRule = (rule: RuleKey) => {
 };
 
 // 处理开关点击事件
-const handleSwitchChange = (rule: RuleKey, _event: Event) => {
-  // 当开关状态改变时，同步修改折叠状态
-  processingRules.value[rule].collapsed = !processingRules.value[rule].enabled;
-};
+// const handleSwitchChange = (rule: RuleKey, _event: Event) => {
+// 当开关状态改变时，同步修改折叠状态
+// processingRules.value[rule].collapsed = !processingRules.value[rule].enabled;
+// };
 
 // 添加监听器，监听所有规则的enabled状态
 Object.keys(processingRules.value).forEach((key) => {
