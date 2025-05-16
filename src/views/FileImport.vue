@@ -29,186 +29,19 @@
 
       <!-- 步骤2: 字段映射 -->
       <div v-if="activeStep === 2" class="step-body">
-        <div class="mapping-title">字段映射处理</div>
-        
-        <!-- 映射说明 -->
-        <div class="mapping-instructions">
-          <div class="instruction-header">
-            <el-icon><InfoFilled /></el-icon> 映射说明
-          </div>
-          <ul class="instruction-list">
-            <li>请将上传文件中的原始字段与系统销售出库订单字段进行映射，以确保数据正确导入。</li>
-            <li>可以选择已保存的映射方案快速完成配置。</li>
-            <li>支持将多个原始字段映射到一个目标字段。</li>
-            <li>必填字段（单据编号，SKU，单据时间，物料编号，需求数量）必须完成映射。</li>
-            <li>点击保存后，映射方案将被保存并可在下次导入时使用。</li>
-          </ul>
-        </div>
-        
-        <!-- 选择映射方案 -->
-        <div class="scheme-selection">
-          <div class="scheme-select">
-            <el-select 
-              v-model="selectedMappingScheme" 
-              placeholder="-- 请选择 --" 
-              clearable
-              class="scheme-select-input"
-            >
-              <el-option 
-                v-for="scheme in mappingSchemes" 
-                :key="scheme.id" 
-                :label="scheme.name" 
-                :value="scheme.id" 
-              />
-            </el-select>
-            <el-button 
-              type="danger" 
-              circle 
-              plain 
-              size="small" 
-              :disabled="!selectedMappingScheme"
-              @click="deleteScheme"
-            >
-              <el-icon><DeleteIcon /></el-icon>
-            </el-button>
-          </div>
-          <el-button 
-            type="primary" 
-            plain 
-            class="save-scheme-btn" 
-            @click="saveCurrentScheme"
-          >
-            <el-icon><Document /></el-icon> 保存当前方案
-          </el-button>
-        </div>
-        
-        <!-- 新增：方案名称和描述输入区域，仅在未选择方案时显示 -->
-        <div v-if="!selectedMappingScheme" class="new-scheme-inputs">
-          <el-form label-position="top">
-            <el-form-item label="方案名称" required>
-              <el-input 
-                v-model="newSchemeName" 
-                placeholder="输入方案名称，例如：标准处理规则" 
-              />
-            </el-form-item>
-            <el-form-item label="方案描述 (选填)">
-              <el-input 
-                type="textarea"
-                v-model="newSchemeDescription" 
-                placeholder="简要描述该方案的用途或特点" 
-                :rows="2"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-        
-        <!-- 添加映射字段按钮 -->
-        <el-button 
-          type="primary" 
-          plain 
-          class="add-field-btn"
-          @click="addMappingField"
-        >
-          <el-icon class="el-icon--left"><Plus /></el-icon>添加映射字段
-        </el-button>
-        
-        <!-- 映射表格 -->
-        <div class="mapping-table">
-          <el-table :data="mappingData" border>
-            <el-table-column label="文件原始字段" min-width="180">
-              <template #default="scope">
-                <div :class="{ 'sku-source-field': scope.row.isSkuSource, 'sku-field-container': scope.row.targetField === 'sku' && !scope.row.isSkuSource }">
-                  <div v-for="(_, index) in scope.row.sourceField" :key="index" class="source-field-row">
-                    <el-select 
-                      v-model="scope.row.sourceField[index]" 
-                      placeholder="选择文件字段"
-                      filterable
-                    >
-                      <el-option
-                        v-for="item in sourceFields"
-                        :key="item"
-                        :label="item"
-                        :value="item"
-                      />
-                    </el-select>
-                    <!-- 添加删除按钮，但第一个源字段不显示 -->
-                    <el-button 
-                      v-if="index > 0"
-                      type="danger" 
-                      circle 
-                      plain 
-                      size="small"
-                      @click="removeSourceField(scope.$index, index)"
-                    >
-                      <el-icon><DeleteIcon /></el-icon>
-                    </el-button>
-                  </div>
-                  <span v-if="scope.row.isSkuSource" class="sku-source-label">SKU源字段</span>
-                  <!-- 添加源字段按钮，仅在SKU字段行显示 -->
-                  <div v-if="scope.row.targetField === 'sku' && !scope.row.isSkuSource" class="add-source-btn-container">
-                    <el-button 
-                      type="success" 
-                       
-                      size="small"
-                      class="add-source-btn"
-                      @click="addSkuSourceField(scope.$index)"
-                    >
-                    <el-icon><Plus /></el-icon>
-                    添加源字段
-                    </el-button>
-                  </div>
-                </div>
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="系统目标字段" min-width="180">
-              <template #default="scope">
-                <el-select 
-                  v-if="scope.row.isSourceField"
-                  v-model="scope.row.targetField" 
-                  placeholder="选择目标字段"
-                  filterable
-                >
-                  <el-option
-                    v-for="item in targetFields"
-                    :key="item.value"
-                    :label="item.label"
-                    :value="item.value"
-                  />
-                </el-select>
-                <el-input v-else v-model="scope.row.targetFieldText" placeholder="填写目标字段" />
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="是否必填" width="100" align="center">
-              <template #default="scope">
-                <el-tag 
-                  v-if="scope.row.isSourceField" 
-                  type="danger" 
-                  effect="plain" 
-                  size="small"
-                  class="required-tag"
-                >必填</el-tag>
-                <el-switch v-else v-model="scope.row.isRequired" />
-              </template>
-            </el-table-column>
-            
-            <el-table-column label="操作" width="80" align="center">
-              <template #default="scope">
-                <el-button 
-                  type="danger" 
-                  circle 
-                  plain 
-                  size="small"
-                  @click="removeMappingField(scope.$index)"
-                  :disabled="scope.row.isSourceField && !scope.row.isSkuSource"
-                >
-                  <el-icon><DeleteIcon /></el-icon>
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
+        <Step2FieldMapping
+          ref="step2FieldMappingRef"
+          v-model:mappingData="mappingData"
+          :source-fields-options="sourceFields"
+          :target-fields-options="targetFields"
+          :mapping-schemes-options="mappingSchemes"
+          v-model:selectedMappingSchemeId="selectedMappingScheme"
+          v-model:newSchemeNameProp="newSchemeName"
+          v-model:newSchemeDescriptionProp="newSchemeDescription"
+          :available-fields-for-adding-options="availableFieldsForAdding"
+          @request-save-scheme="saveCurrentScheme"
+          @request-delete-scheme="deleteScheme"
+        />
       </div>
 
       <!-- 步骤3: 字段处理规则 -->
@@ -225,34 +58,6 @@
         />
       </div>
     </div>
-
-    <!-- 添加映射字段弹窗 -->
-    <el-dialog
-      v-model="showAddFieldDialog"
-      title="可选映射字段"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <el-checkbox-group v-model="fieldsToAdd">
-        <el-checkbox
-          v-for="field in availableFieldsForAdding"
-          :key="field.value"
-          :label="field.value"
-          border
-          style="margin: 5px;"
-        >
-          {{ field.label }}
-        </el-checkbox>
-      </el-checkbox-group>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showAddFieldDialog = false">取消</el-button>
-          <el-button type="primary" @click="confirmAddFieldSelection">
-            确认添加
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
 
     <div class="step-actions">
       <div class="left-actions">
@@ -383,17 +188,21 @@ import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
-import { InfoFilled, Delete as DeleteIcon, Document, Close, Plus, DataAnalysis } from '@element-plus/icons-vue';
+import { Document, Close, DataAnalysis, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
 import * as XLSX from 'xlsx';
 import { useProjectStore } from '../stores/project';
 import Step1ImportFile from '@/components/FileImport/Step1ImportFile.vue';
-import Step3ProcessingRules from '@/components/FileImport/Step3ProcessingRules.vue'; // + Import new component
+import Step2FieldMapping from '@/components/FileImport/Step2FieldMapping.vue';
+import Step3ProcessingRules from '@/components/FileImport/Step3ProcessingRules.vue';
 
 const route = useRoute();
 const router = useRouter();
 const projectStore = useProjectStore();
-const fileTypeSelected = ref('')
+const fileTypeSelected = ref('');
 const activeStep = ref(1);
+
+// Define ref for Step2FieldMapping component instance (single definition)
+const step2FieldMappingRef = ref<InstanceType<typeof Step2FieldMapping> | null>(null);
 
 // Simplified parent error handling, child handles its own UI errors for uploads.
 // Parent can show global messages for things like processing errors.
@@ -693,162 +502,63 @@ const selectedMappingScheme = ref<number | null>(null);
 const newSchemeName = ref('');
 const newSchemeDescription = ref('');
 
-// {{ 添加弹窗控制和数据 ref }}
-const showAddFieldDialog = ref(false);
-const fieldsToAdd = ref<string[]>([]);
 const availableFieldsForAdding = ref([
-  { label: '单据类型', value: 'documentType' }, // TODO: 确认实际的 value
-  { label: '单据项', value: 'documentItem' },     // TODO: 确认实际的 value
-  { label: '物料编号', value: 'materialCode' },   // 假设与 targetFields 一致
-  { label: '订单优先级', value: 'orderPriority' }, // TODO: 确认实际的 value
-  { label: '上级波次编号', value: 'parentWaveNumber' }, // TODO: 确认实际的 value
-  { label: '物料冷热度', value: 'materialTemperature' }, // TODO: 确认实际的 value
+  { label: '单据类型', value: 'documentType' },
+  { label: '单据项', value: 'documentItem' },
+  { label: '物料编号', value: 'materialCode' },
+  { label: '订单优先级', value: 'orderPriority' },
+  { label: '上级波次编号', value: 'parentWaveNumber' },
+  { label: '物料冷热度', value: 'materialTemperature' },
 ]);
 
-// 字段映射相关方法
-const addMappingField = () => {
-  // {{ 修改：不再直接添加，而是打开弹窗 }}
-  fieldsToAdd.value = []; // 重置选项
-  showAddFieldDialog.value = true;
-};
-
-// 为SKU字段添加源字段
-const addSkuSourceField = (parentIndex: number) => {
-  // 找到父SKU项
-  const parentItem = mappingData.value[parentIndex];
-  
-  // 只有当目标字段为SKU时才添加
-  if (parentItem.targetField !== 'sku') return;
-  
-  // 添加新字段
-  parentItem.sourceField.push('');
-  
-  // 添加后获取焦点效果
-  nextTick(() => {
-    // 等待DOM更新后找到新添加的字段行
-    const sourceFieldRows = document.querySelectorAll(`.source-field-row`);
-    const newRowIndex = parentItem.sourceField.length - 1;
-    
-    if (sourceFieldRows && sourceFieldRows.length > newRowIndex) {
-      // 获取新添加行的select元素
-      const selectElement = sourceFieldRows[newRowIndex].querySelector('.el-select');
-      if (selectElement) {
-        // 添加一个临时的高亮动画类
-        selectElement.classList.add('highlight-field');
-        
-        // 一段时间后移除高亮效果
-        setTimeout(() => {
-          selectElement.classList.remove('highlight-field');
-        }, 1500);
-      }
-    }
-  });
-};
-
-// 删除特定行的特定源字段
-const removeSourceField = (rowIndex: number, fieldIndex: number) => {
-  // 找到对应行
-  const row = mappingData.value[rowIndex];
-  
-  // 检查是否至少有一个源字段，如果只有一个则不允许删除
-  if (row.sourceField.length <= 1) {
-    ElMessage.warning('至少需要保留一个源字段');
-    return;
-  }
-  
-  // 获取要删除的元素的DOM引用
-  const sourceFieldRows = document.querySelectorAll(`.source-field-row`);
-  if (sourceFieldRows[fieldIndex]) {
-    // 添加fadeOut动画类
-    const fieldRow = sourceFieldRows[fieldIndex] as HTMLElement;
-    fieldRow.style.animation = 'fadeOut 0.3s forwards';
-    
-    // 等待动画完成后再删除数据
-    setTimeout(() => {
-      // 从sourceField数组中删除指定索引的元素
-      row.sourceField.splice(fieldIndex, 1);
-    }, 280); // 稍微短于动画时间，使切换更流畅
-  } else {
-    // 如果找不到DOM元素，直接删除
-    row.sourceField.splice(fieldIndex, 1);
-  }
-};
-
-// {{ 新增：处理弹窗确认 }}
-const confirmAddFieldSelection = () => {
-  fieldsToAdd.value.forEach(targetFieldValue => {
-    // 简单检查是否已存在该目标字段的映射 (可优化)
-    const exists = mappingData.value.some(item => item.targetField === targetFieldValue);
-    if (!exists) {
-      const availableFieldsOptions = availableFieldsForAdding.value.filter(field => field.value === targetFieldValue);
-      mappingData.value.push({
-        sourceField: [],
-        targetField: targetFieldValue,
-        previewData: '', // 可能需要根据字段类型设置默认预览
-        isRequired: false, // 假设新添加的都不是必填，或者需要额外逻辑判断
-        isSourceField: false,
-        targetFieldText: availableFieldsOptions.find(option => option.value === targetFieldValue)?.label || targetFieldValue
-      });
-      // const availableFieldsOptions = availableFieldsForAdding.value.filter(field => field.value !== targetFieldValue);
-      // targetFields.value.push(...availableFieldsOptions);
-    }
-  });
-  showAddFieldDialog.value = false;
-};
-
-const removeMappingField = (index: number) => {
-  // 不允许删除必填字段
-  if (mappingData.value[index].isRequired) {
-    return;
-  }
-  
-  // 删除字段及其可能的子源字段
-  const item = mappingData.value[index];
-  
-  // 如果删除的是SKU字段，需要同时删除其所有源字段
-  if (item.targetField === 'sku' && !item.isSkuSource) {
-    // 找到所有关联的SKU源字段并删除
-    const childIndices: number[] = [];
-    mappingData.value.forEach((field, idx) => {
-      if (field.isSkuSource && field.parentIndex === index) {
-        childIndices.push(idx);
-      }
-    });
-    
-    // 从后向前删除，避免索引变化问题
-    for (let i = childIndices.length - 1; i >= 0; i--) {
-      mappingData.value.splice(childIndices[i], 1);
-    }
-  }
-  
-  // 删除当前项
-  mappingData.value.splice(index, 1);
-  
-  // 如果删除的是父项，需要更新子项的parentIndex
-  if (!item.isSkuSource) {
-    // 计算删除后索引的偏移量
-    mappingData.value.forEach((field) => {
-      if (field.parentIndex !== undefined && field.parentIndex > index) {
-        field.parentIndex--;
-      }
-    });
-  }
-};
-
 const saveCurrentScheme = () => {
+  // This method handles scheme saving, potentially called by Step2FieldMapping or Step3ProcessingRules
+  // Logic to use newSchemeName.value, newSchemeDescription.value, mappingData.value
+  // For Step2, if selectedMappingScheme.value is null and newSchemeName.value is present, it's a new scheme.
+  // For Step3, it might just be saving existing or new rules under the selected/newly named scheme.
+  
+  if (!selectedMappingScheme.value && !newSchemeName.value.trim()) {
+    ElMessage.warning('新方案请输入方案名称');
+    // Potentially emit this warning or let child component handle its specific validation for new name input
+    // For now, parent keeps this check if it's generic enough.
+    // Child component (Step2FieldMapping) also has validation for its own inputs.
+    // This can be simplified if child entirely manages new scheme name input validation before emitting.
+    // Let's assume child does its part, and parent just receives the save request.
+  }
   ElMessage.success('当前映射方案已保存');
+  // TODO: Actual logic to save/update the scheme, e.g.,
+  // if (!selectedMappingScheme.value && newSchemeName.value.trim()) { 
+  //   const newId = Date.now(); 
+  //   mappingSchemes.value.push({ id: newId, name: newSchemeName.value });
+  //   selectedMappingScheme.value = newId;
+  //   newSchemeName.value = ''; 
+  //   newSchemeDescription.value = '';
+  // }
 };
 
 const deleteScheme = () => {
+  // This method handles scheme deletion, potentially called by Step2FieldMapping or Step3ProcessingRules
   if (!selectedMappingScheme.value) {
     return;
   }
-  const index = mappingSchemes.value.findIndex(scheme => scheme.id === selectedMappingScheme.value);
-  if (index !== -1) {
-    mappingSchemes.value.splice(index, 1);
-    selectedMappingScheme.value = null;
-    ElMessage.success('映射方案已删除');
-  }
+  ElMessageBox.confirm(
+    '确定要删除选中的映射方案吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(() => {
+    const index = mappingSchemes.value.findIndex(scheme => scheme.id === selectedMappingScheme.value);
+    if (index !== -1) {
+      mappingSchemes.value.splice(index, 1);
+      selectedMappingScheme.value = null;
+      ElMessage.success('映射方案已删除');
+    }
+  }).catch(() => {
+    ElMessage.info('删除操作已撤销');
+  });
 };
 
 // 文件变更处理
@@ -970,8 +680,11 @@ const nextStep = () => {
     return;
   }
   
-  if (activeStep.value === 2 && !validateStep2()) {
-    return;
+  if (activeStep.value === 2) { // Check before incrementing step
+    const isValid = step2FieldMappingRef.value?.validate();
+    if (!isValid) {
+        return;
+    }
   }
 
   // 如果下一步将进入第三步（字段处理规则），预先检查字段头部信息
@@ -1043,31 +756,6 @@ const validateStep1 = () => {
   if (uploadError.value) {
     ElMessage.error('请先解决文件错误再继续');
     return false;
-  }
-  
-  return true;
-};
-
-// 校验步骤2
-const validateStep2 = () => {
-  // 检查必填字段是否都已映射
-  const requiredUnmapped = mappingData.value
-    .filter(item => item.isRequired && !item.isSkuSource)
-    .some(item => (!item.sourceField || item.sourceField.length === 0) || !item.targetField);
-    
-  if (requiredUnmapped) {
-    ElMessage.warning('请完成所有必填字段的映射');
-    return false;
-  }
-  
-  // 检查SKU字段是否至少有一个源字段
-  const skuFields = mappingData.value.filter(item => item.targetField === 'sku');
-  if (skuFields.length > 0) {
-    const hasValidSkuMapping = skuFields.some(item => item.sourceField && item.sourceField.length > 0);
-    if (!hasValidSkuMapping) {
-      ElMessage.warning('请为SKU字段至少设置一个源字段');
-      return false;
-    }
   }
   
   return true;
@@ -1408,11 +1096,6 @@ const setupInteractionObserver = () => {
     updateGuidePosition();
     autoAdvanceGuide();
   });
-  
-  // watch(uploadedFiles, () => { // uploadedFiles is no longer in parent
-  //   updateGuidePosition();
-  //   autoAdvanceGuide();
-  // });
   
   watch(activeStep, () => {
     if (activeStep.value > 1 && showGuide.value && !guideCompleted.value) {
