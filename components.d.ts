@@ -87,6 +87,7 @@ declare module 'vue' {
     Sidebar: typeof import('./src/components/layout/Sidebar.vue')['default']
     Step1ImportFile: typeof import('./src/components/FileImport/Step1ImportFile.vue')['default']
     Step2FieldMapping: typeof import('./src/components/FileImport/Step2FieldMapping.vue')['default']
+    Step3ProcessingRules: typeof import('./src/components/FileImport/Step3ProcessingRules.vue')['default']
     StepFieldMapping: typeof import('./src/components/FileImport/StepFieldMapping.vue')['default']
     StepFileImport: typeof import('./src/components/FileImport/StepFileImport.vue')['default']
     StepRulesSetting: typeof import('./src/components/FileImport/StepRulesSetting.vue')['default']
