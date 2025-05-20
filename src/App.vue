@@ -17,6 +17,8 @@ import TopBar from './components/TopBar.vue'
 </template>
 
 <style lang="scss">
+@use './styles/mixins/scrollbar' as *;
+
 html, body, #app, .app-layout {
   height: 100%;
   margin: 0;
@@ -36,10 +38,8 @@ html, body, #app, .app-layout {
 .app-main {
   padding: 15px; // Keep or adjust padding based on desired look
   background-color: #f8f9fa; // Match content bg
-  // The height will naturally fill remaining space if app-layout is 100%
-  // The overflow should likely be handled by the content within router-view
-  // For example, by the .layout-main class in DefaultLayout.vue if that's still used,
-  // or by the specific view's container.
+  // 使用新的混合宏，只在需要滚动时显示滚动条
+  @include scrollbar-on-hover();
 }
 
 // 页面过渡动画样式

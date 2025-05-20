@@ -21,6 +21,8 @@ import Sidebar from '../components/Sidebar.vue'
 </template>
 
 <style lang="scss" scoped>
+@use '../styles/mixins/scrollbar' as *;
+
 .layout-default {
   height: 100%;
   overflow: hidden;
@@ -41,6 +43,7 @@ import Sidebar from '../components/Sidebar.vue'
   overflow-y: auto;
   width: 240px;
   border-right: 1px solid #e6e6e6;
+  @include scrollbar-on-hover();
 }
 
 .layout-main {
@@ -48,5 +51,6 @@ import Sidebar from '../components/Sidebar.vue'
   padding: 0 10px;
   overflow-y: auto;
   flex: 1;
+
 }
 </style> 

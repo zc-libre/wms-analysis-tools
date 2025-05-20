@@ -1,0 +1,75 @@
+/// 滚动条显示控制混合宏
+/// 实现只在悬停或滚动时显示滚动条的功能
+
+// 引入变量
+@use '../variables' as *;
+
+/// 仅在悬停时显示滚动条的混合宏
+/// @example
+///   .my-scrollable-element {
+///     @include scrollbar-on-hover();
+///   }
+@mixin scrollbar-on-hover() {
+  // 确保始终有正确的滚动行为，只在内容超出时显示滚动条
+  overflow-y: auto;
+  
+  // 默认状态下滚动条透明
+  &::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    // 添加平滑过渡效果
+    transition: background-color 0.3s ease;
+  }
+  
+  // 悬停时显示滚动条
+  &:hover::-webkit-scrollbar-thumb {
+    background-color: #BDBDBD;
+    
+    &:hover {
+      background-color: darken(#BDBDBD, 10%);
+    }
+  }
+  
+  // Firefox支持
+  scrollbar-color: transparent #F5F5F5;
+  // 添加平滑过渡效果
+  transition: scrollbar-color 0.3s ease;
+  
+  &:hover {
+    scrollbar-color: #BDBDBD #F5F5F5;
+  }
+}
+
+/// 仅在需要滚动时显示滚动条的混合宏
+/// @example
+///   .my-scrollable-element {
+///     @include scrollbar-only-when-needed();
+///   }
+@mixin scrollbar-only-when-needed() {
+  // 确保只在内容超出时显示滚动条
+  overflow-y: auto;
+  
+  // 使用 CSS 伪类 :empty 检测是否有溢出
+  // 当不需要滚动时，隐藏滚动条
+  &:not(:hover)::-webkit-scrollbar-thumb {
+    visibility: hidden;
+  }
+  
+  // 滚动条默认可见但透明
+  &::-webkit-scrollbar-thumb {
+    background-color: #BDBDBD;
+    opacity: 0.5;
+  }
+  
+  // 悬停时增强可见度
+  &:hover::-webkit-scrollbar-thumb {
+    opacity: 1;
+    
+    &:hover {
+      background-color: darken(#BDBDBD, 10%);
+    }
+  }
+  
+  // Firefox支持
+  scrollbar-width: thin;
+  scrollbar-color: #BDBDBD transparent;
+} 

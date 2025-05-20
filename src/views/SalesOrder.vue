@@ -1,7 +1,18 @@
 <script setup lang="ts">
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Plus, Document } from '@element-plus/icons-vue'
+import { Search, Plus, Document, Printer } from '@element-plus/icons-vue'
+
+// 定义材料信息接口
+interface MaterialInfo {
+  property: string;
+  value: string;
+}
+
+interface InfoItem {
+  label: string;
+  value: string | number | null;
+}
 
 // Define props
 const props = defineProps<{
@@ -46,8 +57,21 @@ const handleAddOrder = () => {
 }
 
 // 查看订单详情 - 暂时保留
-const handleViewDetail = (row: any) => {
-  ElMessage.info(`查看订单详情：${row.id} (UI占位)`);
+const handleViewDetail = async (row: any) => {
+  try {
+    // 显示加载状态
+    ElMessage.info(`正在获取订单 ${row.id} 的详情...`);
+    
+    // 调用模拟API获取详情
+    const detail = await fetchOrderDetail(row.id);
+    
+    // 更新详情数据并显示弹窗
+    orderDetail.value = detail;
+    detailDialogVisible.value = true;
+  } catch (error) {
+    console.error('获取订单详情失败:', error);
+    ElMessage.error('获取订单详情失败，请稍后重试');
+  }
 }
 
 // 处理分页变化 - 此方法需要调整或移除，分页应由父组件或store处理
@@ -63,6 +87,302 @@ onMounted(() => {
   // fetchOrderData();
 })
 */
+
+// 订单详情弹窗相关
+const detailDialogVisible = ref(false)
+const orderDetail = ref<{
+  id: string;
+  sku: string;
+  orderType: string;
+  quantity: number;
+  materialCode: string;
+  customer: string;
+  deliveryLocation: string;
+  deliveryDate: string;
+  materials: MaterialInfo[];
+}>({
+  // 基本信息
+  id: '',
+  sku: '',
+  orderType: '',
+  quantity: 0,
+  materialCode: '',
+  
+  // 相关信息
+  customer: '',
+  deliveryLocation: '',
+  deliveryDate: '',
+  
+  // 物料信息
+  materials: []
+})
+
+// 模拟API调用获取订单详情
+const fetchOrderDetail = async (orderId: string | number): Promise<{
+  id: string;
+  sku: string;
+  orderType: string;
+  quantity: number;
+  materialCode: string;
+  customer: string;
+  deliveryLocation: string;
+  deliveryDate: string;
+  materials: MaterialInfo[];
+}> => {
+  // 模拟API延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  // 模拟API返回的订单详情数据
+  return {
+    // 基本信息
+    id: String(orderId),
+    sku: `CC_BB_AA`,
+    orderType: '销售出库',
+    quantity: 678,
+    materialCode: '3456789',
+    
+    // 相关信息
+    customer: '江苏ABC贸易有限公司',
+    deliveryLocation: '南京市江宁区',
+    deliveryDate: '2025-03-28',
+    
+    // 物料信息
+    materials: [
+      {
+        property: '物料名称',
+        value: '高强度纸箱 A类'
+      },
+      {
+        property: '物料规格',
+        value: '30×25×20 cm'
+      },
+      {
+        property: '物料冷热度',
+        value: '热'
+      },
+      {
+        property: '单位重量',
+        value: '0.5 kg'
+      }
+    ]
+  }
+}
+
+// 打印订单详情
+const handlePrintOrderDetail = () => {
+  // 创建打印内容样式
+  const printStyle = document.createElement('style')
+  printStyle.innerHTML = `
+    .print-container {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    .print-title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #ccc;
+    }
+    .print-section {
+      margin-bottom: 15px;
+    }
+    .print-section-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    .print-info-list {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .print-info-item {
+      width: 50%;
+      margin-bottom: 8px;
+      display: flex;
+    }
+    .print-info-label {
+      font-weight: bold;
+      margin-right: 8px;
+      color: #666;
+    }
+    .print-info-value {
+      color: #333;
+    }
+    .print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .print-table th, .print-table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    .print-table th {
+      background-color: #f2f2f2;
+    }
+    @media print {
+      button {
+        display: none;
+      }
+    }
+  `
+
+  // 创建打印内容
+  const printContent = document.createElement('div')
+  printContent.classList.add('print-container')
+  
+  // 标题
+  const title = document.createElement('div')
+  title.classList.add('print-title')
+  title.textContent = '订单详情'
+  printContent.appendChild(title)
+  
+  // 基本信息
+  const basicInfo = document.createElement('div')
+  basicInfo.classList.add('print-section')
+  const basicTitle = document.createElement('div')
+  basicTitle.classList.add('print-section-title')
+  basicTitle.textContent = '基本信息'
+  basicInfo.appendChild(basicTitle)
+  
+  const basicInfoList = document.createElement('div')
+  basicInfoList.classList.add('print-info-list')
+  
+  const basicItems: InfoItem[] = [
+    { label: '单据编号', value: orderDetail.value.id },
+    { label: 'SKU', value: orderDetail.value.sku },
+    { label: '单据类型', value: orderDetail.value.orderType },
+    { label: '需求数量', value: orderDetail.value.quantity },
+    { label: '物料编号', value: orderDetail.value.materialCode }
+  ]
+  
+  basicItems.forEach(item => {
+    const infoItem = document.createElement('div')
+    infoItem.classList.add('print-info-item')
+    
+    const label = document.createElement('span')
+    label.classList.add('print-info-label')
+    label.textContent = `${item.label}:`
+    
+    const value = document.createElement('span')
+    value.classList.add('print-info-value')
+    value.textContent = item.value !== null ? String(item.value) : '';
+    
+    infoItem.appendChild(label)
+    infoItem.appendChild(value)
+    basicInfoList.appendChild(infoItem)
+  })
+  
+  basicInfo.appendChild(basicInfoList)
+  printContent.appendChild(basicInfo)
+  
+  // 相关信息
+  const relatedInfo = document.createElement('div')
+  relatedInfo.classList.add('print-section')
+  const relatedTitle = document.createElement('div')
+  relatedTitle.classList.add('print-section-title')
+  relatedTitle.textContent = '相关信息'
+  relatedInfo.appendChild(relatedTitle)
+  
+  const relatedInfoList = document.createElement('div')
+  relatedInfoList.classList.add('print-info-list')
+  
+  const relatedItems: InfoItem[] = [
+    { label: '客户名称', value: orderDetail.value.customer },
+    { label: '交货地点', value: orderDetail.value.deliveryLocation },
+    { label: '交货日期', value: orderDetail.value.deliveryDate }
+  ]
+  
+  relatedItems.forEach(item => {
+    const infoItem = document.createElement('div')
+    infoItem.classList.add('print-info-item')
+    
+    const label = document.createElement('span')
+    label.classList.add('print-info-label')
+    label.textContent = `${item.label}:`
+    
+    const value = document.createElement('span')
+    value.classList.add('print-info-value')
+    value.textContent = item.value !== null ? String(item.value) : '';
+    
+    infoItem.appendChild(label)
+    infoItem.appendChild(value)
+    relatedInfoList.appendChild(infoItem)
+  })
+  
+  relatedInfo.appendChild(relatedInfoList)
+  printContent.appendChild(relatedInfo)
+  
+  // 物料信息
+  const materialInfo = document.createElement('div')
+  materialInfo.classList.add('print-section')
+  const materialTitle = document.createElement('div')
+  materialTitle.classList.add('print-section-title')
+  materialTitle.textContent = '物料信息'
+  materialInfo.appendChild(materialTitle)
+  
+  const table = document.createElement('table')
+  table.classList.add('print-table')
+  
+  // 表头
+  const thead = document.createElement('thead')
+  const headerRow = document.createElement('tr')
+  
+  const propHeader = document.createElement('th')
+  propHeader.textContent = '物料属性'
+  headerRow.appendChild(propHeader)
+  
+  const valueHeader = document.createElement('th')
+  valueHeader.textContent = '值'
+  headerRow.appendChild(valueHeader)
+  
+  thead.appendChild(headerRow)
+  table.appendChild(thead)
+  
+  // 表格内容
+  const tbody = document.createElement('tbody')
+  
+  orderDetail.value.materials.forEach((material: MaterialInfo) => {
+    const row = document.createElement('tr')
+    
+    const propCell = document.createElement('td')
+    propCell.textContent = material.property
+    row.appendChild(propCell)
+    
+    const valueCell = document.createElement('td')
+    valueCell.textContent = material.value
+    row.appendChild(valueCell)
+    
+    tbody.appendChild(row)
+  })
+  
+  table.appendChild(tbody)
+  materialInfo.appendChild(table)
+  printContent.appendChild(materialInfo)
+  
+  // 创建打印窗口
+  const printWindow = window.open('', '_blank')
+  if (printWindow) {
+    printWindow.document.write('<html><head><title>订单详情</title></head><body>')
+    printWindow.document.head.appendChild(printStyle)
+    printWindow.document.body.appendChild(printContent.cloneNode(true))
+    printWindow.document.write('</body></html>')
+    printWindow.document.close()
+    
+    // 等待图片加载完成后打印
+    printWindow.setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 300)
+  } else {
+    ElMessage.error('打印窗口创建失败，请检查浏览器是否阻止弹出窗口')
+  }
+}
 </script>
 
 <template>
@@ -119,6 +439,88 @@ onMounted(() => {
         @current-change="handlePageChange"
       />
     </div>
+    
+    <!-- 订单详情弹窗 -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="订单详情"
+      width="850px"
+      top="5vh"
+      destroy-on-close
+      class="order-detail-dialog"
+      :modal-append-to-body="true"
+      :append-to-body="true"
+    >
+      <el-icon class="order-detail-dialog__close" @click="detailDialogVisible = false">
+      </el-icon>
+      
+      <div class="order-detail-dialog__content">
+        <!-- 基本信息和相关信息合并为两列布局 -->
+        <div class="order-detail-dialog__info-wrapper">
+          <!-- 基本信息 -->
+          <div class="order-detail-dialog__section order-detail-dialog__section--half">
+            <h3 class="order-detail-dialog__section-title">基本信息</h3>
+            <div class="order-detail-dialog__info-list">
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">单据编号:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.id }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">SKU:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.sku }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">单据类型:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.orderType }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">需求数量:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.quantity }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">物料编号:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.materialCode }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 相关信息 -->
+          <div class="order-detail-dialog__section order-detail-dialog__section--half">
+            <h3 class="order-detail-dialog__section-title">相关信息</h3>
+            <div class="order-detail-dialog__info-list">
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">客户名称:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.customer }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">交货地点:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.deliveryLocation }}</span>
+              </div>
+              <div class="order-detail-dialog__info-item">
+                <span class="order-detail-dialog__info-label">交货日期:</span>
+                <span class="order-detail-dialog__info-value">{{ orderDetail.deliveryDate }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 物料信息 -->
+        <div class="order-detail-dialog__section">
+          <h3 class="order-detail-dialog__section-title">物料信息</h3>
+          <el-table :data="orderDetail.materials" border size="small" stripe>
+            <el-table-column prop="property" label="物料属性" width="220" />
+            <el-table-column prop="value" label="值" />
+          </el-table>
+        </div>
+      </div>
+      
+      <template #footer>
+        <div class="order-detail-dialog__footer">
+          <el-button @click="detailDialogVisible = false">关闭</el-button>
+          <el-button type="primary" :icon="Printer" @click="handlePrintOrderDetail">打印</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -164,6 +566,107 @@ onMounted(() => {
   justify-content: flex-end;
   flex-shrink: 0; /* Prevent pagination from shrinking */
   padding-top: 1rem; /* Add some space above pagination */
+}
+
+// 订单详情弹窗样式
+.order-detail-dialog {
+  &__close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 20px;
+    cursor: pointer;
+    color: #909399;
+    z-index: 2001;
+    
+    &:hover {
+      color: #409EFF;
+    }
+  }
+  
+  &__content {
+    padding: 0 10px;
+  }
+  
+  &__info-wrapper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  &__section {
+    margin-bottom: 15px;
+    
+    &--half {
+      width: 48%;
+    }
+  }
+  
+  &__section-title {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #EBEEF5;
+    color: #303133;
+  }
+  
+  &__info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  &__info-item {
+    display: flex;
+    align-items: center;
+  }
+  
+  &__info-label {
+    color: #606266;
+    margin-right: 8px;
+    min-width: 80px;
+  }
+  
+  &__info-value {
+    color: #303133;
+    font-weight: 500;
+  }
+  
+  &__footer {
+    text-align: right;
+    padding-top: 5px;
+  }
+}
+
+/* 覆盖 Element Plus 对话框样式 */
+:deep(.el-dialog) {
+  margin: 5vh auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+:deep(.el-dialog__header) {
+  padding: 15px 20px !important;
+  margin-right: 0 !important;
+}
+
+:deep(.el-dialog__body) {
+  overflow: visible !important;
+  padding: 10px 20px !important;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 10px 20px 15px !important;
+}
+
+:deep(.el-table) {
+  font-size: 13px !important;
+}
+
+/* 优化表格在不滚动情况下的展示 */
+:deep(.el-table) {
+  max-height: none !important;
 }
 
 // Utilities (can be removed if not used elsewhere or defined globally)

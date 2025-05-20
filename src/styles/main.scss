@@ -9,6 +9,7 @@
 
 // 导入混合宏
 @use "mixins/responsive" as *;
+@use "mixins/scrollbar" as *;
 
 // 导入基础样式
 @use "base/reset";
