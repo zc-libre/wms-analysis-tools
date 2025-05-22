@@ -2,6 +2,8 @@
 import { reactive, computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Plus, Document, Printer } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { useProjectStore } from '../stores/project'
 
 // 定义材料信息接口
 interface MaterialInfo {
@@ -27,12 +29,8 @@ const searchForm = reactive({
   // dateRange: [] // dateRange was not used in the template, removing for now
 })
 
-// 表格数据现在直接来自 props.items
-// const tableData = ref<any[]>([])
-// const loading = ref(false) // Replaced by props.isLoading
-// const totalItems = ref(0) // Pagination logic needs rework if data is from props
-// const currentPage = ref(1)
-// const pageSize = ref(10)
+const router = useRouter()
+const projectStore = useProjectStore()
 
 // 计算属性，用于在模板中更方便地访问 items
 const displayData = computed(() => props.items || [])
@@ -53,7 +51,21 @@ const handleSearch = () => {
 
 // 新增订单 - 暂时保留，但可能也需要提升
 const handleAddOrder = () => {
-  ElMessage.info('触发新增销售出库订单操作 (UI占位)');
+  const projectId = 0; // 占位项目ID
+  const projectName = '销售订单项目'; // 占位项目名称
+
+  projectStore.setCurrentProject(projectId, projectName);
+  projectStore.setFileType('销售出库订单');
+
+  // 根据 Sidebar.vue 的逻辑，也设置 sessionStorage
+  sessionStorage.setItem('currentProject', JSON.stringify({
+    id: projectId,
+    name: projectName,
+    company: '', // 根据需要填写或留空
+    location: '' // 根据需要填写或留空
+  }));
+
+  router.push({ name: 'FileImport' });
 }
 
 // 查看订单详情 - 暂时保留
@@ -410,15 +422,15 @@ const handlePrintOrderDetail = () => {
     <div class="table-container">
       <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无销售出库订单数据" />
       <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
-        <el-table-column prop="id" label="单据编号" sortable />
-        <el-table-column prop="customer" label="客户" sortable />
+        <el-table-column prop="id" label="单据编号" sortable width="160" />
+        <el-table-column prop="customer" label="客户" sortable width="160" />
         <el-table-column prop="amount" label="金额" sortable />
         <el-table-column prop="orderDate" label="单据时间" width="160" sortable />
-        <el-table-column prop="sku" label="SKU" sortable />
-        <el-table-column prop="orderType" label="单据类型" />
-        <el-table-column prop="projectItem" label="单据项"  />
-        <el-table-column prop="materialCode" label="物料编号" />
-        <el-table-column prop="quantity" label="需求数量" sortable />
+        <el-table-column prop="sku" label="SKU" sortable width="160"/>
+        <el-table-column prop="orderType" label="单据类型" width="160" />
+        <el-table-column prop="projectItem" label="单据项" width="160"  />
+        <el-table-column prop="materialCode" label="物料编号" width="160" />
+        <el-table-column prop="quantity" label="需求数量" width="120" sortable />
         <el-table-column label="操作" fixed="right" width="100">
           <template #default="scope">
             <el-button type="primary" size="small" link :icon="Document" @click="handleViewDetail(scope.row)">

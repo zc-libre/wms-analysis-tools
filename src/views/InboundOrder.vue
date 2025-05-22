@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Plus } from '@element-plus/icons-vue'
+import { Search, Plus,Edit, Delete } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   items: any[] | null,
@@ -25,8 +25,15 @@ const handleSearch = () => {
 const handleAddInboundOrder = () => {
   ElMessage.info('触发新增入库单据操作 (UI占位)');
 }
-const handleViewDetail = (row: any) => {
-  ElMessage.info(`查看入库单据详情：${row.orderNumber || row.id} (UI占位)`)
+// const handleViewDetail = (row: any) => {
+//   ElMessage.info(`查看入库单据详情：${row.orderNumber || row.id} (UI占位)`)
+// }
+const handleEdit = (row: any) => {
+  ElMessage.info(`编辑入库单据：${row.orderNumber || row.id} (UI占位)`)
+}
+
+const handleDelete = (row: any) => {
+  ElMessage.info(`删除入库单据：${row.orderNumber || row.id} (UI占位)`)
 }
 </script>
 
@@ -65,11 +72,10 @@ const handleViewDetail = (row: any) => {
         <el-table-column prop="itemCount" label="物料种类" width="100"/>
         <el-table-column prop="warehouseName" label="入库仓库" width="120"/>
         <el-table-column prop="status" label="状态" sortable width="100"/>
-        <el-table-column label="操作" fixed="right" width="100">
+        <el-table-column label="操作" fixed="right" width="180">
           <template #default="scope">
-            <el-button type="primary" size="small" link @click="handleViewDetail(scope.row)">
-              查看详情
-          </el-button>
+            <el-button type="primary" size="small" :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button type="danger" size="small" :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

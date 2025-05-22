@@ -10,7 +10,6 @@ import {
   Delete, 
   View, 
   CaretRight,
-  Video,
   Goods,
   TrendCharts,
   Aim,
@@ -19,6 +18,52 @@ import {
   Monitor,
   Document
 } from '@element-plus/icons-vue'
+
+// 为分析记录中的数据项定义接口
+interface HitRateDataItem {
+  dateType: string;
+  date: string;
+  timeMode: string;
+  totalOrders: number;
+  totalContainerRuns: number;
+  orderPerHour: number;
+  containerRunsPerHour: number;
+  avgHitRate: number;
+  orderPerMinute: number;
+  containerRunsPerMinute: number;
+  avgHitRateMinute: number;
+}
+
+interface OrderDetailDataItem {
+  date: string;
+  orderType: string;
+  quantity: number;
+  orderCount: number;
+  demandCount: number;
+  volume: number;
+  unitPallet: number;
+  unitPiece: number;
+  palletToPiece: number;
+}
+
+interface PeriodEIQDataItem {
+  date: string;
+  time: string;
+  orderType: string;
+  quantity: number;
+  orderCount: number;
+  demandCount: number;
+  volume: number;
+  unitLine: number;
+}
+
+// 为 recordDataMap 中的每个记录定义接口
+interface AnalysisRecordData {
+  title: string;
+  hitRateData: HitRateDataItem[];
+  orderDetailData: OrderDetailDataItem[];
+  periodEIQData: PeriodEIQDataItem[];
+}
 
 // 图表实例引用
 const chartRef = ref<HTMLElement | null>(null)
@@ -132,10 +177,10 @@ const selectedRecordId = ref(1)
 // 骨架屏显示控制
 const showSkeletonScreen = ref(false)
 // 当前处理中的记录 ID
-const processingRecordId = ref(null)
+const processingRecordId = ref<number | null>(null)
 
 // 分析记录数据映射 - 为每个记录ID存储对应的完整数据
-const recordDataMap = reactive({
+const recordDataMap = reactive<Record<number, AnalysisRecordData>>({
   // 3月销售订单分析数据
   1: {
     // 标题
@@ -707,13 +752,13 @@ const recordDataMap = reactive({
 })
 
 // 命中率数据
-const hitRateData = reactive(recordDataMap[selectedRecordId.value].hitRateData)
+const hitRateData = reactive<HitRateDataItem[]>(recordDataMap[selectedRecordId.value].hitRateData)
 
 // 订单详情数据
-const orderDetailData = reactive(recordDataMap[selectedRecordId.value].orderDetailData)
+const orderDetailData = reactive<OrderDetailDataItem[]>(recordDataMap[selectedRecordId.value].orderDetailData)
 
 // 每时段EIQ分析数据
-const periodEIQData = reactive(recordDataMap[selectedRecordId.value].periodEIQData)
+const periodEIQData = reactive<PeriodEIQDataItem[]>(recordDataMap[selectedRecordId.value].periodEIQData)
 
 // 图表初始化状态跟踪
 const chartInitStatus = ref({
@@ -1679,11 +1724,13 @@ const renderChart = () => {
                     type: 'bar',
                     data: [95.2, 92.4, 88.7, 90.5, 94.3, 91.8],
                     itemStyle: {
-                      color: function(params) {
+                      color: function(params: any) {
                         // 根据值的大小设置不同的颜色
                         const value = params.value;
-                        if (value >= 93) return '#67C23A';  // 绿色
-                        if (value >= 90) return '#E6A23C';  // 黄色
+                        if (typeof value === 'number') {
+                          if (value >= 93) return '#67C23A';  // 绿色
+                          if (value >= 90) return '#E6A23C';  // 黄色
+                        }
                         return '#F56C6C';  // 红色
                       }
                     },
@@ -1909,27 +1956,26 @@ watch(activeTab, (newTab, oldTab) => {
 });
 
 // 监听视图模式变化
-watch(viewMode, (newMode, oldMode) => {
+watch(viewMode, (newMode, oldMode) => { // 让 TypeScript 自动推断参数类型
   console.log(`视图模式从 ${oldMode} 更改为 ${newMode}`);
   if (newMode === 'chart') {
     // 确保当前没有正在进行的图表初始化
     if (!chartInitStatus.value.isInitializing) {
-      switchViewMode(newMode);
+      switchViewMode(newMode as 'table' | 'chart'); // 使用类型断言
     } else {
       console.log('有图表正在初始化中，等待完成后再切换视图模式');
       const checkAndSwitchMode = () => {
         if (chartInitStatus.value.isInitializing) {
           setTimeout(checkAndSwitchMode, 100);
         } else {
-          switchViewMode(newMode);
+          switchViewMode(newMode as 'table' | 'chart'); // 使用类型断言
         }
       };
-      
       setTimeout(checkAndSwitchMode, 100);
     }
   } else {
     // 切换到表格视图不需要等待图表初始化
-    switchViewMode(newMode);
+    switchViewMode(newMode as 'table' | 'chart'); // 使用类型断言
   }
 });
 
@@ -2012,7 +2058,10 @@ const viewAnalysisRecord = (record: any) => {
       // 设置选中的记录 ID
       selectedRecordId.value = record.id
       // 更新页面标题
-      document.querySelector('.page-header-title').textContent = recordDataMap[record.id].title
+      const headerTitleProcessing = document.querySelector('.page-header-title');
+      if (headerTitleProcessing) {
+        headerTitleProcessing.textContent = recordDataMap[record.id].title;
+      }
       
       // 显示骨架屏
       showSkeletonScreen.value = true
@@ -2034,7 +2083,10 @@ const viewAnalysisRecord = (record: any) => {
     selectedRecordId.value = record.id
     
     // 更新页面标题和各个数据集
-    document.querySelector('.page-header-title').textContent = recordDataMap[record.id].title
+    const headerTitleRecord = document.querySelector('.page-header-title');
+    if (headerTitleRecord) {
+      headerTitleRecord.textContent = recordDataMap[record.id].title;
+    }
     
     // 清空并重新填充数据数组
     hitRateData.splice(0, hitRateData.length, ...recordDataMap[record.id].hitRateData)
@@ -2153,9 +2205,9 @@ onMounted(() => {
   nextTick(() => {
     try {
       // 设置页面标题
-      const headerTitle = document.querySelector('.page-header h2');
-      if (headerTitle) {
-        headerTitle.textContent = recordDataMap[selectedRecordId.value].title;
+      const headerTitleMounted = document.querySelector('.page-header-title');
+      if (headerTitleMounted) {
+        headerTitleMounted.textContent = recordDataMap[selectedRecordId.value].title;
       }
       
       // 如果默认显示图表，初始化图表
@@ -2209,10 +2261,23 @@ const moreTabsMap = {
   workstationHitRateDetail: '工作站命中率明细'
 }
 
+// 为 moreTabsMap 的键定义类型
+type MoreTabsMapKey = keyof typeof moreTabsMap;
+
 // 判断当前选中的选项卡是否为更多子菜单中的选项
 const isMoreSubmenuActive = computed(() => {
   return Object.keys(moreTabsMap).includes(activeTab.value);
 })
+
+// 新增计算属性，用于安全获取当前更多子菜单的标签
+const currentMoreTabLabel = computed(() => {
+  if (isMoreSubmenuActive.value) {
+    // 此处 activeTab.value 理论上已经是 MoreTabsMapKey 的一种
+    // 因为 isMoreSubmenuActive 的判断逻辑确保了这一点
+    return moreTabsMap[activeTab.value as MoreTabsMapKey];
+  }
+  return ''; // 如果不是更多子菜单激活，返回空字符串或默认值
+});
 
 // 检查选项卡是否为当前激活状态
 const isActiveTab = (tab: any) => {
@@ -2513,7 +2578,7 @@ const getStatusButtonTitle = (record: any) => {
             <template v-else>
               <el-dropdown @command="handleTabChange">
                 <span class="more-button">
-                  {{ isMoreSubmenuActive ? moreTabsMap[activeTab] : tab.label }} <el-icon><ArrowDown /></el-icon>
+                  {{ isMoreSubmenuActive ? currentMoreTabLabel : tab.label }} <el-icon><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -2571,7 +2636,7 @@ const getStatusButtonTitle = (record: any) => {
           </div>
                 
               <div class="control-panel-content-item">
-                <el-radio-group v-model="viewMode" @change="mode => switchViewMode(mode)" size="small">
+                <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)" size="small">
                   <el-radio-button label="table">表格视图</el-radio-button>
                   <el-radio-button label="chart">图表视图</el-radio-button>
                 </el-radio-group>
@@ -2583,7 +2648,7 @@ const getStatusButtonTitle = (record: any) => {
             </template>
             <template v-else>
                 <div class="action-buttons">
-              <el-radio-group v-model="viewMode" @change="mode => switchViewMode(mode)" size="small">
+              <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)" size="small">
                 <el-radio-button label="table">表格视图</el-radio-button>
                 <el-radio-button label="chart">图表视图</el-radio-button>
               </el-radio-group>

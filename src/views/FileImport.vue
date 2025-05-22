@@ -184,8 +184,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
 import { Document, Close, DataAnalysis, ArrowLeft, ArrowRight } from '@element-plus/icons-vue';
@@ -195,7 +195,7 @@ import Step1ImportFile from '@/components/import/Step1ImportFile.vue';
 import Step2FieldMapping from '@/components/import/Step2FieldMapping.vue';
 import Step3ProcessingRules from '@/components/import/Step3ProcessingRules.vue';
 
-const route = useRoute();
+
 const router = useRouter();
 const projectStore = useProjectStore();
 const fileTypeSelected = ref('');
@@ -979,35 +979,15 @@ onMounted(() => {
   projectId.value = projectStore.currentProjectId;
   projectName.value = projectStore.currentProjectName;
   
-  if (!projectId.value) {
-    // 尝试从 sessionStorage 获取项目信息
-    const storedProject = sessionStorage.getItem('currentProject');
-    if (storedProject) {
-      try {
-        const projectData = JSON.parse(storedProject);
-        projectId.value = projectData.id;
-        projectName.value = projectData.name;
-        
-        // 更新 Pinia store（这样其他组件可以从store中获取数据）
-        projectStore.setCurrentProject(projectData.id, projectData.name);
-      } catch (e) {
-        console.error('解析sessionStorage中的项目数据失败', e);
-      }
+  // 检查 projectStore 中是否有预设的文件类型
+  if (projectStore.currentFileType) { 
+    if (projectStore.currentFileType === '销售出库订单') {
+      fileTypeSelected.value = '销售出库订单';
     }
-    
-    // 如果还是没有数据，尝试从查询参数获取（向后兼容旧版本）
-    if (!projectId.value) {
-      const id = route.query.id;
-      const name = route.query.name;
-      
-      if (id) {
-        projectId.value = parseInt(id.toString(), 10);
-        projectName.value = name?.toString() || `项目 ${id}`;
-      } else {
-        ElMessage.error('缺少项目信息，无法继续');
-        router.push('/');
-      }
-    }
+    // 如果需要，可以为其他文件类型添加 else if
+    // 例如: else if (projectStore.currentFileType === '物料主数据') {
+    //   fileTypeSelected.value = '物料主数据';
+    // }
   }
   
   // 初始化引导提示位置
@@ -1015,6 +995,10 @@ onMounted(() => {
   
   // 设置交互监听
   setupInteractionObserver();
+});
+
+onUnmounted(() => {
+  projectStore.currentFileType = '';
 });
 
 // 计算属性：是否有SKU字段
