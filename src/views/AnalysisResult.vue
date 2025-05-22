@@ -34,6 +34,14 @@ interface HitRateDataItem {
   avgHitRateMinute: number;
 }
 
+// EI分析数据项接口
+interface EIAnalysisDataItem {
+  id: number;
+  orderLines: number; // 订单行数
+  orderCount: number; // 单据数量
+  percentage: number; // 单据数量占比
+}
+
 interface OrderDetailDataItem {
   date: string;
   orderType: string;
@@ -63,6 +71,7 @@ interface AnalysisRecordData {
   hitRateData: HitRateDataItem[];
   orderDetailData: OrderDetailDataItem[];
   periodEIQData: PeriodEIQDataItem[];
+  eiAnalysisData: EIAnalysisDataItem[];
 }
 
 // 图表实例引用
@@ -473,6 +482,19 @@ const recordDataMap = reactive<Record<number, AnalysisRecordData>>({
         volume: 12,
         unitLine: 7.00
       }
+    ],
+    // EI分析数据
+    eiAnalysisData: [
+      { id: 1, orderLines: 1, orderCount: 17, percentage: 0.016569201 },
+      { id: 2, orderLines: 2, orderCount: 1, percentage: 0.000974659 },
+      { id: 3, orderLines: 4, orderCount: 1, percentage: 0.000974659 },
+      { id: 4, orderLines: 17, orderCount: 1, percentage: 0.000974659 },
+      { id: 5, orderLines: 24, orderCount: 1, percentage: 0.000974659 },
+      { id: 6, orderLines: 30, orderCount: 1, percentage: 0.000974659 },
+      { id: 7, orderLines: 38, orderCount: 1, percentage: 0.000974659 },
+      { id: 8, orderLines: 45, orderCount: 1, percentage: 0.000974659 },
+      { id: 9, orderLines: 46, orderCount: 1, percentage: 0.000974659 },
+      { id: 10, orderLines: 50, orderCount: 1, percentage: 0.000974659 }
     ]
   },
   // 2月销售订单分析数据
@@ -631,6 +653,17 @@ const recordDataMap = reactive<Record<number, AnalysisRecordData>>({
         volume: 30,
         unitLine: 1.67
       }
+    ],
+    // EI分析数据 - 2月
+    eiAnalysisData: [
+      { id: 1, orderLines: 1, orderCount: 15, percentage: 0.015243902 },
+      { id: 2, orderLines: 2, orderCount: 2, percentage: 0.002032520 },
+      { id: 3, orderLines: 5, orderCount: 1, percentage: 0.001016260 },
+      { id: 4, orderLines: 16, orderCount: 1, percentage: 0.001016260 },
+      { id: 5, orderLines: 22, orderCount: 1, percentage: 0.001016260 },
+      { id: 6, orderLines: 31, orderCount: 1, percentage: 0.001016260 },
+      { id: 7, orderLines: 35, orderCount: 1, percentage: 0.001016260 },
+      { id: 8, orderLines: 42, orderCount: 1, percentage: 0.001016260 }
     ]
   },
   // 1月销售订单分析数据
@@ -747,6 +780,14 @@ const recordDataMap = reactive<Record<number, AnalysisRecordData>>({
         volume: 8,
         unitLine: 1.67
       }
+    ],
+    // EI分析数据 - 1月，正在进行中
+    eiAnalysisData: [
+      { id: 1, orderLines: 1, orderCount: 10, percentage: 0.012195122 },
+      { id: 2, orderLines: 3, orderCount: 1, percentage: 0.001219512 },
+      { id: 3, orderLines: 8, orderCount: 1, percentage: 0.001219512 },
+      { id: 4, orderLines: 14, orderCount: 1, percentage: 0.001219512 },
+      { id: 5, orderLines: 19, orderCount: 1, percentage: 0.001219512 }
     ]
   }
 })
@@ -759,6 +800,9 @@ const orderDetailData = reactive<OrderDetailDataItem[]>(recordDataMap[selectedRe
 
 // 每时段EIQ分析数据
 const periodEIQData = reactive<PeriodEIQDataItem[]>(recordDataMap[selectedRecordId.value].periodEIQData)
+
+// EI分析数据
+const eiAnalysisData = reactive<EIAnalysisDataItem[]>(recordDataMap[selectedRecordId.value].eiAnalysisData)
 
 // 图表初始化状态跟踪
 const chartInitStatus = ref({
@@ -1383,77 +1427,214 @@ const renderChart = () => {
                 ]
               }
             } else if (activeTab.value === 'EAnalysis') {
-              // E分析图表配置
+              // EI分析图表配置 - 修改为饼图显示订单行数分布
+              
+              // 定义订单行数范围
+              const orderLinesRanges = [
+                { min: 1, max: 20, name: '1-20' },
+                { min: 21, max: 40, name: '21-40' },
+                { min: 41, max: 60, name: '41-60' },
+                { min: 61, max: 80, name: '61-80' },
+                { min: 81, max: 100, name: '81-100' },
+                { min: 101, max: 120, name: '101-120' },
+                { min: 121, max: 140, name: '121-140' },
+                { min: 141, max: 160, name: '141-160' },
+                { min: 161, max: 180, name: '161-180' },
+                { min: 181, max: 200, name: '181-200' }
+              ]
+              
+              // 按订单行数范围统计数据
+              const rangeCountMap = new Map(orderLinesRanges.map(range => [range.name, 0]))
+              
+              // 遍历eiAnalysisData，计算每个范围的单据数量
+              eiAnalysisData.forEach(item => {
+                const orderLines = item.orderLines
+                const orderCount = item.orderCount
+                
+                for (const range of orderLinesRanges) {
+                  if (orderLines >= range.min && orderLines <= range.max) {
+                    rangeCountMap.set(range.name, (rangeCountMap.get(range.name) || 0) + orderCount)
+                    break
+                  }
+                }
+              })
+              
+              // 转换为饼图所需的数据格式
+              const pieData = Array.from(rangeCountMap).map(([name, value]) => ({
+                name,
+                value
+              }))
+              
               option = {
                 title: {
-                  text: 'E分析',
+                  text: '订单行数与单据数量分布',
                   left: 'center'
                 },
                 tooltip: {
-                  trigger: 'axis',
-                  axisPointer: {
-                    type: 'shadow'
-                  }
+                  trigger: 'item',
+                  formatter: '{a} <br/>{b}: {c} ({d}%)'
                 },
                 legend: {
-                  data: ['设备效率', '人工效率'],
-                  bottom: 10
-                },
-                xAxis: {
-                  type: 'category',
-                  data: ['设备1', '设备2', '设备3', '设备4', '设备5']
-                },
-                yAxis: {
-                  type: 'value',
-                  name: '效率'
+                  orient: 'vertical',
+                  right: 10,
+                  top: 'center',
+                  data: orderLinesRanges.map(range => range.name),
+                  textStyle: {
+                    fontSize: 12,
+                    color: '#333'
+                  },
+                  itemGap: 12,
+                  itemWidth: 16,
+                  itemHeight: 10,
+                  borderRadius: 2,
+                  padding: 10,
+                  backgroundColor: 'rgba(255,255,255,0.8)',
+                  borderColor: '#eee',
+                  borderWidth: 1,
+                  formatter: '{name}'
                 },
                 series: [
                   {
-                    name: '设备效率',
-                    type: 'bar',
-                    data: [85, 92, 78, 94, 88]
-                  },
+                    name: '单据数量',
+                    type: 'pie',
+                    radius: '65%',
+                    center: ['50%', '45%'],
+                    data: pieData,
+                    emphasis: {
+                      itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                      }
+                    },
+                    label: {
+                      formatter: '{b}: {d}%'
+                    }
+                  }
+                ],
+                color: [
+                  '#FF9EB5', // 粉色
+                  '#8ABEF2', // 浅蓝
+                  '#FDDD60', // 浅黄
+                  '#73D8CF', // 浅绿
+                  '#B887F5', // 紫色
+                  '#FFB86E', // 橙色
+                  '#D4D4D4', // 浅灰
+                  '#9AC3F9', // 蓝色
+                  '#66C1B8', // 青色
+                  '#E4A77E'  // 棕色
+                ],
+                // 添加图表说明文本
+                graphic: [
                   {
-                    name: '人工效率',
-                    type: 'bar',
-                    data: [90, 82, 93, 86, 81]
+                    type: 'text',
+                    left: 'center',
+                    bottom: '0',
+                    z: 100,
+                    style: {
+                      text: '本图表根据订单行数区间展示单据数量分布情况',
+                      fill: '#666',
+                      fontSize: 12
+                    }
                   }
                 ]
               }
             } else if (activeTab.value === 'QAnalysis') {
-              // Q分析图表配置
+              // EQ分析图表配置 - 修改为饼图显示订单需求数量分布
+              
+              // 定义订单需求数量范围
+              const orderDemandRanges = [
+                { min: 0, max: 100, name: '0-100' },
+                { min: 101, max: 200, name: '101-200' },
+                { min: 201, max: 300, name: '201-300' },
+                { min: 301, max: 400, name: '301-400' },
+                { min: 401, max: 500, name: '401-500' },
+                { min: 501, max: 600, name: '501-600' },
+                { min: 601, max: 700, name: '601-700' },
+                { min: 701, max: Infinity, name: '>700' }
+              ]
+              
+              // 模拟数据 - 在实际场景中应从API获取
+              const demandDistribution = [
+                { name: '0-100', value: 20 },
+                { name: '101-200', value: 120 },
+                { name: '201-300', value: 220 },
+                { name: '301-400', value: 150 },
+                { name: '401-500', value: 80 },
+                { name: '501-600', value: 30 },
+                { name: '601-700', value: 10 },
+                { name: '>700', value: 5 }
+              ]
+              
               option = {
                 title: {
-                  text: 'Q分析',
+                  text: '订单需求数量与单据数量分布',
                   left: 'center'
                 },
                 tooltip: {
-                  trigger: 'axis'
+                  trigger: 'item',
+                  formatter: '{a} <br/>{b}: {c} ({d}%)'
                 },
                 legend: {
-                  data: ['良品率', '返工率'],
-                  bottom: 10
-                },
-                xAxis: {
-                  type: 'category',
-                  data: ['1月', '2月', '3月', '4月', '5月', '6月']
-                },
-                yAxis: {
-                  type: 'value',
-                  axisLabel: {
-                    formatter: '{value} %'
-                  }
+                  orient: 'vertical',
+                  right: 15,
+                  top: 'center',
+                  data: orderDemandRanges.map(range => range.name),
+                  textStyle: {
+                    fontSize: 12,
+                    color: '#333'
+                  },
+                  itemGap: 12,
+                  itemWidth: 16,
+                  itemHeight: 10,
+                  borderRadius: 2,
+                  padding: 10,
+                  backgroundColor: 'rgba(255,255,255,0.8)',
+                  borderColor: '#eee',
+                  borderWidth: 1,
+                  formatter: '{name}'
                 },
                 series: [
                   {
-                    name: '良品率',
-                    type: 'line',
-                    data: [98.5, 98.2, 97.8, 99.0, 98.7, 99.2]
-                  },
+                    name: '单据数量',
+                    type: 'pie',
+                    radius: '65%',
+                    center: ['50%', '45%'],
+                    data: demandDistribution,
+                    emphasis: {
+                      itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                      }
+                    },
+                    label: {
+                      formatter: '{b}: {d}%'
+                    }
+                  }
+                ],
+                color: [
+                  '#FF9EB5', // 粉色
+                  '#8ABEF2', // 浅蓝
+                  '#FDDD60', // 浅黄
+                  '#73D8CF', // 浅绿
+                  '#B887F5', // 紫色
+                  '#FFB86E', // 橙色
+                  '#D4D4D4', // 浅灰
+                  '#9AC3F9'  // 蓝色
+                ],
+                // 添加图表说明文本
+                graphic: [
                   {
-                    name: '返工率',
-                    type: 'line',
-                    data: [1.5, 1.8, 2.2, 1.0, 1.3, 0.8]
+                    type: 'text',
+                    left: 'center',
+                    bottom: '0',
+                    z: 100,
+                    style: {
+                      text: '本图表根据订单需求数量区间展示单据数量分布情况',
+                      fill: '#666',
+                      fontSize: 12
+                    }
                   }
                 ]
               }
@@ -2092,6 +2273,7 @@ const viewAnalysisRecord = (record: any) => {
     hitRateData.splice(0, hitRateData.length, ...recordDataMap[record.id].hitRateData)
     orderDetailData.splice(0, orderDetailData.length, ...recordDataMap[record.id].orderDetailData)
     periodEIQData.splice(0, periodEIQData.length, ...recordDataMap[record.id].periodEIQData)
+    eiAnalysisData.splice(0, eiAnalysisData.length, ...recordDataMap[record.id].eiAnalysisData)
     
     // 如果当前是图表视图，需要重新渲染图表
     if (viewMode.value === 'chart') {
@@ -2176,7 +2358,8 @@ const submitAnalysis = () => {
         title: analysisForm.name,
         hitRateData: [],
         orderDetailData: [],
-        periodEIQData: []
+        periodEIQData: [],
+        eiAnalysisData: []
       }
       
       // 关闭弹窗
@@ -2736,6 +2919,30 @@ const getStatusButtonTitle = (record: any) => {
                       <el-table-column prop="totalOrders" label="全天总订单行" min-width="120" />
                       <el-table-column prop="totalContainerRuns" label="全天总容器搬运次数" min-width="160" />
                       <el-table-column prop="avgHitRate" label="平均命中率" min-width="120" />
+                    </el-table>
+                    
+                    <!-- EI分析表格 -->
+                    <el-table v-else-if="activeTab === 'EAnalysis'" :data="eiAnalysisData" border style="width: 100%">
+                      <el-table-column prop="id" label="编号" min-width="100" fixed="left"/>
+                      <el-table-column prop="orderLines" label="订单行数" min-width="120" />
+                      <el-table-column prop="orderCount" label="单据数量" min-width="120" />
+                      <el-table-column prop="percentage" label="单据数量占比" min-width="150">
+                        <template #default="scope">
+                          {{ (scope.row.percentage * 100).toFixed(8) }}%
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                    
+                    <!-- EQ分析表格 -->
+                    <el-table v-else-if="activeTab === 'QAnalysis'" :data="eiAnalysisData" border style="width: 100%">
+                      <el-table-column prop="id" label="编号" min-width="100" fixed="left"/>
+                      <el-table-column prop="orderLines" label="订单需求数量" min-width="120" />
+                      <el-table-column prop="orderCount" label="单据数量" min-width="120" />
+                      <el-table-column prop="percentage" label="单据数量占比" min-width="150">
+                        <template #default="scope">
+                          {{ (scope.row.percentage * 100).toFixed(8) }}%
+                        </template>
+                      </el-table-column>
                     </el-table>
                     
                     <!-- 整体命中率 -->
