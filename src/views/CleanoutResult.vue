@@ -244,6 +244,19 @@ const failedWidth = computed(() => {
   return (failedFiles.value / totalFiles.value) * 100 + '%';
 });
 
+// 定义文件对象接口
+interface FileItem {
+  id: number;
+  fileName: string;
+  fileType: string;
+  uploadDate: string;
+  status: string;
+  totalCount?: number;
+  successCount?: number;
+  failCount?: number;
+  processingInfo?: string;
+}
+
 // 模拟数据
 const fileList = ref([
   {
@@ -349,13 +362,13 @@ const handleSizeChange = (size: number) => {
 };
 
 // 下载原始文件
-const downloadOriginal = (file: any) => {
+const downloadOriginal = (file: FileItem) => {
   console.log('下载原始文件:', file.fileName);
   // 实际应用中这里应该调用API下载文件
 };
 
 // 下载清洗报告
-const downloadReport = (file: any) => {
+const downloadReport = (file: FileItem) => {
   console.log('下载清洗报告:', file.fileName);
   // 实际应用中这里应该调用API下载清洗报告
 };

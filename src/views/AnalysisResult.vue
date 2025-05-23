@@ -16,7 +16,8 @@ import {
   DataLine,
   List,
   Monitor,
-  Document
+  Document,
+  VideoPause
 } from '@element-plus/icons-vue'
 
 // 为分析记录中的数据项定义接口
@@ -33,6 +34,25 @@ interface HitRateDataItem {
   containerRunsPerMinute: number;
   avgHitRateMinute: number;
 }
+
+// 新增类型定义
+interface AnalysisRecord {
+  id: number;
+  title: string;
+  date: string;
+  status: 'completed' | 'processing' | 'failed' | 'paused';
+  project: string;
+  analysisType?: string;
+  selectedFiles?: string[];
+}
+
+interface TabItem {
+  key: string;
+  label: string;
+  isDropdown?: boolean;
+}
+
+
 
 // EI分析数据项接口
 interface EIAnalysisDataItem {
@@ -156,26 +176,26 @@ const filteredAnalysisRecords = computed(() => {
 })
 
 // 分析记录数据
-const analysisRecords = reactive([
+const analysisRecords = reactive<AnalysisRecord[]>([
   {
     id: 1,
     title: '南京3月销售订单分析',
     date: '2025-03-27 14:30',
-    status: 'completed', // completed, processing, failed
+    status: 'completed' as const, // completed, processing, failed
     project: '南京物流中心项目'
   },
   {
     id: 2,
     title: '南京2月销售订单分析',
     date: '2025-02-15 10:20',
-    status: 'completed',
+    status: 'completed' as const,
     project: '南京物流中心项目'
   },
   {
     id: 3,
     title: '南京1月销售订单分析',
     date: '2025-01-20 09:15',
-    status: 'processing',
+    status: 'processing' as const,
     project: '南京物流中心项目'
   }
 ])
@@ -934,8 +954,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `日期: ${param.name}<br/>订单行数: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -982,8 +1003,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `日期: ${param.name}<br/>单据数量: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1030,8 +1052,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `日期: ${param.name}<br/>需求数量: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1078,8 +1101,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `日期: ${param.name}<br/>单均行: ${param.value.toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1172,8 +1196,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `时间: ${param.name}<br/>订单行数: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1220,8 +1245,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `时间: ${param.name}<br/>单据数量: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1268,8 +1294,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `时间: ${param.name}<br/>需求数量: ${param.value.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1316,8 +1343,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'axis',
-              formatter: (params: any) => {
-                const param = params[0]
+              formatter: (params: unknown) => {
+                const paramArray = params as Array<{name: string; value: number}>
+                const param = paramArray[0]
                 return `时间: ${param.name}<br/>单均行: ${param.value.toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
@@ -1905,9 +1933,9 @@ const renderChart = () => {
                     type: 'bar',
                     data: [95.2, 92.4, 88.7, 90.5, 94.3, 91.8],
                     itemStyle: {
-                      color: function(params: any) {
+                      color: function(params: unknown) {
                         // 根据值的大小设置不同的颜色
-                        const value = params.value;
+                        const value = (params as {value: number}).value;
                         if (typeof value === 'number') {
                           if (value >= 93) return '#67C23A';  // 绿色
                           if (value >= 90) return '#E6A23C';  // 黄色
@@ -2064,7 +2092,7 @@ const handleChartResize = () => {
 const exportData = () => {
   try {
     ElMessage.success('数据导出成功')
-  } catch (error) {
+  } catch {
     ElMessage.error('数据导出失败')
   }
 }
@@ -2076,7 +2104,7 @@ const reAnalyze = () => {
 }
 
 // 安全添加事件监听器（防止重复添加）
-const safeAddEventListener = (event: string, handler: EventListener) => {
+const safeAddEventListener = (event: string, handler: (event: Event) => void) => {
   // 先移除，再添加，防止重复
   window.removeEventListener(event, handler);
   window.addEventListener(event, handler);
@@ -2084,7 +2112,7 @@ const safeAddEventListener = (event: string, handler: EventListener) => {
 }
 
 // 安全移除事件监听器
-const safeRemoveEventListener = (event: string, handler: EventListener) => {
+const safeRemoveEventListener = (event: string, handler: (event: Event) => void) => {
   try {
     window.removeEventListener(event, handler);
     console.log(`已移除${event}事件监听器`);
@@ -2225,7 +2253,7 @@ const toggleProject = (projectName: string) => {
 }
 
 // 查看分析记录
-const viewAnalysisRecord = (record: any) => {
+const viewAnalysisRecord = (record: AnalysisRecord) => {
   try {
     console.log(`加载分析记录: ${record.title}, ID: ${record.id}`)
     
@@ -2289,7 +2317,7 @@ const viewAnalysisRecord = (record: any) => {
 }
 
 // 删除分析记录
-const deleteAnalysisRecord = (record: any) => {
+const deleteAnalysisRecord = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
     `确定要删除分析记录"${record.title}"吗？`, 
     '提示', 
@@ -2340,11 +2368,11 @@ const submitAnalysis = () => {
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
       
       // 创建新的分析记录
-      const newRecord = {
+      const newRecord: AnalysisRecord = {
         id: newId,
         title: analysisForm.name,
         date: dateStr,
-        status: 'processing', // 新创建的分析记录状态为"处理中"
+        status: 'processing' as const, // 新创建的分析记录状态为"处理中"
         project: analysisForm.project,
         analysisType: analysisForm.analysisType,
         selectedFiles: analysisForm.analysisType === '2' ? [...analysisForm.selectedFiles] : []
@@ -2463,7 +2491,7 @@ const currentMoreTabLabel = computed(() => {
 });
 
 // 检查选项卡是否为当前激活状态
-const isActiveTab = (tab: any) => {
+const isActiveTab = (tab: TabItem) => {
   if (tab.isDropdown) {
     // 只有当activeTab是moreTabsMap中的键（表示选中了"更多"子菜单中的某个选项）
     // 并且tab.key是'more'（确保只有"更多"选项才会显示蓝色标注）时才返回true
@@ -2514,7 +2542,7 @@ const deleteAllAnalysisRecords = () => {
 }
 
 // 暂停分析
-const pauseAnalysis = (record: any) => {
+const pauseAnalysis = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
     `确定要暂停此分析吗？`, 
     '提示', 
@@ -2545,7 +2573,7 @@ const pauseAnalysis = (record: any) => {
 }
 
 // 恢复分析
-const resumeAnalysis = (record: any) => {
+const resumeAnalysis = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
     `确定要继续分析吗？`, 
     '提示', 
@@ -2576,7 +2604,7 @@ const resumeAnalysis = (record: any) => {
 }
 
 // 处理记录状态按钮的点击
-const handleStatusAction = (record: any) => {
+const handleStatusAction = (record: AnalysisRecord) => {
   if (record.status === 'processing') {
     // 处理分析中状态 - 暂停
     pauseAnalysis(record);
@@ -2590,7 +2618,7 @@ const handleStatusAction = (record: any) => {
 }
 
 // 获取状态按钮的提示文本
-const getStatusButtonTitle = (record: any) => {
+const getStatusButtonTitle = (record: AnalysisRecord) => {
   if (record.status === 'processing') {
     return '暂停分析';
   } else if (record.status === 'paused') {
@@ -2650,41 +2678,42 @@ const getStatusButtonTitle = (record: any) => {
         
         <!-- 记录列表 -->
         <div class="analysis-records">
-          <div 
-            v-if="filteredAnalysisRecords.length > 0"
-            v-for="record in filteredAnalysisRecords" 
-            :key="record.id"
-            class="record-item"
-            :class="{ 'selected-record': selectedRecordId === record.id }"
-            @click="viewAnalysisRecord(record)"
-          >
-            <div class="record-title">{{ record.title }}</div>
-            <div class="record-info">
-              <span class="record-date">{{ record.date }}</span>
-              <div class="record-status" v-if="record.status === 'completed'">已完成</div>
-              <div class="record-status processing" v-else-if="record.status === 'processing'">
-                <span class="status-icon"></span>分析中
+          <template v-if="filteredAnalysisRecords.length > 0">
+            <div 
+              v-for="record in filteredAnalysisRecords" 
+              :key="record.id"
+              class="record-item"
+              :class="{ 'selected-record': selectedRecordId === record.id }"
+              @click="viewAnalysisRecord(record)"
+            >
+              <div class="record-title">{{ record.title }}</div>
+              <div class="record-info">
+                <span class="record-date">{{ record.date }}</span>
+                <div class="record-status" v-if="record.status === 'completed'">已完成</div>
+                <div class="record-status processing" v-else-if="record.status === 'processing'">
+                  <span class="status-icon"></span>分析中
+                </div>
+                <div class="record-status paused" v-else-if="record.status === 'paused'">
+                  已暂停
+                </div>
               </div>
-              <div class="record-status paused" v-else-if="record.status === 'paused'">
-                已暂停
+              <div class="record-actions">
+                <!-- 状态按钮：根据记录状态显示不同按钮和功能 -->
+                <el-button 
+                  type="text" 
+                  @click.stop="handleStatusAction(record)"
+                  :title="getStatusButtonTitle(record)"
+                >
+                  <el-icon v-if="record.status === 'processing'"><VideoPause /></el-icon>
+                  <el-icon v-else-if="record.status === 'paused'"><CaretRight /></el-icon>
+                  <el-icon v-else><View /></el-icon>
+                </el-button>
+                <el-button type="text" @click.stop="deleteAnalysisRecord(record)" title="删除">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
               </div>
             </div>
-            <div class="record-actions">
-              <!-- 状态按钮：根据记录状态显示不同按钮和功能 -->
-              <el-button 
-                type="text" 
-                @click.stop="handleStatusAction(record)"
-                :title="getStatusButtonTitle(record)"
-              >
-                <el-icon v-if="record.status === 'processing'"><VideoPause /></el-icon>
-                <el-icon v-else-if="record.status === 'paused'"><CaretRight /></el-icon>
-                <el-icon v-else><View /></el-icon>
-              </el-button>
-              <el-button type="text" @click.stop="deleteAnalysisRecord(record)" title="删除">
-                <el-icon><Delete /></el-icon>
-              </el-button>
-            </div>
-          </div>
+          </template>
           <div v-else class="empty-record-tip">
             该项目暂无分析记录
           </div>

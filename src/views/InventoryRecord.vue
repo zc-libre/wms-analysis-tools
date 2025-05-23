@@ -2,8 +2,19 @@
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Plus,Edit, Delete } from '@element-plus/icons-vue'
+
+interface InventoryItem {
+  id: number | string;
+  sku: string;
+  materialName: string;
+  warehouse: string;
+  containerId: string;
+  quantity: number;
+  lastUpdate: string;
+}
+
 const props = defineProps<{
-  items: any[] | null,
+  items: InventoryItem[] | null,
   isLoading: boolean
 }>()
 
@@ -23,11 +34,11 @@ const handleAddInventoryRecord = () => {
 // const handleViewDetail = (row: any) => {
 //   ElMessage.info(`查看库存记录详情：${row.id} (UI占位)`)
 // }
-const handleEdit = (row: any) => {
+const handleEdit = (row: InventoryItem) => {
   ElMessage.info(`编辑库存记录：${row.id} (UI占位)`)
 }
 
-const handleDelete = (row: any) => {
+const handleDelete = (row: InventoryItem) => {
   ElMessage.info(`删除库存记录：${row.id} (UI占位)`)
 }
 </script>

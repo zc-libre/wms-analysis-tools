@@ -185,6 +185,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
+import type { ComponentPublicInstance } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import type { UploadFile } from 'element-plus';
@@ -194,7 +195,6 @@ import { useProjectStore } from '../stores/project';
 import Step1ImportFile from '@/components/import/Step1ImportFile.vue';
 import Step2FieldMapping from '@/components/import/Step2FieldMapping.vue';
 import Step3ProcessingRules from '@/components/import/Step3ProcessingRules.vue';
-
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -222,7 +222,7 @@ const handleParentErrorMessage = (errorMsg: string) => {
 const showGuide = ref(true);
 const currentGuideStep = ref(1);
 const guideCompleted = ref(false);
-const guideTargetElements = ref<Record<string, any>>({});
+const guideTargetElements = ref<Record<string, HTMLElement | ComponentPublicInstance | null>>({});
 
 interface GuideStep {
   id: number;
@@ -230,7 +230,7 @@ interface GuideStep {
   content: string;
   targetName: string;
   placement: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 const guideStepsRaw: GuideStep[] = [
@@ -287,7 +287,7 @@ const getCurrentGuide = (): GuideStep => {
   return stepOutput;
 };
 
-const nextStepButton = ref<any>(null);
+const nextStepButton = ref<HTMLElement | ComponentPublicInstance | null>(null);
 const guidePopupStyle = ref({});
 const spotlightStyle = ref({});
 
@@ -295,7 +295,7 @@ const updateGuidePosition = async () => {
   await nextTick();
   const currentGuide = getCurrentGuide();
   const targetName = currentGuide.targetName;
-  let targetElementInstance: any = null;
+  let targetElementInstance: HTMLElement | ComponentPublicInstance | null = null;
 
   if (targetName === 'nextStepButton') {
     targetElementInstance = nextStepButton.value;
@@ -303,7 +303,7 @@ const updateGuidePosition = async () => {
     targetElementInstance = guideTargetElements.value[targetName];
   }
   
-  const targetDOMElement = targetElementInstance?.$el || targetElementInstance;
+  const targetDOMElement = (targetElementInstance as ComponentPublicInstance)?.$el || targetElementInstance;
 
   if (targetDOMElement) {
     const rect = targetDOMElement.getBoundingClientRect();
@@ -430,7 +430,7 @@ const fileUploadStatus = ref({
 });
 
 // 文件内容相关
-const fileData = ref<any[]>([]);
+const fileData = ref<Record<string, unknown>[]>([]);
 const fileHeaders = ref<string[]>([]); // 初始化为空数组
 const previewData = ref<Record<string, string>>({});
 
@@ -639,7 +639,7 @@ const formatFileSize = (size: number): string => {
 };
 
 // 检查文件是否有效
-const validateFile = (file: any): { valid: boolean, error?: string } => {
+const validateFile = (file: File): { valid: boolean, error?: string } => {
   // 检查文件类型
   const allowedTypes = ['.xlsx', '.xls', '.csv'];
   const fileName = file.name.toLowerCase();
@@ -1063,7 +1063,7 @@ const handleChildGuideInteraction = (payload: { type: 'skip' | 'next-step-clicke
   }
 };
 
-const handleChildElementReady = (payload: { name: string, element: any }) => {
+const handleChildElementReady = (payload: { name: string, element: HTMLElement | ComponentPublicInstance | null }) => {
   guideTargetElements.value[payload.name] = payload.element;
   if (showGuide.value && !guideCompleted.value) {
     const currentGuideData = getCurrentGuide();
@@ -1161,7 +1161,7 @@ watch(activeStep, (newStep) => {
 // 文件解析函数
 const parseFile = async (file: File): Promise<{
   headers: string[],
-  data: any[],
+  data: Record<string, unknown>[],
   previewData: Record<string, string>
 }> => {
   return new Promise((resolve, reject) => {
@@ -1188,7 +1188,7 @@ const parseFile = async (file: File): Promise<{
         const worksheet = workbook.Sheets[firstSheetName];
         
         // 将工作表转换为JSON对象数组
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][];
         
         if (jsonData.length === 0) {
           throw new Error('文件中没有数据');
@@ -1224,7 +1224,7 @@ const parseFile = async (file: File): Promise<{
         
         // 处理每一行数据，更新进度
         for (let i = 1; i < jsonData.length; i++) {
-          const row: Record<string, any> = {};
+          const row: Record<string, unknown> = {};
           for (let j = 0; j < headers.length; j++) {
             const header = headers[j];
             const value = jsonData[i][j];
@@ -1249,7 +1249,7 @@ const parseFile = async (file: File): Promise<{
           data: rows,
           previewData: preview
         });
-      } catch (error) {
+      } catch (error: unknown) {
         reject(error);
       }
     };
@@ -1396,11 +1396,12 @@ const processFileWithProgress = async (file: File) => {
       showProcessingDialog.value = false;
       ElMessage.success('文件处理并上传完成');
     }, 1000);
-  } catch (error: any) {
+  } catch (error: unknown) {
     processingComplete.value = false;
     showProcessingDialog.value = false;
     // Call the corrected and simplified error handler
-    handleParentErrorMessage(`文件处理失败: ${error.message}`); 
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    handleParentErrorMessage(`文件处理失败: ${errorMessage}`); 
     
     // No need to interact with child's uploadedFiles list here, 
     // as the error is from parent's processing, not initial upload by child.

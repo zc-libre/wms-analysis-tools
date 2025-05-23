@@ -3,8 +3,19 @@ import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 
+interface MaterialItem {
+  id?: number | string;
+  materialCode: string;
+  materialName: string;
+  specification: string;
+  category: string;
+  unit: string;
+  price: number;
+  inventory: number;
+}
+
 const props = defineProps<{
-  items: any[] | null,
+  items: MaterialItem[] | null,
   isLoading: boolean
 }>()
 // 搜索条件 (UI占位)
@@ -28,11 +39,11 @@ const handleAddMaterialData = () => {
 //   ElMessage.info(`查看物料详情：${row.materialCode || row.id} (UI占位)`)
 // }
 
-const handleEdit = (row: any) => {
+const handleEdit = (row: MaterialItem) => {
   ElMessage.info(`编辑物料：${row.materialCode || row.id} (UI占位)`)
 }
 
-const handleDelete = (row: any) => {
+const handleDelete = (row: MaterialItem) => {
   ElMessage.info(`删除物料：${row.materialCode || row.id} (UI占位)`)
 }
 </script>
