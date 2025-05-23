@@ -932,8 +932,13 @@ const renderChart = () => {
           ]
           
           // 验证容器是否全部存在且可见
-          if (chartContainers.some(container => !container || container.offsetParent === null)) {
-            console.log('图表容器尚未准备好或不可见，将在稍后重试');
+          if (chartContainers.some(container => 
+            !container || 
+            container.offsetParent === null ||
+            container.clientWidth === 0 ||
+            container.clientHeight === 0
+          )) {
+            console.log('图表容器尚未准备好、不可见或无有效尺寸，将在稍后重试');
             setTimeout(initChartWhenReady, 200);
             return;
           }
@@ -953,11 +958,10 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `日期: ${param.name}<br/>订单行数: ${param.value.toLocaleString()}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                console.log('params', params)
+                return `日期: ${params.name}<br/>订单行数: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1002,11 +1006,10 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
+              trigger: 'item',
               formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `日期: ${param.name}<br/>单据数量: ${param.value.toLocaleString()}`
+                
+                return `日期: ${params.name}<br/>单据数量: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1051,11 +1054,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `日期: ${param.name}<br/>需求数量: ${param.value.toLocaleString()}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `日期: ${params.name}<br/>需求数量: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1100,11 +1101,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `日期: ${param.name}<br/>单均行: ${param.value.toFixed(2)}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `日期: ${params.name}<br/>单均行: ${params.data.toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1149,9 +1148,27 @@ const renderChart = () => {
             charts.chart3?.setOption(option3)
             charts.chart4?.setOption(option4)
             
-            console.log('dailyEIQ 四个图表已成功初始化');
-            // 初始化完成
-            chartInitStatus.value.isInitializing = false;
+            // 添加延迟，确保ECharts内部结构完全更新
+            setTimeout(() => {
+              // 验证所有图表是否正确配置
+              const chartKeys = ['chart1', 'chart2', 'chart3', 'chart4'];
+              let allChartsValid = true;
+              for (const key of chartKeys) {
+                if (!isChartValidForResize(charts[key])) {
+                  console.error(`图表${key}配置验证失败`);
+                  allChartsValid = false;
+                }
+              }
+              
+              if (allChartsValid) {
+                console.log('dailyEIQ 四个图表已成功初始化并验证通过');
+              } else {
+                console.warn('dailyEIQ 部分图表配置可能存在问题');
+              }
+              
+              // 初始化完成
+              chartInitStatus.value.isInitializing = false;
+            }, 100); // 50ms延迟确保内部结构更新
           } catch (error) {
             console.error('设置图表选项时出错:', error);
             // 初始化失败
@@ -1174,8 +1191,13 @@ const renderChart = () => {
           ]
           
           // 验证容器是否全部存在且可见
-          if (chartContainers.some(container => !container || container.offsetParent === null)) {
-            console.log('图表容器尚未准备好或不可见，将在稍后重试');
+          if (chartContainers.some(container => 
+            !container || 
+            container.offsetParent === null ||
+            container.clientWidth === 0 ||
+            container.clientHeight === 0
+          )) {
+            console.log('每时段EIQ分析的图表容器尚未准备好、不可见或无有效尺寸，将在稍后重试');
             setTimeout(initChartWhenReady, 200);
             return;
           }
@@ -1195,11 +1217,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `时间: ${param.name}<br/>订单行数: ${param.value.toLocaleString()}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `时间: ${params.name}<br/>订单行数: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1244,11 +1264,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `时间: ${param.name}<br/>单据数量: ${param.value.toLocaleString()}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `时间: ${params.name}<br/>单据数量: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1293,11 +1311,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `时间: ${param.name}<br/>需求数量: ${param.value.toLocaleString()}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `时间: ${params.name}<br/>需求数量: ${params.data.toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1342,11 +1358,9 @@ const renderChart = () => {
               left: 'center'
             },
             tooltip: {
-              trigger: 'axis',
-              formatter: (params: unknown) => {
-                const paramArray = params as Array<{name: string; value: number}>
-                const param = paramArray[0]
-                return `时间: ${param.name}<br/>单均行: ${param.value.toFixed(2)}`
+              trigger: 'item',
+              formatter: (params: any) => {
+                return `时间: ${params.name}<br/>单均行: ${params.data.toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1391,9 +1405,27 @@ const renderChart = () => {
             charts.periodChart3?.setOption(option3)
             charts.periodChart4?.setOption(option4)
             
-            console.log('periodEIQ 四个图表已成功初始化');
-            // 初始化完成
-            chartInitStatus.value.isInitializing = false;
+            // 添加延迟，确保ECharts内部结构完全更新
+            setTimeout(() => {
+              // 验证所有每时段EIQ分析图表是否正确配置
+              const periodChartKeys = ['periodChart1', 'periodChart2', 'periodChart3', 'periodChart4'];
+              let allPeriodChartsValid = true;
+              for (const key of periodChartKeys) {
+                if (!isChartValidForResize(charts[key])) {
+                  console.error(`图表${key}配置验证失败`);
+                  allPeriodChartsValid = false;
+                }
+              }
+              
+              if (allPeriodChartsValid) {
+                console.log('periodEIQ 四个图表已成功初始化并验证通过');
+              } else {
+                console.warn('periodEIQ 部分图表配置可能存在问题');
+              }
+              
+              // 初始化完成
+              chartInitStatus.value.isInitializing = false;
+            }, 50); // 50ms延迟确保内部结构更新
           } catch (error) {
             console.error('设置图表选项时出错:', error);
             // 初始化失败
@@ -1404,8 +1436,12 @@ const renderChart = () => {
           const containerId = `chart-${activeTab.value}`;
           const container = document.getElementById(containerId);
           
-          if (!container || container.offsetParent === null) {
-            console.log(`图表容器 ${containerId} 尚未准备好或不可见，将在稍后重试`);
+          if (!container || 
+            container.offsetParent === null ||
+            container.clientWidth === 0 ||
+            container.clientHeight === 0
+          ) {
+            console.log(`图表容器 ${containerId} 尚未准备好、不可见或无有效尺寸，将在稍后重试`);
             setTimeout(initChartWhenReady, 200);
             return;
           }
@@ -2028,10 +2064,19 @@ const renderChart = () => {
             
             // 使用配置项设置图表
             myChart.setOption(option);
-            console.log(`${activeTab.value} 图表已成功初始化`);
             
-            // 初始化完成
-            chartInitStatus.value.isInitializing = false;
+            // 添加延迟，确保ECharts内部结构完全更新
+            setTimeout(() => {
+              // 验证主图表是否正确配置
+              if (isChartValidForResize(myChart)) {
+                console.log(`${activeTab.value} 图表已成功初始化并验证通过`);
+              } else {
+                console.warn(`${activeTab.value} 图表配置可能存在问题`);
+              }
+              
+              // 初始化完成
+              chartInitStatus.value.isInitializing = false;
+            }, 50); // 50ms延迟确保内部结构更新
           } catch (error) {
             console.error('设置图表选项时出错:', error);
             // 初始化失败
@@ -2049,36 +2094,116 @@ const renderChart = () => {
   }
 }
 
+// 防抖resize函数，防止频繁调用
+let resizeTimeout: number | null = null;
+const throttledResize = (chart: echarts.ECharts, chartName: string) => {
+  // 清除之前的定时器
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  
+  resizeTimeout = setTimeout(() => {
+    try {
+      chart.resize();
+      console.log(`${chartName} resize成功`);
+    } catch (error) {
+      console.error(`${chartName} throttled resize时出错:`, error);
+      // 尝试重试一次
+      setTimeout(() => {
+        try {
+          if (chart && typeof chart.resize === 'function') {
+            chart.resize();
+            console.log(`${chartName} 重试resize成功`);
+          }
+        } catch (retryError) {
+          console.error(`${chartName} 重试resize仍然失败:`, retryError);
+        }
+      }, 100);
+    }
+  }, 16); // 约60fps的频率
+}
+
+// 验证图表是否可以安全进行resize操作
+const isChartValidForResize = (chart: echarts.ECharts | null): boolean => {
+  if (!chart) {
+    return false;
+  }
+  
+  try {
+    // 检查图表实例是否有有效的配置
+    const option = chart.getOption();
+    if (!option) {
+      console.warn('图表实例存在但没有有效配置');
+      return false;
+    }
+    
+    // 检查是否有series配置
+    const series = option.series;
+    if (!series || !Array.isArray(series) || series.length === 0) {
+      console.warn('图表配置中缺少有效的series');
+      return false;
+    }
+    
+    // 检查series中是否有必要的属性
+    const firstSeries = series[0];
+    if (!firstSeries || typeof firstSeries.type === 'undefined') {
+      console.warn('图表series配置不完整，缺少type属性');
+      return false;
+    }
+    
+    // 额外检查：确保图表实例不是处于销毁状态
+    try {
+      chart.getWidth();  // 这个调用会在图表被销毁时抛出异常
+      chart.getHeight(); // 同上
+    } catch (error) {
+      console.warn('图表实例可能已被销毁或尚未完全初始化',error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('检查图表状态时出错:', error);
+    return false;
+  }
+}
+
 // 处理图表resize
 const handleChartResize = () => {
   try {
     if (activeTab.value === 'dailyEIQ') {
       Object.keys(charts).forEach(key => {
         if (key.startsWith('chart') && charts[key] && typeof charts[key]?.resize === 'function') {
-          try {
-            console.log(`正在调整图表${key}大小`);
-            charts[key]?.resize();
-          } catch (error) {
-            console.error(`图表${key}resize时出错:`, error);
+          // 使用新的图表状态验证
+          if (!isChartValidForResize(charts[key])) {
+            console.log(`图表${key}未完全配置，跳过本次resize`);
+            return;
           }
+          // 使用防抖resize函数
+          throttledResize(charts[key]!, key);
         }
       });
     } else if (activeTab.value === 'periodEIQ') {
       Object.keys(charts).forEach(key => {
         if (key.startsWith('periodChart') && charts[key] && typeof charts[key]?.resize === 'function') {
-          try {
-            console.log(`正在调整图表${key}大小`);
-            charts[key]?.resize();
-          } catch (error) {
-            console.error(`图表${key}resize时出错:`, error);
+          // 使用新的图表状态验证
+          if (!isChartValidForResize(charts[key])) {
+            console.log(`图表${key}未完全配置，跳过本次resize`);
+            return;
           }
+          // 使用防抖resize函数
+          throttledResize(charts[key]!, key);
         }
       });
     } else {
       // 对主图表执行相同的检查
       if (myChart && typeof myChart.resize === 'function') {
-        console.log('正在调整主图表大小');
-        myChart.resize();
+        // 使用新的图表状态验证
+        if (!isChartValidForResize(myChart)) {
+          console.log('主图表未完全配置，跳过本次resize');
+          return;
+        }
+        // 使用防抖resize函数
+        throttledResize(myChart, '主图表');
       } else if (myChart) {
         console.warn('主图表存在但未完全初始化');
       }
@@ -2225,6 +2350,7 @@ const switchViewMode = (mode: 'table' | 'chart') => {
       try {
         console.log('准备初始化图表');
         initChart();
+        //renderChart();
         // 添加合适的事件监听器
         updateResizeListener();
       } catch (error) {
@@ -3049,16 +3175,24 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
                     </div>
                     <div ref="chartRef" class="chart-container">
                       <div v-if="activeTab === 'dailyEIQ'" class="chart-grid">
-                        <div id="chart1" class="chart-item"></div>
-                        <div id="chart2" class="chart-item"></div>
-                        <div id="chart3" class="chart-item"></div>
-                        <div id="chart4" class="chart-item"></div>
+                        <div class="chart-row">
+                          <div id="chart1" class="chart-item"></div>
+                          <div id="chart2" class="chart-item"></div>
+                        </div>
+                        <div class="chart-row">
+                          <div id="chart3" class="chart-item"></div>
+                          <div id="chart4" class="chart-item"></div>
+                        </div>
                       </div>
                       <div v-else-if="activeTab === 'periodEIQ'" class="chart-grid">
-                        <div id="periodChart1" class="chart-item"></div>
-                        <div id="periodChart2" class="chart-item"></div>
-                        <div id="periodChart3" class="chart-item"></div>
-                        <div id="periodChart4" class="chart-item"></div>
+                        <div class="chart-row">
+                          <div id="periodChart1" class="chart-item"></div>
+                          <div id="periodChart2" class="chart-item"></div>
+                        </div>
+                        <div class="chart-row">
+                          <div id="periodChart3" class="chart-item"></div>
+                          <div id="periodChart4" class="chart-item"></div>
+                        </div>
                       </div>
                       <div v-else class="single-chart-container">
                         <!-- 为每个选项卡提供一个具有唯一ID的容器 -->
@@ -3479,7 +3613,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 }
 
 .chart-view {
-  height: 500px;
+  /* height: 500px; */
   position: relative;
   overflow: hidden;
 }
@@ -3535,14 +3669,22 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 
 /* 修改网格布局样式 */
 .chart-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   padding: 5px;
   margin-top: 10px;
+  z-index: 1000;
+  gap: 20px;
+}
+
+.chart-row {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 50%;
+  gap: 20px;
 }
 
 .chart-item {
@@ -3554,6 +3696,8 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   padding: 10px;
   display: block;
+  z-index: 1000;
+  flex: 1;
 }
 
 /* 选项卡内容切换动画 */
@@ -3572,7 +3716,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   transform: translateY(-20px);
 }
 
-/* 视图切换动画 */
+视图切换动画
 .fade-transform-enter-active,
 .fade-transform-leave-active {
   transition: all 0.5s;
