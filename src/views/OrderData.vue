@@ -107,9 +107,11 @@ const refreshData = () => {
 </template>
 
 <style scoped lang="scss">
+@use '@/styles/variables.scss' as *;
+
 .data-management-card {
-  border-radius: 8px;
-  transition: all 0.3s;
+  border-radius: $border-radius-large;
+  transition: all $transition-normal;
   height: 100%;
   
   :deep(.el-card__body) {
@@ -132,15 +134,15 @@ const refreshData = () => {
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: $font-size-medium;
+  font-weight: $font-weight-semi-bold;
   text-align: left;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: $spacing-small;
   justify-content: flex-end;
 }
 
@@ -149,56 +151,144 @@ const refreshData = () => {
 }
 
 .data-tabs {
-  padding: 0 20px 20px;
+  padding: 0 $spacing-large $spacing-large;
   height: 100%;
+  background: linear-gradient(135deg, rgba(64, 158, 255, 0.02) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-radius: $border-radius-base;
   
   .el-tab-pane {
     height: 100%;
   }
   
   :deep(.el-tabs__header) {
-    margin-bottom: 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: $spacing-large;
+    border-bottom: 1px solid $color-border-lighter;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: $border-radius-base $border-radius-base 0 0;
+    // padding: $spacing-small 0;
+    backdrop-filter: blur(10px);
   }
 
-  
-  :deep(.el-tabs__item) {
-    font-size: 14px;
-    padding: 0 20px;
-    height: 40px;
-    line-height: 40px;
-    transition: all 0.3s;
-    
-    &.is-active {
-      font-weight: 600;
+  :deep(.el-tabs__nav-wrap) {
+    &::after {
+      display: none;
     }
+  }
+  :deep(.el-tabs__nav) {
+    height: 50px;
+    align-items: center;
+  }
+  :deep( .el-tabs__item:nth-child(2)) {
+    padding-left: 24px;
+  }
+  :deep( .el-tabs__item:last-child) {
+    padding-right: 24px;
+  }
+  :deep(.el-tabs__item) {
+    font-size: $font-size-base;
+     padding: $spacing-small $spacing-large;
+    height: 40px;
+    line-height: 28px;
+    margin-left: $spacing-small;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.8) 100%);
+    border: 1px solid rgba(220, 223, 230, 0.6);
+    border-radius: $border-radius-large;
+    color: $color-text-regular;
+    font-weight: $font-weight-medium;
+    transition: all $transition-normal cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
     
     &:hover {
-      color: var(--el-color-primary);
+      background: linear-gradient(145deg, rgba(64, 158, 255, 0.12) 0%, rgba(255, 255, 255, 0.95) 100%);
+      border-color: rgba(64, 158, 255, 0.4);
+      color: darken($color-primary, 8%);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 
+        0 6px 20px rgba(64, 158, 255, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    }
+    
+    &.is-active {
+      background: linear-gradient(145deg, $color-primary 0%, lighten($color-primary, 12%) 50%, darken($color-primary, 2%) 100%);
+      border-color: darken($color-primary, 5%);
+      color: $color-bg-white;
+      font-weight: $font-weight-semi-bold;
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 
+        0 8px 25px rgba(64, 158, 255, 0.35),
+        0 4px 12px rgba(64, 158, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+      z-index: 2;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 100%);
+        border-radius: inherit;
+        pointer-events: none;
+      }
+      
+      // &::after {
+      //   content: '';
+      //   position: absolute;
+      //   bottom: -6px;
+      //   left: 50%;
+      //   transform: translateX(-50%);
+      //   width: 6px;
+      //   height: 6px;
+      //   background: linear-gradient(135deg, $color-primary 0%, lighten($color-primary, 10%) 100%);
+      //   border-radius: 50%;
+      //   box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+      // }
     }
   }
   
   :deep(.el-tabs__active-bar) {
-    height: 3px;
-    border-radius: 3px;
+    height: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transition: none;
+    bottom: 0;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: $breakpoint-sm) {
   .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: $spacing-small;
   }
   
   .title-container {
-    margin-bottom: 5px;
+    margin-bottom: $spacing-extra-small;
     width: 100%;
   }
   
   .header-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .data-tabs {
+    padding: 0 $spacing-base $spacing-base;
+    
+    :deep(.el-tabs__item) {
+      font-size: $font-size-small;
+      // padding: $spacing-extra-small $spacing-base;
+      height: 38px;
+      line-height: 24px;
+      margin-right: $spacing-extra-small;
+    }
   }
 }
 </style> 
