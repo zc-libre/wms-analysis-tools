@@ -16,9 +16,23 @@ interface InfoItem {
   value: string | number | null;
 }
 
+// 新增：定义订单项目接口
+interface OrderItem {
+  id: string | number;
+  customer: string;
+  amount: number;
+  orderDate: string;
+  sku: string;
+  orderType: string;
+  projectItem: string;
+  materialCode: string;
+  quantity: number;
+  // 根据实际情况，您可能需要添加更多属性或调整现有属性的类型
+}
+
 // Define props
 const props = defineProps<{
-  items: any[] | null,
+  items: OrderItem[] | null,
   isLoading: boolean
 }>()
 
@@ -69,7 +83,7 @@ const handleAddOrder = () => {
 }
 
 // 查看订单详情 - 暂时保留
-const handleViewDetail = async (row: any) => {
+const handleViewDetail = async (row: OrderItem) => {
   try {
     // 显示加载状态
     ElMessage.info(`正在获取订单 ${row.id} 的详情...`);
@@ -410,12 +424,12 @@ const handlePrintOrderDetail = () => {
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+          <el-button type="primary" :icon="Search" @click="handleSearch" class="search-area__button search-area__button--search">搜索</el-button>
         </el-form-item>
       </el-form>
       
       <div class="operation-buttons">
-        <el-button clearable type="success" :icon="Plus" @click="handleAddOrder">新增订单</el-button>
+        <el-button clearable type="success" :icon="Plus" @click="handleAddOrder" class="operation-buttons__button operation-buttons__button--add">新增订单</el-button>
       </div>
     </div>
 
@@ -537,6 +551,8 @@ const handlePrintOrderDetail = () => {
 </template>
 
 <style scoped lang="scss">
+@use '@/styles/variables.scss' as *;
+
 .view-container {
   height: 100%;
   display: flex;
@@ -559,17 +575,67 @@ const handlePrintOrderDetail = () => {
   min-width: 300px;
   display: flex; /* Align items in search area */
   gap: 10px; /* Add gap between search form items */
+  
+  &__button {
+    &--search {
+      background-color: $color-primary;
+      border-color: $color-primary;
+      
+      &:hover, &:focus {
+        background-color: lighten($color-primary, 10%);
+        border-color: lighten($color-primary, 10%);
+      }
+      
+      &:active {
+        background-color: darken($color-primary, 10%);
+        border-color: darken($color-primary, 10%);
+      }
+    }
+  }
 }
 
 .operation-buttons {
   display: flex;
   gap: 0.5rem;
   /* margin-top: 0px; */ /* Removed as el-form-item might handle alignment */
+  
+  &__button {
+    transition: all $transition-normal;
+    font-weight: $font-weight-medium;
+    
+    &--add {
+      background-color: $color-success;
+      border-color: $color-success;
+      padding: $spacing-small $spacing-base;
+      font-size: $font-size-base;
+      box-shadow: $shadow-light;
+      
+      &:hover, &:focus {
+        background-color: lighten($color-success, 10%);
+        border-color: lighten($color-success, 10%);
+        transform: translateY(-2px);
+        box-shadow: $shadow-hover;
+      }
+      
+      &:active {
+        background-color: darken($color-success, 10%);
+        border-color: darken($color-success, 10%);
+        transform: translateY(0);
+      }
+      
+      .el-icon {
+        margin-right: $spacing-small;
+        font-size: $font-size-medium;
+        vertical-align: middle;
+      }
+    }
+  }
 }
 
 .table-container {
   margin-bottom: 1rem;
-  flex-grow: 1; /* Allow table to take available space */
+  height: 370px;
+  // flex-grow: 1; /* Allow table to take available space */
   overflow: hidden; /* Prevent table from overflowing container */
 }
 
@@ -577,7 +643,7 @@ const handlePrintOrderDetail = () => {
   display: flex;
   justify-content: flex-end;
   flex-shrink: 0; /* Prevent pagination from shrinking */
-  padding-top: 1rem; /* Add some space above pagination */
+  /* padding-top: 1rem; Add some space above pagination */
 }
 
 // 订单详情弹窗样式

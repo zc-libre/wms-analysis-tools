@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search, Plus,Edit, Delete } from '@element-plus/icons-vue'
+import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
+import type { InboundOrderItem } from '../stores/viewState'
+import { useProjectStore } from '../stores/project'
+import { useRouter } from 'vue-router'  
 
 const props = defineProps<{
-  items: any[] | null,
+  items: InboundOrderItem[] | null,
   isLoading: boolean
 }>()
+const projectStore = useProjectStore()
+const router = useRouter()
+
 const searchForm = reactive({
   orderNumber: '',
   // dateRange: [] // dateRange was not used in the template, removing for now
@@ -23,17 +29,31 @@ const handleSearch = () => {
   ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
 }
 const handleAddInboundOrder = () => {
-  ElMessage.info('触发新增入库单据操作 (UI占位)');
+  const projectId = 0; // 占位项目ID
+  const projectName = '入库单据项目'; // 占位项目名称
+
+  projectStore.setCurrentProject(projectId, projectName);
+  projectStore.setFileType('入库单据');
+
+  // 根据 Sidebar.vue 的逻辑，也设置 sessionStorage
+  sessionStorage.setItem('currentProject', JSON.stringify({
+    id: projectId,
+    name: projectName,
+    company: '', // 根据需要填写或留空
+    location: '' // 根据需要填写或留空
+  }));
+
+  router.push({ name: 'FileImport' });
 }
 // const handleViewDetail = (row: any) => {
 //   ElMessage.info(`查看入库单据详情：${row.orderNumber || row.id} (UI占位)`)
 // }
-const handleEdit = (row: any) => {
-  ElMessage.info(`编辑入库单据：${row.orderNumber || row.id} (UI占位)`)
+const handleEdit = (row: InboundOrderItem) => {
+  ElMessage.info(`编辑入库单据：${row.orderNumber} (UI占位)`)
 }
 
-const handleDelete = (row: any) => {
-  ElMessage.info(`删除入库单据：${row.orderNumber || row.id} (UI占位)`)
+const handleDelete = (row: InboundOrderItem) => {
+  ElMessage.info(`删除入库单据：${row.orderNumber} (UI占位)`)
 }
 </script>
 
@@ -42,18 +62,13 @@ const handleDelete = (row: any) => {
     <div class="action-bar" v-if="displayData.length > 0">
       <el-form :inline="true" :model="searchForm" class="search-area">
         <el-form-item label="单据编号">
-          <el-input 
-            v-model="searchForm.orderNumber" 
-            placeholder="请输入单据编号" 
-            clearable 
-            @keyup.enter="handleSearch"
-          />
+          <el-input v-model="searchForm.orderNumber" placeholder="请输入单据编号" clearable @keyup.enter="handleSearch" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
         </el-form-item>
       </el-form>
-      
+
       <div class="operation-buttons">
         <el-button clearable type="success" :icon="Plus" @click="handleAddInboundOrder">新增入库单据</el-button>
       </div>
@@ -61,17 +76,17 @@ const handleDelete = (row: any) => {
     <div class="table-container">
       <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无入库单据数据" />
       <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
-        <el-table-column prop="orderNumber" label="入库单号" sortable width="160"/>
-        <el-table-column prop="relatedOrder" label="关联单号" width="160"/>
-        <el-table-column prop="orderType" label="单据类型" width="120"/>
-        <el-table-column prop="supplierName" label="供应商" width="180"/>
-        <el-table-column prop="orderDate" label="单据日期" sortable width="120"/>
-        <el-table-column prop="plannedDate" label="计划入库日期" sortable width="140"/>
-        <el-table-column prop="actualDate" label="实际入库日期" sortable width="140"/>
-        <el-table-column prop="totalAmount" label="总金额" sortable width="120"/>
-        <el-table-column prop="itemCount" label="物料种类" width="100"/>
-        <el-table-column prop="warehouseName" label="入库仓库" width="120"/>
-        <el-table-column prop="status" label="状态" sortable width="100"/>
+        <el-table-column prop="orderNumber" label="入库单号" sortable width="160" />
+        <el-table-column prop="relatedOrder" label="关联单号" width="160" />
+        <el-table-column prop="orderType" label="单据类型" width="120" />
+        <el-table-column prop="supplierName" label="供应商" width="180" />
+        <el-table-column prop="orderDate" label="单据日期" sortable width="120" />
+        <el-table-column prop="plannedDate" label="计划入库日期" sortable width="140" />
+        <el-table-column prop="actualDate" label="实际入库日期" sortable width="140" />
+        <el-table-column prop="totalAmount" label="总金额" sortable width="120" />
+        <el-table-column prop="itemCount" label="物料种类" width="100" />
+        <el-table-column prop="warehouseName" label="入库仓库" width="120" />
+        <el-table-column prop="status" label="状态" sortable width="100" />
         <el-table-column label="操作" fixed="right" width="180">
           <template #default="scope">
             <el-button type="primary" size="small" :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
@@ -81,22 +96,33 @@ const handleDelete = (row: any) => {
       </el-table>
     </div>
     <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
-      <el-pagination
-        background
-        layout="prev, pager, next, jumper, ->, total"
-        :total="displayData.length"
-        :page-size="10"
-        :current-page="1"
-        @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)"
-      />
+      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
+        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-.view-container { height: 100%; display: flex; flex-direction: column; }
-.table-container { flex-grow: 1; overflow: hidden; margin-bottom: 1rem; }
-.pagination-container { display: flex; justify-content: flex-end; flex-shrink: 0; padding-top: 1rem; }
+.view-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-container {
+  height: 370px;
+  // flex-grow: 1;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  /* padding-top: 1rem; */
+}
+
 .action-bar {
   display: flex;
   justify-content: space-between;
@@ -105,6 +131,7 @@ const handleDelete = (row: any) => {
   gap: 1rem;
   margin-bottom: 1rem;
   flex-direction: row;
-  flex-shrink: 0; /* Prevent action bar from shrinking */
+  flex-shrink: 0;
+  /* Prevent action bar from shrinking */
 }
-</style> 
+</style>

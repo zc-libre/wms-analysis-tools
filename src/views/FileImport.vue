@@ -983,6 +983,12 @@ onMounted(() => {
   if (projectStore.currentFileType) { 
     if (projectStore.currentFileType === '销售出库订单') {
       fileTypeSelected.value = '销售出库订单';
+    } else if (projectStore.currentFileType === '物料主数据') {
+      fileTypeSelected.value = '物料主数据';
+    } else if (projectStore.currentFileType === '入库单据') {
+      fileTypeSelected.value = '入库单据';
+    } else if (projectStore.currentFileType === '库存记录') {
+      fileTypeSelected.value = '库存记录';
     }
     // 如果需要，可以为其他文件类型添加 else if
     // 例如: else if (projectStore.currentFileType === '物料主数据') {

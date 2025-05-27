@@ -1,6 +1,55 @@
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
 
+// 定义数据项接口
+export interface SalesOrderItem {
+  id: string;
+  sku: string;
+  orderType: string;
+  projectItem: string;
+  orderDate: string;
+  materialCode: string;
+  quantity: number;
+  customer: string;
+  amount: number;
+}
+
+export interface MaterialDataItem {
+  materialCode: string;
+  materialName: string;
+  specification: string;
+  category: string;
+  unit: string;
+  price: number;
+  inventory: number;
+}
+
+export interface InboundOrderItem {
+  orderNumber: string;
+  relatedOrder: string;
+  orderType: string;
+  supplierName: string;
+  orderDate: string;
+  plannedDate: string;
+  actualDate: string;
+  totalAmount: number;
+  itemCount: number;
+  warehouseName: string;
+  status: string;
+}
+
+export interface InventoryRecordItem {
+  id: string;
+  sku: string;
+  materialName: string;
+  warehouse: string;
+  containerId: string;
+  quantity: number;
+  lastUpdate: string;
+}
+
+export type ApiDataItem = SalesOrderItem | MaterialDataItem | InboundOrderItem | InventoryRecordItem;
+
 // 辅助函数生成随机日期字符串
 const randomDateStr = () => {
   const year = 2023 + Math.floor(Math.random() * 3); // 2023-2025
@@ -10,7 +59,7 @@ const randomDateStr = () => {
 }
 
 // 模拟后端API调用
-const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<any[]> => {
+const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<ApiDataItem[]> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       if (!dataType || !fileName) {
@@ -19,12 +68,12 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
       }
       console.log(`模拟API调用: 获取 ${fileName} (${dataType}) 的数据 (已更新字段)`);
       ElMessage.success(`已加载文件: ${fileName} (${dataType}) 的数据 (含原始字段)`);
-      
-      let data: any[] = [];
-      const recordCount = 2; // 生成两条模拟记录
+
+      const data: ApiDataItem[] = [];
+      const recordCount = 10; // 生成两条模拟记录
 
       for (let i = 0; i < recordCount; i++) {
-        const suffix = `_Rec${i+1}_(${fileName.substring(0,10)})`;
+        const suffix = `_Rec${i + 1}_(${fileName.substring(0, 10)})`;
         switch (dataType) {
           case 'salesOrder':
             data.push({
@@ -101,7 +150,7 @@ interface Project {
 }
 
 // 模拟获取项目和文件数据
-const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
+const getProjectsAndFiles = (): Promise<{ projects: Project[] }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       // 这里模拟了与 Sidebar.vue 中相同的项目和文件数据结构
@@ -131,7 +180,7 @@ const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
           ]
         }
       ];
-      
+
       resolve({ projects });
     }, 300);
   });
@@ -140,7 +189,7 @@ const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
 export const useViewStateStore = defineStore('viewState', {
   state: () => ({
     activeOrderDataType: null as string | null,
-    activeOrderData: null as any[] | null,
+    activeOrderData: null as ApiDataItem[] | null,
     activeOrderDataFileName: null as string | null,
     isLoading: false as boolean,
   }),
@@ -156,7 +205,7 @@ export const useViewStateStore = defineStore('viewState', {
     },
     async fetchActiveOrderData() {
       if (!this.activeOrderDataType || !this.activeOrderDataFileName) {
-        this.activeOrderData = [] 
+        this.activeOrderData = []
         return
       }
       this.isLoading = true
@@ -166,39 +215,39 @@ export const useViewStateStore = defineStore('viewState', {
       } catch (error) {
         console.error('获取订单数据失败:', error)
         ElMessage.error('获取订单数据失败');
-        this.activeOrderData = [] 
+        this.activeOrderData = []
       } finally {
         this.isLoading = false
       }
     },
     clearActiveOrderData() {
       this.activeOrderData = null
-      this.activeOrderDataType = null 
+      this.activeOrderDataType = null
       this.activeOrderDataFileName = null
     },
     // 新增：加载第一个项目的第一个文件数据
     async loadFirstProjectFirstFile(defaultType: string = 'salesOrder'): Promise<boolean> {
       this.isLoading = true
-      
+
       try {
         // 获取项目和文件数据
         const { projects } = await getProjectsAndFiles()
-        
+
         // 如果没有项目，返回false
         if (projects.length === 0) {
           this.clearActiveOrderData()
           return false
         }
-        
+
         // 获取第一个项目
         const firstProject = projects[0]
-        
+
         // 如果项目没有文件，返回false
         if (!firstProject.files || firstProject.files.length === 0) {
           this.clearActiveOrderData()
           return false
         }
-        
+
         // 文件类型映射
         const fileNameMap: Record<string, string> = {
           'salesOrder': '销售出库订单',
@@ -206,11 +255,11 @@ export const useViewStateStore = defineStore('viewState', {
           'inboundOrder': '入库单据',
           'inventoryRecord': '库存记录'
         }
-        
+
         // 尝试查找默认类型的文件
         let targetFile: ProjectFile | null = null
         let targetType = defaultType
-        
+
         // 先尝试查找默认类型的文件
         for (const file of firstProject.files) {
           if (file.name.toLowerCase().includes(fileNameMap[defaultType].toLowerCase())) {
@@ -218,15 +267,15 @@ export const useViewStateStore = defineStore('viewState', {
             break
           }
         }
-        
+
         // 如果没找到默认类型文件，就用第一个文件
         if (!targetFile) {
           targetFile = firstProject.files[0]
-          
+
           // 判断文件类型
           const fileName = targetFile.name.toLowerCase()
           let typeFound = false
-          
+
           for (const [type, keyword] of Object.entries(fileNameMap)) {
             if (fileName.includes(keyword.toLowerCase())) {
               targetType = type
@@ -234,19 +283,19 @@ export const useViewStateStore = defineStore('viewState', {
               break
             }
           }
-          
+
           if (!typeFound) {
             // 如果无法判断类型，仍然使用默认类型
             targetType = defaultType
           }
         }
-        
+
         // 设置激活的订单数据上下文并加载数据
         console.log(`自动加载首个项目(${firstProject.name})的文件: ${targetFile.name}`)
         this.setActiveOrderContext(targetType, targetFile.name)
         // 注意：setActiveOrderContext 内部会调用 fetchActiveOrderData
         return true
-        
+
       } catch (error) {
         console.error('加载第一个项目的第一个文件数据失败:', error)
         ElMessage.error('加载初始数据失败')

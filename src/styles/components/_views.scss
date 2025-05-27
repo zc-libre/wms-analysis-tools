@@ -46,7 +46,7 @@
 
 // 表格区域
 .table-container {
-  flex: 1;
+  // flex: 1;
   overflow: auto;
 }
 
@@ -54,7 +54,7 @@
 .pagination-container {
   display: flex;
   justify-content: flex-end;
-  margin-top: $spacing-base;
+  // margin-top: $spacing-base;
 }
 
 // 卡片标题样式

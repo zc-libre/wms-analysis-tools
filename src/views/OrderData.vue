@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { Download, ArrowDown, Refresh, Document } from '@element-plus/icons-vue'
 import { useViewStateStore } from '@/stores/viewState'
 import { storeToRefs } from 'pinia'
+// 导入具体类型 - 确保这些名称与 viewState.ts 中导出的名称完全一致
+import type { SalesOrderItem, MaterialDataItem, InboundOrderItem, InventoryRecordItem } from '@/stores/viewState'
 
 // 导入子视图组件
 import SalesOrder from './SalesOrder.vue'
@@ -13,6 +15,35 @@ import InventoryRecord from './InventoryRecord.vue'
 // 当前激活的 Tab - 改为从 store 控制
 const viewStateStore = useViewStateStore()
 const { activeOrderDataType, activeOrderData, isLoading } = storeToRefs(viewStateStore)
+
+// 计算属性，用于为每个子组件提供正确类型的数据
+const salesOrderItemsFiltered = computed((): SalesOrderItem[] | null => {
+  if (activeOrderDataType.value === 'salesOrder' && activeOrderData.value) {
+    return activeOrderData.value as SalesOrderItem[]
+  }
+  return null
+})
+
+const materialDataItemsFiltered = computed((): MaterialDataItem[] | null => {
+  if (activeOrderDataType.value === 'materialData' && activeOrderData.value) {
+    return activeOrderData.value as MaterialDataItem[]
+  }
+  return null
+})
+
+const inboundOrderItemsFiltered = computed((): InboundOrderItem[] | null => {
+  if (activeOrderDataType.value === 'inboundOrder' && activeOrderData.value) {
+    return activeOrderData.value as InboundOrderItem[]
+  }
+  return null
+})
+
+const inventoryRecordItemsFiltered = computed((): InventoryRecordItem[] | null => {
+  if (activeOrderDataType.value === 'inventoryRecord' && activeOrderData.value) {
+    return activeOrderData.value as InventoryRecordItem[]
+  }
+  return null
+})
 
 // 将 activeTabName 直接绑定到 activeOrderDataType
 // 这确保了每次 activeOrderDataType 变化时，activeTabName 会同步更新
@@ -91,16 +122,16 @@ const refreshData = () => {
 
     <el-tabs v-model="activeTabName" class="data-tabs">
       <el-tab-pane label="销售出库订单" name="salesOrder">
-        <SalesOrder :items="activeOrderDataType === 'salesOrder' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
+        <SalesOrder :items="salesOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
       </el-tab-pane>
       <el-tab-pane label="物料主数据" name="materialData">
-        <MaterialData :items="activeOrderDataType === 'materialData' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
+        <MaterialData :items="materialDataItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
       </el-tab-pane>
       <el-tab-pane label="入库单据" name="inboundOrder">
-        <InboundOrder :items="activeOrderDataType === 'inboundOrder' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
+        <InboundOrder :items="inboundOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
       </el-tab-pane>
       <el-tab-pane label="库存记录" name="inventoryRecord">
-        <InventoryRecord :items="activeOrderDataType === 'inventoryRecord' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
+        <InventoryRecord :items="inventoryRecordItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
       </el-tab-pane>
     </el-tabs>
   </el-card>

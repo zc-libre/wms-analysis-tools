@@ -566,9 +566,6 @@ const filteredFileList = computed(() => {
   background-color: #f56c6c;
 }
 
-.data-stats {
-  
-}
 
 .stat-row {
   display: flex;
@@ -716,7 +713,7 @@ const filteredFileList = computed(() => {
 .pagination-container {
   display: flex;
   justify-content: center;
-  margin-top: 10px;
+  /* margin-top: 10px; */
 }
 .file-table-container {
     height:calc(100% - 300px);

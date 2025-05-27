@@ -41,6 +41,29 @@
       </template>
     </el-dialog>
 
+    <!-- 批量删除文件确认对话框 (对应清单步骤 18) -->
+    <el-dialog
+      v-model="batchDeleteConfirmVisible"
+      title="确认批量删除"
+      width="30%"
+      :close-on-click-modal="false"
+      class="batch-delete-confirm-dialog" 
+    >
+      <div class="delete-confirm-content">
+        <p v-if="projectForBatchDeleteId !== null">
+          确定要删除选中的 {{ selectedFileCount(projectForBatchDeleteId).value }} 个文件吗？该操作无法撤销。
+        </p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
+          <el-button type="danger" @click="confirmBatchDeleteFiles">
+            确认删除
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <!-- 文件上传对话框 -->
     <FileUploadModal
       v-model:visible="uploadDialogVisible"
@@ -92,16 +115,18 @@
             <div v-show="project.filesVisible" class="file-drawer">
               <div class="file-list-header">
                 <el-text size="small" type="info">文件列表</el-text>
-                <el-button
-                  type="success"
-                  plain
-                  size="small"
-                  :icon="Upload"
-                  class="upload-btn"
-                  @click.stop="openUploadDialog(project.id)"
-                >
-                  上传
-                </el-button>
+                <div>
+                  <el-button
+                    type="success"
+                    plain
+                    size="small"
+                    :icon="Upload"
+                    class="upload-btn"
+                    @click.stop="openUploadDialog(project.id)"
+                  >
+                    上传
+                  </el-button>
+                </div>
               </div>
               <div
                 v-for="file in project.files"
@@ -112,12 +137,31 @@
                 @click.stop="setActiveFile(file.id)"
               >
                 <div class="file-info">
+                  <el-checkbox 
+                    :model-value="selectedFiles[project.id]?.has(file.id)"
+                    @change="toggleFileSelection(project.id, file.id)"
+                    @click.stop 
+                    class="file-checkbox"
+                  />
                   <el-icon class="file-icon" color="#67C23A"><Document /></el-icon>
                   <span class="file-name">{{ file.name }}</span>
                 </div>
                 <div class="file-meta">
                   <span>{{ file.date }} | {{ file.size }}</span>
                 </div>
+              </div>
+              <div class="file-list-actions">
+                  <el-button
+                    v-if="hasSelectedFiles(project.id).value"
+                    type="danger"
+                    plain
+                    size="small"
+                    :icon="Delete"
+                    class="batch-delete-btn"
+                    @click.stop="handleBatchDeleteFiles(project.id)"
+                  >
+                    批量删除
+                  </el-button>
               </div>
             </div>
           </el-collapse-transition>
@@ -128,7 +172,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import {
   Plus,
   Folder,
@@ -163,12 +207,29 @@ interface Project {
   files: File[]
 }
 
+interface NewProjectData {
+  name: string;
+  company: string;
+  location: string;
+}
+
+interface UpdateProjectData {
+  id: number;
+  name: string;
+  company: string;
+  location: string;
+}
+
+interface FileUploadData {
+  projectId: number;
+  fileName: string;
+}
+
 const activeProjectId = ref(1)
 const activeFileId = ref('file1')
 const router = useRouter()
 const projectStore = useProjectStore()
 const viewStateStore = useViewStateStore()
-// 从viewStateStore获取activeOrderDataType，以便后续判断当前标签页
 const { activeOrderDataType } = storeToRefs(viewStateStore)
 
 const projects = ref<Project[]>([
@@ -210,16 +271,85 @@ const projects = ref<Project[]>([
   }
 ])
 
+const selectedFiles = ref<Record<number, Set<string>>>({});
+const batchDeleteConfirmVisible = ref(false)
+const projectForBatchDeleteId = ref<number | null>(null)
+
+watchEffect(() => {
+  projects.value.forEach(project => {
+    if (!selectedFiles.value[project.id]) {
+      selectedFiles.value[project.id] = new Set();
+    }
+  });
+});
+
+const hasSelectedFiles = (projectId: number) => computed(() => {
+  return selectedFiles.value[projectId] && selectedFiles.value[projectId].size > 0;
+});
+
+const selectedFileCount = (projectId: number | null) => computed(() => {
+  if (projectId === null || !selectedFiles.value[projectId]) {
+    return 0;
+  }
+  return selectedFiles.value[projectId].size;
+});
+
+const toggleFileSelection = (projectId: number, fileId: string) => {
+  if (!selectedFiles.value[projectId]) {
+    selectedFiles.value[projectId] = new Set();
+  }
+  const projectSelectedFiles = selectedFiles.value[projectId];
+  if (projectSelectedFiles.has(fileId)) {
+    projectSelectedFiles.delete(fileId);
+  } else {
+    projectSelectedFiles.add(fileId);
+  }
+};
+
+const handleBatchDeleteFiles = (projectId: number) => {
+  if (selectedFileCount(projectId).value === 0) {
+    ElMessage.warning('请至少选择一个文件进行删除。');
+    return;
+  }
+  projectForBatchDeleteId.value = projectId;
+  batchDeleteConfirmVisible.value = true;
+};
+
+const confirmBatchDeleteFiles = () => {
+  if (projectForBatchDeleteId.value === null) return;
+
+  const projectId = projectForBatchDeleteId.value;
+  const project = projects.value.find(p => p.id === projectId);
+
+  if (project && selectedFiles.value[projectId]) {
+    const filesToDeleteIdsSet = selectedFiles.value[projectId];
+    const numberOfFilesToDelete = filesToDeleteIdsSet.size; // 获取实际选中的文件数量
+
+    if (numberOfFilesToDelete > 0) {
+      project.files = project.files.filter(file => !filesToDeleteIdsSet.has(file.id));
+      ElMessage.success(`成功删除了 ${numberOfFilesToDelete} 个文件。`);
+    } else {
+      // 此情况理论上不应发生，因为批量删除按钮的显示依赖于 hasSelectedFiles
+      ElMessage.info('没有选中需要删除的文件。');
+    }
+    filesToDeleteIdsSet.clear(); // 清空当前项目的选中文件集合
+  }
+  batchDeleteConfirmVisible.value = false;
+  projectForBatchDeleteId.value = null;
+};
+
 const toggleFiles = (projectId: number) => {
   const project = projects.value.find(p => p.id === projectId)
   if (project) {
     project.filesVisible = !project.filesVisible
+    if (!project.filesVisible && selectedFiles.value[project.id]?.size > 0) {
+      selectedFiles.value[project.id].clear();
+    }
   }
 }
 
 const setActiveProject = (projectId: number) => {
   activeProjectId.value = projectId
-  // Optionally collapse others and expand this one
   projects.value.forEach(p => {
       p.filesVisible = p.id === projectId;
   });
@@ -234,7 +364,6 @@ const setActiveFile = (fileId: string) => {
       let mappedType: string | null = null
       const fileNameLower = file.name.toLowerCase()
 
-      // 根据文件名确定文件类型
       if (fileNameLower.includes('销售出库订单')) {
         mappedType = 'salesOrder'
       } else if (fileNameLower.includes('物料主数据')) {
@@ -245,7 +374,6 @@ const setActiveFile = (fileId: string) => {
         mappedType = 'inventoryRecord'
       }
 
-      // 判断当前选中标签页与文件类型是否相同
       if (mappedType && mappedType !== activeOrderDataType.value) {
         console.log(`文件类型 ${mappedType} 与当前选中标签页 ${activeOrderDataType.value || '无'} 不一致，将自动切换标签页`)
       } else if (mappedType && mappedType === activeOrderDataType.value) {
@@ -254,42 +382,31 @@ const setActiveFile = (fileId: string) => {
         console.log(`无法识别文件 ${file.name} 的类型，将使用默认类型`)
       }
 
-      // 无论是否一致，都设置activeOrderContext，这将触发OrderData.vue中的watch实现自动切换
       viewStateStore.setActiveOrderContext(mappedType, file.name)
 
       if (mappedType) {
-        // 导航到OrderData视图，如果当前不在该视图
         const currentRoute = router.currentRoute.value;
         if (currentRoute.name !== 'OrderData') {
           router.push({ name: 'OrderData' }); 
         }
       } else {
-        // 如果文件类型无法识别，可以提供适当的反馈
         ElMessage.warning('无法识别的文件类型');
       }
     }
   }
 }
 
-// 新建项目对话框可见性
 const newProjectVisible = ref(false)
-
-// 编辑项目对话框可见性
 const editProjectVisible = ref(false)
 const currentEditProject = ref<Project | null>(null)
-
-// 删除项目确认对话框可见性
 const deleteConfirmVisible = ref(false)
 const projectToDelete = ref<Project | null>(null)
-
-// 文件上传对话框可见性
 const uploadDialogVisible = ref(false)
 const currentUploadProjectId = ref<number | null>(null)
 
-// 处理新建项目
-const handleCreateProject = (projectData: any) => {
-  const newProject = {
-    id: projects.value.length + 1,
+const handleCreateProject = (projectData: NewProjectData) => {
+  const newProject: Project = {
+    id: projects.value.length > 0 ? Math.max(...projects.value.map(p => p.id)) + 1 : 1,
     name: projectData.name,
     company: projectData.company,
     location: projectData.location,
@@ -299,14 +416,12 @@ const handleCreateProject = (projectData: any) => {
   projects.value.push(newProject)
 }
 
-// 处理编辑项目
 const handleEditProject = (project: Project) => {
   currentEditProject.value = { ...project }
   editProjectVisible.value = true
 }
 
-// 处理更新项目
-const handleUpdateProject = (projectData: any) => {
+const handleUpdateProject = (projectData: UpdateProjectData) => {
   const index = projects.value.findIndex(p => p.id === projectData.id)
   if (index !== -1) {
     projects.value[index] = {
@@ -318,22 +433,23 @@ const handleUpdateProject = (projectData: any) => {
   }
 }
 
-// 处理删除项目
 const handleDeleteProject = (project: Project) => {
   projectToDelete.value = project
   deleteConfirmVisible.value = true
 }
 
-// 确认删除项目
 const confirmDeleteProject = () => {
   if (projectToDelete.value) {
-    const index = projects.value.findIndex(p => p.id === projectToDelete.value!.id)
+    const deletedProjectId = projectToDelete.value.id;
+    const index = projects.value.findIndex(p => p.id === deletedProjectId)
     if (index !== -1) {
       projects.value.splice(index, 1)
       
-      // 如果删除的是当前活动项目，则重置活动项目
-      if (activeProjectId.value === projectToDelete.value.id) {
+      if (activeProjectId.value === deletedProjectId) {
         activeProjectId.value = projects.value.length > 0 ? projects.value[0].id : 0
+      }
+      if (selectedFiles.value[deletedProjectId]) {
+        delete selectedFiles.value[deletedProjectId];
       }
     }
     deleteConfirmVisible.value = false
@@ -341,16 +457,12 @@ const confirmDeleteProject = () => {
   }
 }
 
-// 打开文件上传对话框
 const openUploadDialog = (projectId: number) => {
-  // 获取当前项目名称
   const project = projects.value.find(p => p.id === projectId);
   if (!project) return;
   
-  // 使用 Pinia store 存储项目信息
   projectStore.setCurrentProject(projectId, project.name);
   
-  // 同时将项目信息存储到 sessionStorage
   sessionStorage.setItem('currentProject', JSON.stringify({
     id: project.id,
     name: project.name,
@@ -358,16 +470,12 @@ const openUploadDialog = (projectId: number) => {
     location: project.location
   }));
   
-  // 导航到文件导入页面，不再使用查询参数
   router.push({
     name: 'FileImport'
   });
 }
 
-// 处理文件上传
-const handleFileUpload = (fileData: any) => {
-  // 这里实际项目中应该有文件上传的API调用
-  // 这里仅做模拟展示
+const handleFileUpload = (fileData: FileUploadData) => {
   const today = new Date()
   const dateStr = today.toISOString().split('T')[0]
   const newFile = {
@@ -425,7 +533,7 @@ const handleFileUpload = (fileData: any) => {
     cursor: pointer;
     border: 1px solid var(--el-border-color-light);
     transition: all 0.2s ease-in-out;
-    border-left: 4px solid transparent; // For active state
+    border-left: 4px solid transparent;
 
     &.active {
        border-left-color: var(--el-color-primary);
@@ -457,7 +565,7 @@ const handleFileUpload = (fileData: any) => {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 150px; // Adjust as needed
+      max-width: 150px;
       display: inline-block;
     }
 
@@ -483,7 +591,7 @@ const handleFileUpload = (fileData: any) => {
       padding-left: 10px;
       margin-top: 10px;
       border-left: 2px solid var(--el-border-color-lighter);
-      background-color: #fff; // Ensure background contrast
+      background-color: #fff;
     }
 
     .file-list-header {
@@ -491,10 +599,22 @@ const handleFileUpload = (fileData: any) => {
        justify-content: space-between;
        align-items: center;
        margin-bottom: 8px;
-       padding-right: 5px; // Space for button
+       padding-right: 5px;
     }
+    
     .upload-btn {
         padding: 3px 8px;
+    }
+
+    .file-list-actions {
+      margin-top: 10px;
+      padding-right: 5px;
+      text-align: right;
+
+      .batch-delete-btn {
+        // Specific styles for the button in its new container, if needed.
+        // For now, it will inherit global batch-delete-btn styles or element-plus defaults.
+      }
     }
 
     .file-item {
@@ -532,7 +652,11 @@ const handleFileUpload = (fileData: any) => {
       .file-meta {
           font-size: 0.75rem;
           color: var(--el-text-color-secondary);
-          padding-left: 22px; // Align with file name
+          padding-left: 22px;
+      }
+
+      .file-checkbox {
+        margin-right: 8px;
       }
     }
   }
