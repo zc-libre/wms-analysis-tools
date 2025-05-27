@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
-import { Download, ArrowDown, Refresh, Document } from '@element-plus/icons-vue'
+import { Download, ArrowDown, Refresh, Document, Sell, Goods, Box, Files } from '@element-plus/icons-vue'
 import { useViewStateStore } from '@/stores/viewState'
 import { storeToRefs } from 'pinia'
 // 导入具体类型 - 确保这些名称与 viewState.ts 中导出的名称完全一致
@@ -122,16 +122,48 @@ const refreshData = () => {
 
     <el-tabs v-model="activeTabName" class="data-tabs">
       <el-tab-pane label="销售出库订单" name="salesOrder">
-        <SalesOrder :items="salesOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
+        <template v-if="activeOrderDataType === 'salesOrder' || !activeOrderDataType">
+          <SalesOrder :items="salesOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
+        </template>
+        <template v-else-if="activeOrderDataType && activeOrderDataType !== 'salesOrder'">
+          <div class="tab-pane-placeholder">
+            <el-icon class="empty-icon empty-icon--sales"><Sell /></el-icon>
+            <p>当前暂无销售出库订单数据</p>
+          </div>
+        </template>
       </el-tab-pane>
       <el-tab-pane label="物料主数据" name="materialData">
-        <MaterialData :items="materialDataItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
+        <template v-if="activeOrderDataType === 'materialData' || !activeOrderDataType">
+          <MaterialData :items="materialDataItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
+        </template>
+        <template v-else-if="activeOrderDataType && activeOrderDataType !== 'materialData'">
+          <div class="tab-pane-placeholder">
+            <el-icon class="empty-icon empty-icon--material"><Goods /></el-icon>
+            <p>当前暂无物料主数据数据</p>
+          </div>
+        </template>
       </el-tab-pane>
       <el-tab-pane label="入库单据" name="inboundOrder">
-        <InboundOrder :items="inboundOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
+        <template v-if="activeOrderDataType === 'inboundOrder' || !activeOrderDataType">
+          <InboundOrder :items="inboundOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
+        </template>
+        <template v-else-if="activeOrderDataType && activeOrderDataType !== 'inboundOrder'">
+          <div class="tab-pane-placeholder">
+            <el-icon class="empty-icon empty-icon--inbound"><Box /></el-icon>
+            <p>当前暂无入库单据数据</p>
+          </div>
+        </template>
       </el-tab-pane>
       <el-tab-pane label="库存记录" name="inventoryRecord">
-        <InventoryRecord :items="inventoryRecordItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
+        <template v-if="activeOrderDataType === 'inventoryRecord' || !activeOrderDataType">
+          <InventoryRecord :items="inventoryRecordItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
+        </template>
+        <template v-else-if="activeOrderDataType && activeOrderDataType !== 'inventoryRecord'">
+          <div class="tab-pane-placeholder">
+            <el-icon class="empty-icon empty-icon--inventory"><Files /></el-icon>
+            <p>当前暂无库存记录数据</p>
+          </div>
+        </template>
       </el-tab-pane>
     </el-tabs>
   </el-card>
@@ -293,6 +325,120 @@ const refreshData = () => {
   }
 }
 
+.tab-pane-placeholder {
+  padding: $spacing-large;
+  text-align: center;
+  color: $color-text-placeholder;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-base;
+  
+  .empty-icon {
+    font-size: 60px;
+    margin-bottom: $spacing-large;
+    color: rgba(64, 158, 255, 0.3);
+    background: linear-gradient(135deg, rgba(64, 158, 255, 0.2) 0%, rgba(100, 180, 255, 0.1) 100%);
+    padding: $spacing-large;
+    border-radius: 50%;
+    box-shadow: 
+      0 4px 12px rgba(64, 158, 255, 0.1),
+      inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    animation: pulse 3s infinite ease-in-out;
+    transition: all $transition-normal;
+    position: relative;
+    
+    &--sales {
+      color: rgba(103, 194, 58, 0.4);
+      background: linear-gradient(135deg, rgba(103, 194, 58, 0.2) 0%, rgba(145, 213, 112, 0.1) 100%);
+      box-shadow: 
+        0 4px 12px rgba(103, 194, 58, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    }
+    
+    &--material {
+      color: rgba(230, 162, 60, 0.4);
+      background: linear-gradient(135deg, rgba(230, 162, 60, 0.2) 0%, rgba(241, 196, 115, 0.1) 100%);
+      box-shadow: 
+        0 4px 12px rgba(230, 162, 60, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    }
+    
+    &--inbound {
+      color: rgba(144, 147, 153, 0.4);
+      background: linear-gradient(135deg, rgba(144, 147, 153, 0.2) 0%, rgba(184, 187, 193, 0.1) 100%);
+      box-shadow: 
+        0 4px 12px rgba(144, 147, 153, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    }
+    
+    &--inventory {
+      color: rgba(245, 108, 108, 0.4);
+      background: linear-gradient(135deg, rgba(245, 108, 108, 0.2) 0%, rgba(250, 154, 154, 0.1) 100%);
+      box-shadow: 
+        0 4px 12px rgba(245, 108, 108, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    }
+    
+    &:hover {
+      transform: scale(1.1) translateY(-5px);
+      box-shadow: 
+        0 8px 20px rgba(64, 158, 255, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    &--sales:hover {
+      box-shadow: 
+        0 8px 20px rgba(103, 194, 58, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    &--material:hover {
+      box-shadow: 
+        0 8px 20px rgba(230, 162, 60, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    &--inbound:hover {
+      box-shadow: 
+        0 8px 20px rgba(144, 147, 153, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    }
+    
+    &--inventory:hover {
+      box-shadow: 
+        0 8px 20px rgba(245, 108, 108, 0.2),
+        inset 0 2px 6px rgba(255, 255, 255, 0.8);
+    }
+  }
+  
+  p {
+    font-size: $font-size-medium;
+    color: $color-text-secondary;
+    margin-top: $spacing-small;
+    opacity: 0.8;
+    max-width: 240px;
+    line-height: 1.5;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(64, 158, 255, 0.2), inset 0 2px 4px rgba(255, 255, 255, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  }
+}
+
 @media (max-width: $breakpoint-sm) {
   .card-header {
     flex-direction: column;
@@ -319,6 +465,19 @@ const refreshData = () => {
       height: 38px;
       line-height: 24px;
       margin-right: $spacing-extra-small;
+    }
+  }
+  
+  .tab-pane-placeholder {
+    .empty-icon {
+      font-size: 48px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    p {
+      font-size: $font-size-base;
+      max-width: 200px;
     }
   }
 }
