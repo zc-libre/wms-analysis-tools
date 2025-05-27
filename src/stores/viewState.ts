@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
 
+// 定义分页数据接口
+export interface PaginatedData<T> {
+  data: T[];
+  total: number;
+}
+
 // 定义数据项接口
 export interface SalesOrderItem {
   id: string;
@@ -59,24 +65,24 @@ const randomDateStr = () => {
 }
 
 // 模拟后端API调用
-const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<ApiDataItem[]> => {
+const fakeApiCall = (dataType: string | null, fileName: string | null, page: number, pageSize: number): Promise<PaginatedData<ApiDataItem>> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       if (!dataType || !fileName) {
-        resolve([])
+        resolve({ data: [], total: 0 })
         return
       }
-      console.log(`模拟API调用: 获取 ${fileName} (${dataType}) 的数据 (已更新字段)`);
-      ElMessage.success(`已加载文件: ${fileName} (${dataType}) 的数据 (含原始字段)`);
+      console.log(`模拟API调用: 获取 ${fileName} (${dataType}) 的数据 (已更新字段) - 页: ${page}, 每页: ${pageSize}`);
+      ElMessage.success(`已加载文件: ${fileName} (${dataType}) 的数据 (含原始字段) - 页: ${page}`);
 
-      const data: ApiDataItem[] = [];
-      const recordCount = 10; // 生成两条模拟记录
+      const allData: ApiDataItem[] = [];
+      const totalRecords = 75; // 模拟总共有75条记录
 
-      for (let i = 0; i < recordCount; i++) {
+      for (let i = 0; i < totalRecords; i++) { // 生成全部模拟数据
         const suffix = `_Rec${i + 1}_(${fileName.substring(0, 10)})`;
         switch (dataType) {
           case 'salesOrder':
-            data.push({
+            allData.push({
               id: `SO_${Date.now()}_${i}${suffix}`,
               sku: `SKU_SO_${i}${suffix}`,
               orderType: '销售出库',
@@ -89,7 +95,7 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
             });
             break;
           case 'materialData':
-            data.push({
+            allData.push({
               materialCode: `MAT_${Date.now()}_${i}${suffix}`,
               materialName: `物料M${i}${suffix}`,
               specification: `规格S${i}${suffix}`,
@@ -100,7 +106,7 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
             });
             break;
           case 'inboundOrder':
-            data.push({
+            allData.push({
               orderNumber: `INB_${Date.now()}_${i}${suffix}`,
               relatedOrder: `PO_REL_${i}${suffix}`,
               orderType: ['采购入库', '生产入库'][i % 2],
@@ -115,7 +121,7 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
             });
             break;
           case 'inventoryRecord':
-            data.push({
+            allData.push({
               id: `INV_${Date.now()}_${i}${suffix}`,
               sku: `SKU_INV_${i}${suffix}`,
               materialName: `物料Inv${i}${suffix}`,
@@ -127,7 +133,12 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
             break;
         }
       }
-      resolve(data);
+
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = page * pageSize;
+      const paginatedData = allData.slice(startIndex, endIndex);
+
+      resolve({ data: paginatedData, total: totalRecords });
     }, 500)
   })
 }
@@ -192,12 +203,16 @@ export const useViewStateStore = defineStore('viewState', {
     activeOrderData: null as ApiDataItem[] | null,
     activeOrderDataFileName: null as string | null,
     isLoading: false as boolean,
+    currentPage: 1,
+    pageSize: 50,
+    totalItems: 0,
   }),
   actions: {
     setActiveOrderContext(dataType: string | null, fileName: string | null) {
       this.activeOrderDataType = dataType
       this.activeOrderDataFileName = fileName
       if (dataType && fileName) {
+        this.currentPage = 1;
         this.fetchActiveOrderData()
       } else {
         this.clearActiveOrderData()
@@ -206,16 +221,19 @@ export const useViewStateStore = defineStore('viewState', {
     async fetchActiveOrderData() {
       if (!this.activeOrderDataType || !this.activeOrderDataFileName) {
         this.activeOrderData = []
+        this.totalItems = 0
         return
       }
       this.isLoading = true
       try {
-        const data = await fakeApiCall(this.activeOrderDataType, this.activeOrderDataFileName)
-        this.activeOrderData = data
+        const result = await fakeApiCall(this.activeOrderDataType, this.activeOrderDataFileName, this.currentPage, this.pageSize)
+        this.activeOrderData = result.data
+        this.totalItems = result.total
       } catch (error) {
         console.error('获取订单数据失败:', error)
         ElMessage.error('获取订单数据失败');
         this.activeOrderData = []
+        this.totalItems = 0
       } finally {
         this.isLoading = false
       }
@@ -224,6 +242,17 @@ export const useViewStateStore = defineStore('viewState', {
       this.activeOrderData = null
       this.activeOrderDataType = null
       this.activeOrderDataFileName = null
+      this.currentPage = 1
+      this.totalItems = 0
+    },
+    setCurrentPage(page: number) {
+      this.currentPage = page;
+      this.fetchActiveOrderData();
+    },
+    setPageSize(size: number) {
+      this.pageSize = size;
+      this.currentPage = 1; // 重置到第一页
+      this.fetchActiveOrderData();
     },
     // 新增：加载第一个项目的第一个文件数据
     async loadFirstProjectFirstFile(defaultType: string = 'salesOrder'): Promise<boolean> {

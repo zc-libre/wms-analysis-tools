@@ -2,13 +2,13 @@
 import { ref, reactive, onMounted, nextTick, onBeforeUnmount, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as echarts from 'echarts'
-import { 
-  ArrowDown, 
-  Download, 
-  Refresh, 
-  Plus, 
-  Delete, 
-  View, 
+import {
+  ArrowDown,
+  Download,
+  Refresh,
+  Plus,
+  Delete,
+  View,
   CaretRight,
   Goods,
   TrendCharts,
@@ -52,7 +52,61 @@ interface TabItem {
   isDropdown?: boolean;
 }
 
+// Pagination related interfaces and state
+interface PaginationState {
+  currentPage: number;
+  pageSize: number;
+  total: number;
+}
 
+const paginationStates = reactive<Record<string, PaginationState>>({});
+const DEFAULT_PAGE_SIZE = 50;
+const DEFAULT_PAGE_SIZES = [50, 100, 200];
+
+// Helper functions for pagination
+const initOrUpdatePagination = (key: string, totalCount: number) => {
+  if (!paginationStates[key] || paginationStates[key].total !== totalCount || paginationStates[key].currentPage === 0) {
+    paginationStates[key] = {
+      currentPage: 1,
+      pageSize: (paginationStates[key]?.pageSize) || DEFAULT_PAGE_SIZE,
+      total: totalCount,
+    };
+  } else {
+    paginationStates[key].total = totalCount;
+  }
+  if (paginationStates[key].total > 0) {
+    const maxPage = Math.ceil(paginationStates[key].total / paginationStates[key].pageSize);
+    if (paginationStates[key].currentPage > maxPage) {
+      paginationStates[key].currentPage = maxPage > 0 ? maxPage : 1;
+    }
+  } else {
+    paginationStates[key].currentPage = 1;
+  }
+};
+
+const getPaginatedData = <T>(data: T[] | undefined, paginationKey: string): T[] => {
+  const state = paginationStates[paginationKey];
+  if (!state || !data || data.length === 0) {
+    if (state && state.total === 0) return [];
+    return data || [];
+  }
+  const start = (state.currentPage - 1) * state.pageSize;
+  const end = start + state.pageSize;
+  return data.slice(start, end);
+};
+
+const handleSizeChange = (newPageSize: number, paginationKey: string) => {
+  if (paginationStates[paginationKey]) {
+    paginationStates[paginationKey].pageSize = newPageSize;
+    paginationStates[paginationKey].currentPage = 1;
+  }
+};
+
+const handleCurrentChange = (newPage: number, paginationKey: string) => {
+  if (paginationStates[paginationKey]) {
+    paginationStates[paginationKey].currentPage = newPage;
+  }
+};
 
 // EI分析数据项接口
 interface EIAnalysisDataItem {
@@ -98,7 +152,7 @@ interface AnalysisRecordData {
 const chartRef = ref<HTMLElement | null>(null)
 let myChart: echarts.ECharts | null = null
 // 存储四个子图表实例
-const charts = reactive<{[key: string]: echarts.ECharts | null}>({
+const charts = reactive<{ [key: string]: echarts.ECharts | null }>({
   chart1: null,
   chart2: null,
   chart3: null,
@@ -838,7 +892,7 @@ const initChart = () => {
     console.error('图表容器引用不存在')
     return
   }
-  
+
   try {
     // 根据激活的选项卡渲染不同图表
     nextTick(() => {
@@ -853,7 +907,7 @@ const initChart = () => {
 const clearCharts = () => {
   try {
     console.log('清理图表实例...');
-    
+
     // 清理主图表
     if (myChart) {
       try {
@@ -865,7 +919,7 @@ const clearCharts = () => {
         myChart = null;
       }
     }
-    
+
     // 清理子图表
     Object.keys(charts).forEach(key => {
       if (charts[key]) {
@@ -889,9 +943,9 @@ const renderChart = () => {
   try {
     // 先清理已有的图表实例
     clearCharts()
-    
+
     console.log('正在渲染图表，当前选项卡:', activeTab.value)
-    
+
     // 设置初始化状态
     chartInitStatus.value = {
       isInitializing: true,
@@ -899,7 +953,7 @@ const renderChart = () => {
       retryCount: 0,
       maxRetries: 5
     }
-    
+
     // 使用递归函数确保DOM已准备就绪
     const initChartWhenReady = () => {
       // 检查是否超过最大重试次数
@@ -908,10 +962,10 @@ const renderChart = () => {
         chartInitStatus.value.isInitializing = false;
         return;
       }
-      
+
       chartInitStatus.value.retryCount++;
       console.log(`图表初始化尝试 #${chartInitStatus.value.retryCount}`);
-      
+
       // 使用nextTick确保DOM更新
       nextTick(() => {
         // 修改为支持多图表布局
@@ -922,7 +976,7 @@ const renderChart = () => {
           const quantities = orderDetailData.map(item => item.quantity)
           const demandCounts = orderDetailData.map(item => item.demandCount)
           const unitPallets = orderDetailData.map(item => item.unitPallet)
-          
+
           // 检查容器是否存在
           const chartContainers = [
             document.getElementById('chart1'),
@@ -930,10 +984,10 @@ const renderChart = () => {
             document.getElementById('chart3'),
             document.getElementById('chart4')
           ]
-          
+
           // 验证容器是否全部存在且可见
-          if (chartContainers.some(container => 
-            !container || 
+          if (chartContainers.some(container =>
+            !container ||
             container.offsetParent === null ||
             container.clientWidth === 0 ||
             container.clientHeight === 0
@@ -942,15 +996,15 @@ const renderChart = () => {
             setTimeout(initChartWhenReady, 200);
             return;
           }
-          
+
           console.log('所有图表容器已准备就绪');
-          
+
           // 创建四个图表
           charts.chart1 = echarts.init(chartContainers[0]!)
           charts.chart2 = echarts.init(chartContainers[1]!)
           charts.chart3 = echarts.init(chartContainers[2]!)
           charts.chart4 = echarts.init(chartContainers[3]!)
-          
+
           // 图表1：订单行数趋势
           const option1: echarts.EChartsOption = {
             title: {
@@ -959,9 +1013,9 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
+              formatter: (params: echarts.TooltipFormatterParams) => {
                 console.log('params', params)
-                return `日期: ${params.name}<br/>订单行数: ${params.data.toLocaleString()}`
+                return `日期: ${params.name}<br/>订单行数: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -998,7 +1052,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表2：单据数量趋势
           const option2: echarts.EChartsOption = {
             title: {
@@ -1007,9 +1061,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: unknown) => {
-                
-                return `日期: ${params.name}<br/>单据数量: ${params.data.toLocaleString()}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `日期: ${params.name}<br/>单据数量: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1046,7 +1099,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表3：需求数量趋势
           const option3: echarts.EChartsOption = {
             title: {
@@ -1055,8 +1108,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `日期: ${params.name}<br/>需求数量: ${params.data.toLocaleString()}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `日期: ${params.name}<br/>需求数量: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1093,7 +1146,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表4：单均行趋势
           const option4: echarts.EChartsOption = {
             title: {
@@ -1102,8 +1155,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `日期: ${params.name}<br/>单均行: ${params.data.toFixed(2)}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `日期: ${params.name}<br/>单均行: ${(params.data as number).toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1140,14 +1193,14 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           try {
             // 设置图表选项
             charts.chart1?.setOption(option1)
             charts.chart2?.setOption(option2)
             charts.chart3?.setOption(option3)
             charts.chart4?.setOption(option4)
-            
+
             // 添加延迟，确保ECharts内部结构完全更新
             setTimeout(() => {
               // 验证所有图表是否正确配置
@@ -1159,13 +1212,13 @@ const renderChart = () => {
                   allChartsValid = false;
                 }
               }
-              
+
               if (allChartsValid) {
                 console.log('dailyEIQ 四个图表已成功初始化并验证通过');
               } else {
                 console.warn('dailyEIQ 部分图表配置可能存在问题');
               }
-              
+
               // 初始化完成
               chartInitStatus.value.isInitializing = false;
             }, 100); // 50ms延迟确保内部结构更新
@@ -1181,7 +1234,7 @@ const renderChart = () => {
           const quantities = periodEIQData.map(item => item.quantity)
           const demandCounts = periodEIQData.map(item => item.demandCount)
           const unitLines = periodEIQData.map(item => item.unitLine)
-          
+
           // 检查容器是否存在
           const chartContainers = [
             document.getElementById('periodChart1'),
@@ -1189,10 +1242,10 @@ const renderChart = () => {
             document.getElementById('periodChart3'),
             document.getElementById('periodChart4')
           ]
-          
+
           // 验证容器是否全部存在且可见
-          if (chartContainers.some(container => 
-            !container || 
+          if (chartContainers.some(container =>
+            !container ||
             container.offsetParent === null ||
             container.clientWidth === 0 ||
             container.clientHeight === 0
@@ -1201,15 +1254,15 @@ const renderChart = () => {
             setTimeout(initChartWhenReady, 200);
             return;
           }
-          
+
           console.log('所有每时段EIQ分析图表容器已准备就绪');
-          
+
           // 创建四个图表
           charts.periodChart1 = echarts.init(chartContainers[0]!)
           charts.periodChart2 = echarts.init(chartContainers[1]!)
           charts.periodChart3 = echarts.init(chartContainers[2]!)
           charts.periodChart4 = echarts.init(chartContainers[3]!)
-          
+
           // 图表1：订单行数分布
           const option1: echarts.EChartsOption = {
             title: {
@@ -1218,8 +1271,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `时间: ${params.name}<br/>订单行数: ${params.data.toLocaleString()}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `时间: ${params.name}<br/>订单行数: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1256,7 +1309,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表2：单据数量分布
           const option2: echarts.EChartsOption = {
             title: {
@@ -1265,8 +1318,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `时间: ${params.name}<br/>单据数量: ${params.data.toLocaleString()}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `时间: ${params.name}<br/>单据数量: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1303,7 +1356,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表3：需求数量分布
           const option3: echarts.EChartsOption = {
             title: {
@@ -1312,8 +1365,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `时间: ${params.name}<br/>需求数量: ${params.data.toLocaleString()}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `时间: ${params.name}<br/>需求数量: ${(params.data as number).toLocaleString()}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1350,7 +1403,7 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           // 图表4：单均行分布
           const option4: echarts.EChartsOption = {
             title: {
@@ -1359,8 +1412,8 @@ const renderChart = () => {
             },
             tooltip: {
               trigger: 'item',
-              formatter: (params: any) => {
-                return `时间: ${params.name}<br/>单均行: ${params.data.toFixed(2)}`
+              formatter: (params: echarts.TooltipFormatterParams) => {
+                return `时间: ${params.name}<br/>单均行: ${(params.data as number).toFixed(2)}`
               },
               backgroundColor: 'rgba(50,50,50,0.9)',
               borderWidth: 0,
@@ -1397,14 +1450,14 @@ const renderChart = () => {
               bottom: 60
             }
           }
-          
+
           try {
             // 设置图表选项
             charts.periodChart1?.setOption(option1)
             charts.periodChart2?.setOption(option2)
             charts.periodChart3?.setOption(option3)
             charts.periodChart4?.setOption(option4)
-            
+
             // 添加延迟，确保ECharts内部结构完全更新
             setTimeout(() => {
               // 验证所有每时段EIQ分析图表是否正确配置
@@ -1416,13 +1469,13 @@ const renderChart = () => {
                   allPeriodChartsValid = false;
                 }
               }
-              
+
               if (allPeriodChartsValid) {
                 console.log('periodEIQ 四个图表已成功初始化并验证通过');
               } else {
                 console.warn('periodEIQ 部分图表配置可能存在问题');
               }
-              
+
               // 初始化完成
               chartInitStatus.value.isInitializing = false;
             }, 50); // 50ms延迟确保内部结构更新
@@ -1435,8 +1488,8 @@ const renderChart = () => {
           // 获取对应选项卡的图表容器
           const containerId = `chart-${activeTab.value}`;
           const container = document.getElementById(containerId);
-          
-          if (!container || 
+
+          if (!container ||
             container.offsetParent === null ||
             container.clientWidth === 0 ||
             container.clientHeight === 0
@@ -1445,15 +1498,15 @@ const renderChart = () => {
             setTimeout(initChartWhenReady, 200);
             return;
           }
-          
+
           console.log(`容器 ${containerId} 已准备就绪，初始化图表`);
-          
+
           try {
             // 为其他类型的图表创建新的实例
             myChart = echarts.init(container);
-            
+
             let option: echarts.EChartsOption;
-            
+
             // 根据激活的选项卡设置不同的图表配置
             if (activeTab.value === 'orderTypeEIQ') {
               // 订单类型分析图表配置
@@ -1492,7 +1545,7 @@ const renderChart = () => {
               }
             } else if (activeTab.value === 'EAnalysis') {
               // EI分析图表配置 - 修改为饼图显示订单行数分布
-              
+
               // 定义订单行数范围
               const orderLinesRanges = [
                 { min: 1, max: 20, name: '1-20' },
@@ -1506,15 +1559,15 @@ const renderChart = () => {
                 { min: 161, max: 180, name: '161-180' },
                 { min: 181, max: 200, name: '181-200' }
               ]
-              
+
               // 按订单行数范围统计数据
               const rangeCountMap = new Map(orderLinesRanges.map(range => [range.name, 0]))
-              
+
               // 遍历eiAnalysisData，计算每个范围的单据数量
               eiAnalysisData.forEach(item => {
                 const orderLines = item.orderLines
                 const orderCount = item.orderCount
-                
+
                 for (const range of orderLinesRanges) {
                   if (orderLines >= range.min && orderLines <= range.max) {
                     rangeCountMap.set(range.name, (rangeCountMap.get(range.name) || 0) + orderCount)
@@ -1522,13 +1575,13 @@ const renderChart = () => {
                   }
                 }
               })
-              
+
               // 转换为饼图所需的数据格式
               const pieData = Array.from(rangeCountMap).map(([name, value]) => ({
                 name,
                 value
               }))
-              
+
               option = {
                 title: {
                   text: '订单行数与单据数量分布',
@@ -1605,7 +1658,7 @@ const renderChart = () => {
               }
             } else if (activeTab.value === 'QAnalysis') {
               // EQ分析图表配置 - 修改为饼图显示订单需求数量分布
-              
+
               // 定义订单需求数量范围
               const orderDemandRanges = [
                 { min: 0, max: 100, name: '0-100' },
@@ -1617,7 +1670,7 @@ const renderChart = () => {
                 { min: 601, max: 700, name: '601-700' },
                 { min: 701, max: Infinity, name: '>700' }
               ]
-              
+
               // 模拟数据 - 在实际场景中应从API获取
               const demandDistribution = [
                 { name: '0-100', value: 20 },
@@ -1629,7 +1682,7 @@ const renderChart = () => {
                 { name: '601-700', value: 10 },
                 { name: '>700', value: 5 }
               ]
-              
+
               option = {
                 title: {
                   text: '订单需求数量与单据数量分布',
@@ -1794,7 +1847,7 @@ const renderChart = () => {
             } else if (activeTab.value === 'hitRateAnalysisConclusion') {
               const dateTypes = hitRateData.map(item => item.dateType)
               const hitRates = hitRateData.map(item => item.avgHitRate)
-              
+
               option = {
                 title: {
                   text: '命中率分析结论',
@@ -1969,9 +2022,9 @@ const renderChart = () => {
                     type: 'bar',
                     data: [95.2, 92.4, 88.7, 90.5, 94.3, 91.8],
                     itemStyle: {
-                      color: function(params: unknown) {
+                      color: function (params: echarts.CallbackDataParams) {
                         // 根据值的大小设置不同的颜色
-                        const value = (params as {value: number}).value;
+                        const value = params.value as number;
                         if (typeof value === 'number') {
                           if (value >= 93) return '#67C23A';  // 绿色
                           if (value >= 90) return '#E6A23C';  // 黄色
@@ -2061,10 +2114,10 @@ const renderChart = () => {
                 ]
               }
             }
-            
+
             // 使用配置项设置图表
             myChart.setOption(option);
-            
+
             // 添加延迟，确保ECharts内部结构完全更新
             setTimeout(() => {
               // 验证主图表是否正确配置
@@ -2073,7 +2126,7 @@ const renderChart = () => {
               } else {
                 console.warn(`${activeTab.value} 图表配置可能存在问题`);
               }
-              
+
               // 初始化完成
               chartInitStatus.value.isInitializing = false;
             }, 50); // 50ms延迟确保内部结构更新
@@ -2085,7 +2138,7 @@ const renderChart = () => {
         }
       });
     };
-    
+
     // 开始初始化过程
     initChartWhenReady();
   } catch (error) {
@@ -2101,7 +2154,7 @@ const throttledResize = (chart: echarts.ECharts, chartName: string) => {
   if (resizeTimeout) {
     clearTimeout(resizeTimeout);
   }
-  
+
   resizeTimeout = setTimeout(() => {
     try {
       chart.resize();
@@ -2128,7 +2181,7 @@ const isChartValidForResize = (chart: echarts.ECharts | null): boolean => {
   if (!chart) {
     return false;
   }
-  
+
   try {
     // 检查图表实例是否有有效的配置
     const option = chart.getOption();
@@ -2136,30 +2189,30 @@ const isChartValidForResize = (chart: echarts.ECharts | null): boolean => {
       console.warn('图表实例存在但没有有效配置');
       return false;
     }
-    
+
     // 检查是否有series配置
     const series = option.series;
     if (!series || !Array.isArray(series) || series.length === 0) {
       console.warn('图表配置中缺少有效的series');
       return false;
     }
-    
+
     // 检查series中是否有必要的属性
     const firstSeries = series[0];
     if (!firstSeries || typeof firstSeries.type === 'undefined') {
       console.warn('图表series配置不完整，缺少type属性');
       return false;
     }
-    
+
     // 额外检查：确保图表实例不是处于销毁状态
     try {
       chart.getWidth();  // 这个调用会在图表被销毁时抛出异常
       chart.getHeight(); // 同上
     } catch (error) {
-      console.warn('图表实例可能已被销毁或尚未完全初始化',error);
+      console.warn('图表实例可能已被销毁或尚未完全初始化', error);
       return false;
     }
-    
+
     return true;
   } catch (error) {
     console.error('检查图表状态时出错:', error);
@@ -2251,7 +2304,7 @@ const updateResizeListener = () => {
   // 移除所有现有监听器
   safeRemoveEventListener('resize', handleResize);
   safeRemoveEventListener('resize', handleChartResize);
-  
+
   // 根据当前状态添加合适的监听器
   if (viewMode.value === 'chart') {
     if (activeTab.value === 'dailyEIQ' || activeTab.value === 'periodEIQ') {
@@ -2265,7 +2318,6 @@ const updateResizeListener = () => {
 // 监听选项卡变化
 watch(activeTab, (newTab, oldTab) => {
   console.log(`选项卡从 ${oldTab} 更改为 ${newTab}`);
-  // 如果当前处于图表视图，需要重新渲染图表
   if (viewMode.value === 'chart') {
     // 如果正在进行图表初始化，先等待当前初始化完成
     if (chartInitStatus.value.isInitializing) {
@@ -2280,12 +2332,16 @@ watch(activeTab, (newTab, oldTab) => {
           handleTabChange(newTab);
         }
       };
-      
+
       setTimeout(checkAndRenderNewTab, 100);
     } else {
       // 直接处理选项卡切换
       handleTabChange(newTab);
     }
+  } else if (viewMode.value === 'table') {
+    nextTick(() => {
+      initOrUpdatePagination(newTab, currentActiveTableData.value.length);
+    });
   }
 });
 
@@ -2316,12 +2372,12 @@ watch(viewMode, (newMode, oldMode) => { // 让 TypeScript 自动推断参数类�
 // 切换选项卡
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
-  
+
   if (viewMode.value === 'chart') {
     // 移除现有监听器
     safeRemoveEventListener('resize', handleResize);
     safeRemoveEventListener('resize', handleChartResize);
-    
+
     // 添加延迟，确保切换动画完成后再渲染图表
     // 增加延迟时间，确保DOM渲染完成
     setTimeout(() => {
@@ -2339,26 +2395,30 @@ const handleTabChange = (tab: string) => {
 // 切换视图模式（表格/图表）
 const switchViewMode = (mode: 'table' | 'chart') => {
   console.log('切换视图模式:', mode);
-  
-  // 移除所有现有监听器
+  viewMode.value = mode;
+
   safeRemoveEventListener('resize', handleResize);
   safeRemoveEventListener('resize', handleChartResize);
-  
+
   if (mode === 'chart') {
-    // 添加延迟，确保过渡动画完成后再初始化图表
     setTimeout(() => {
       try {
         console.log('准备初始化图表');
         initChart();
-        //renderChart();
-        // 添加合适的事件监听器
         updateResizeListener();
       } catch (error) {
         console.error('切换到图表视图时出错:', error);
       }
-    }, 600); // 动画持续500ms，延迟600ms确保完全完成
+    }, 600);
+  } else if (mode === 'table') {
+    nextTick(() => {
+      if (activeTab.value) {
+        initOrUpdatePagination(activeTab.value, currentActiveTableData.value.length);
+      }
+      initOrUpdatePagination('hitRateTable', hitRateData.length);
+    });
   }
-}
+};
 
 // 监听窗口大小变化
 const handleResize = () => {
@@ -2382,60 +2442,86 @@ const toggleProject = (projectName: string) => {
 const viewAnalysisRecord = (record: AnalysisRecord) => {
   try {
     console.log(`加载分析记录: ${record.title}, ID: ${record.id}`)
-    
+
     // 如果记录正在处理中，显示骨架屏
     if (record.status === 'processing') {
       ElMessage({
         message: `分析记录"${record.title}"正在处理中，数据可能不完整`,
         type: 'warning'
       })
-      
+
       // 设置选中的记录 ID
       selectedRecordId.value = record.id
       // 更新页面标题
       const headerTitleProcessing = document.querySelector('.page-header-title');
-      if (headerTitleProcessing) {
+      if (headerTitleProcessing && recordDataMap[record.id]) { // check recordDataMap[record.id]
         headerTitleProcessing.textContent = recordDataMap[record.id].title;
       }
-      
+
       // 显示骨架屏
       showSkeletonScreen.value = true
       processingRecordId.value = record.id
-      
-      return // 不加载数据，直接返回
+      // Clear pagination for current tab and hitRateTable when skeleton is shown
+      if (activeTab.value && paginationStates[activeTab.value]) {
+        paginationStates[activeTab.value].total = 0;
+        paginationStates[activeTab.value].currentPage = 1;
+      }
+      if (paginationStates['hitRateTable']) {
+        paginationStates['hitRateTable'].total = 0;
+        paginationStates['hitRateTable'].currentPage = 1;
+      }
+      return
     } else {
       ElMessage({
         message: `已加载分析记录: ${record.title}`,
         type: 'success'
       })
-      
-      // 如果此前显示骨架屏，现在加载完整数据，则隐藏骨架屏
+
       showSkeletonScreen.value = false
       processingRecordId.value = null
     }
-    
-    // 更新选中的记录ID
+
     selectedRecordId.value = record.id
-    
-    // 更新页面标题和各个数据集
+
+    const currentRecordData = recordDataMap[record.id];
+    if (!currentRecordData) {
+      console.error('No data found for record ID:', record.id);
+      // Potentially clear tables or show error message
+      hitRateData.splice(0, hitRateData.length);
+      orderDetailData.splice(0, orderDetailData.length);
+      periodEIQData.splice(0, periodEIQData.length);
+      eiAnalysisData.splice(0, eiAnalysisData.length);
+      nextTick(() => {
+        initOrUpdatePagination('hitRateTable', 0);
+        if (viewMode.value === 'table' && activeTab.value) {
+          initOrUpdatePagination(activeTab.value, 0);
+        }
+      });
+      return;
+    }
+
     const headerTitleRecord = document.querySelector('.page-header-title');
     if (headerTitleRecord) {
-      headerTitleRecord.textContent = recordDataMap[record.id].title;
+      headerTitleRecord.textContent = currentRecordData.title;
     }
-    
-    // 清空并重新填充数据数组
-    hitRateData.splice(0, hitRateData.length, ...recordDataMap[record.id].hitRateData)
-    orderDetailData.splice(0, orderDetailData.length, ...recordDataMap[record.id].orderDetailData)
-    periodEIQData.splice(0, periodEIQData.length, ...recordDataMap[record.id].periodEIQData)
-    eiAnalysisData.splice(0, eiAnalysisData.length, ...recordDataMap[record.id].eiAnalysisData)
-    
-    // 如果当前是图表视图，需要重新渲染图表
-    if (viewMode.value === 'chart') {
-      // 延迟执行，确保数据已更新
-      setTimeout(() => {
-        renderChart()
-      }, 100)
-    }
+
+    hitRateData.splice(0, hitRateData.length, ...currentRecordData.hitRateData)
+    orderDetailData.splice(0, orderDetailData.length, ...currentRecordData.orderDetailData)
+    periodEIQData.splice(0, periodEIQData.length, ...currentRecordData.periodEIQData)
+    eiAnalysisData.splice(0, eiAnalysisData.length, ...currentRecordData.eiAnalysisData)
+
+    nextTick(() => {
+      initOrUpdatePagination('hitRateTable', hitRateData.length);
+      if (viewMode.value === 'table' && activeTab.value) {
+        initOrUpdatePagination(activeTab.value, currentActiveTableData.value.length);
+      }
+      // 如果当前是图表视图，需要重新渲染图表
+      if (viewMode.value === 'chart') {
+        setTimeout(() => {
+          renderChart()
+        }, 100)
+      }
+    });
   } catch (error) {
     console.error('加载分析记录时出错:', error)
     ElMessage.error('加载分析记录时出错')
@@ -2445,8 +2531,8 @@ const viewAnalysisRecord = (record: AnalysisRecord) => {
 // 删除分析记录
 const deleteAnalysisRecord = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
-    `确定要删除分析记录"${record.title}"吗？`, 
-    '提示', 
+    `确定要删除分析记录"${record.title}"吗？`,
+    '提示',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -2471,7 +2557,7 @@ const createNewAnalysis = () => {
   analysisForm.project = expandedProject.value || projectList[0].name
   analysisForm.analysisType = '1'
   analysisForm.selectedFiles = []
-  
+
   // 显示弹窗
   showAnalysisDialog.value = true
 }
@@ -2483,16 +2569,16 @@ const submitAnalysis = () => {
     ElMessage.warning('请至少选择一个文件进行分析')
     return
   }
-  
+
   analysisFormRef.value.validate((valid: boolean) => {
     if (valid) {
       // 创建新的分析记录ID (简单地取最大ID + 1)
       const newId = Math.max(...analysisRecords.map(record => record.id)) + 1
-      
+
       // 获取当前时间
       const now = new Date()
       const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      
+
       // 创建新的分析记录
       const newRecord: AnalysisRecord = {
         id: newId,
@@ -2503,10 +2589,10 @@ const submitAnalysis = () => {
         analysisType: analysisForm.analysisType,
         selectedFiles: analysisForm.analysisType === '2' ? [...analysisForm.selectedFiles] : []
       }
-      
+
       // 添加到分析记录列表
       analysisRecords.unshift(newRecord)
-      
+
       // 创建新记录的数据结构
       recordDataMap[newId] = {
         title: analysisForm.name,
@@ -2515,13 +2601,13 @@ const submitAnalysis = () => {
         periodEIQData: [],
         eiAnalysisData: []
       }
-      
+
       // 关闭弹窗
       showAnalysisDialog.value = false
-      
+
       // 提示用户
       ElMessage.success(`已创建新的分析任务: ${analysisForm.name}`)
-      
+
       // 自动展开对应的项目
       expandedProject.value = analysisForm.project
     } else {
@@ -2543,10 +2629,18 @@ onMounted(() => {
     try {
       // 设置页面标题
       const headerTitleMounted = document.querySelector('.page-header-title');
-      if (headerTitleMounted) {
+      if (headerTitleMounted && recordDataMap[selectedRecordId.value]) { // check recordDataMap
         headerTitleMounted.textContent = recordDataMap[selectedRecordId.value].title;
       }
-      
+
+      initOrUpdatePagination('hitRateTable', hitRateData.length);
+      // Initialize pagination for the initially active tab if in table view
+      if (viewMode.value === 'table' && activeTab.value) {
+        nextTick(() => {
+          initOrUpdatePagination(activeTab.value, currentActiveTableData.value.length);
+        });
+      }
+
       // 如果默认显示图表，初始化图表
       if (viewMode.value === 'chart') {
         // 给予额外的时间让DOM完全渲染
@@ -2567,7 +2661,7 @@ onBeforeUnmount(() => {
   try {
     // 清理图表实例
     clearCharts();
-    
+
     // 移除所有事件监听器
     safeRemoveEventListener('resize', handleResize);
     safeRemoveEventListener('resize', handleChartResize);
@@ -2636,8 +2730,8 @@ const deleteAllAnalysisRecords = () => {
   }
 
   ElMessageBox.confirm(
-    `该操作将删除"${expandedProject.value}"项目下的所有分析记录，确认要删除吗？`, 
-    '提示', 
+    `该操作将删除"${expandedProject.value}"项目下的所有分析记录，确认要删除吗？`,
+    '提示',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -2646,17 +2740,17 @@ const deleteAllAnalysisRecords = () => {
   ).then(() => {
     // 计算删除前的记录数
     const beforeCount = analysisRecords.length
-    
+
     // 过滤掉当前项目下的所有记录
     const newRecords = analysisRecords.filter(record => record.project !== expandedProject.value)
-    
+
     // 计算删除的记录数
     const deletedCount = beforeCount - newRecords.length
-    
+
     // 更新分析记录数组
     analysisRecords.length = 0
     analysisRecords.push(...newRecords)
-    
+
     if (deletedCount > 0) {
       ElMessage.success(`成功删除${deletedCount}条分析记录`)
     } else {
@@ -2670,8 +2764,8 @@ const deleteAllAnalysisRecords = () => {
 // 暂停分析
 const pauseAnalysis = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
-    `确定要暂停此分析吗？`, 
-    '提示', 
+    `确定要暂停此分析吗？`,
+    '提示',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -2680,10 +2774,10 @@ const pauseAnalysis = (record: AnalysisRecord) => {
   ).then(() => {
     try {
       console.log(`暂停分析: ${record.title}, ID: ${record.id}`)
-      
+
       // 在实际项目中，这里应该调用API暂停分析任务
       record.status = 'paused'
-      
+
       ElMessage({
         message: `已暂停分析任务: ${record.title}`,
         type: 'success'
@@ -2701,8 +2795,8 @@ const pauseAnalysis = (record: AnalysisRecord) => {
 // 恢复分析
 const resumeAnalysis = (record: AnalysisRecord) => {
   ElMessageBox.confirm(
-    `确定要继续分析吗？`, 
-    '提示', 
+    `确定要继续分析吗？`,
+    '提示',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -2711,10 +2805,10 @@ const resumeAnalysis = (record: AnalysisRecord) => {
   ).then(() => {
     try {
       console.log(`恢复分析: ${record.title}, ID: ${record.id}`)
-      
+
       // 在实际项目中，这里应该调用API恢复分析任务
       record.status = 'processing'
-      
+
       ElMessage({
         message: `已恢复分析任务: ${record.title}`,
         type: 'success'
@@ -2753,6 +2847,90 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
     return '查看分析';
   }
 }
+
+// Pagination for hitRateData table
+const paginatedHitRateData = computed(() => {
+  return getPaginatedData(hitRateData, 'hitRateTable');
+});
+
+watch(() => hitRateData.length, (newLength) => {
+  initOrUpdatePagination('hitRateTable', newLength);
+});
+// Also watch data content if it can be replaced entirely, for cases where the array instance changes
+watch(hitRateData, (newData) => {
+  initOrUpdatePagination('hitRateTable', newData.length);
+}, { deep: false }); // deep: false is usually sufficient if the array reference itself changes
+
+
+// Pagination for tables within tabs
+const currentActiveTableData = computed(() => {
+  if (showSkeletonScreen.value && processingRecordId.value !== null) return [];
+
+  const getData = (source: unknown[] | undefined) => Array.isArray(source) ? source : [];
+
+  switch (activeTab.value) {
+    case 'dailyEIQ':
+      return getData(orderDetailData);
+    case 'periodEIQ':
+      return getData(periodEIQData);
+    case 'singleProductAnalysis':
+      return getData(orderDetailData);
+    case 'salesMovementAnalysis':
+      return getData(orderDetailData);
+    case 'hitRateAnalysisConclusion':
+      return getData(hitRateData);
+    case 'EAnalysis':
+      return getData(eiAnalysisData);
+    case 'QAnalysis':
+      return getData(eiAnalysisData);
+    case 'overallHitRate':
+      return getData(orderDetailData);
+    case 'overallHitRateDetail':
+      return getData(orderDetailData);
+    case 'workstationHitRate':
+      return getData(orderDetailData);
+    case 'workstationHitRateDetail':
+      return getData(orderDetailData);
+    default:
+      return [];
+  }
+});
+
+const paginatedCurrentActiveTableData = computed(() => {
+  const activePaginationKey = activeTab.value;
+  if (!activePaginationKey || !paginationStates[activePaginationKey]) {
+    const pageSize = (paginationStates[activePaginationKey]?.pageSize) || DEFAULT_PAGE_SIZE;
+    return currentActiveTableData.value.slice(0, pageSize);
+  }
+
+  if (paginationStates[activePaginationKey].total === 0) {
+    return [];
+  }
+  return getPaginatedData(currentActiveTableData.value, activePaginationKey);
+});
+
+watch(() => orderDetailData.length, (newLength) => {
+  if (viewMode.value === 'table' && ['dailyEIQ', 'singleProductAnalysis', 'salesMovementAnalysis', 'overallHitRate', 'overallHitRateDetail', 'workstationHitRate', 'workstationHitRateDetail'].includes(activeTab.value)) {
+    initOrUpdatePagination(activeTab.value, newLength);
+  }
+});
+watch(() => periodEIQData.length, (newLength) => {
+  if (viewMode.value === 'table' && activeTab.value === 'periodEIQ') {
+    initOrUpdatePagination(activeTab.value, newLength);
+  }
+});
+watch(() => eiAnalysisData.length, (newLength) => {
+  if (viewMode.value === 'table' && ['EAnalysis', 'QAnalysis'].includes(activeTab.value)) {
+    initOrUpdatePagination(activeTab.value, newLength);
+  }
+});
+// Watch for hitRateData specifically for the 'hitRateAnalysisConclusion' tab if it uses paginationStates[activeTab.value]
+watch(() => hitRateData.length, (newLength) => {
+  if (viewMode.value === 'table' && activeTab.value === 'hitRateAnalysisConclusion') {
+    initOrUpdatePagination(activeTab.value, newLength);
+  }
+  // Note: A separate watch for 'hitRateTable' key (top-level table) already exists and is fine.
+});
 </script>
 
 <template>
@@ -2764,23 +2942,22 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
         <div class="sidebar-header">
           <span class="section-title">项目信息</span>
           <el-button type="primary" size="small" @click="createNewAnalysis">
-            <el-icon><Plus /></el-icon>
+            <el-icon>
+              <Plus />
+            </el-icon>
             新建分析
           </el-button>
         </div>
-        
+
         <!-- 项目列表 -->
         <div class="project-list">
-          <div 
-            v-for="project in projectList" 
-            :key="project.id" 
-            class="project-item"
-            :class="{ 'active': expandedProject === project.name }"
-            @click="toggleProject(project.name)"
-          >
+          <div v-for="project in projectList" :key="project.id" class="project-item"
+            :class="{ 'active': expandedProject === project.name }" @click="toggleProject(project.name)">
             <div class="project-header">
               <span class="project-name">{{ project.name }}</span>
-              <el-icon :class="{ 'is-expanded': expandedProject === project.name }"><CaretRight /></el-icon>
+              <el-icon :class="{ 'is-expanded': expandedProject === project.name }">
+                <CaretRight />
+              </el-icon>
             </div>
             <div class="project-details" v-if="expandedProject === project.name">
               <span>{{ project.company }} | {{ project.location }}</span>
@@ -2788,7 +2965,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
           </div>
         </div>
       </div>
-      
+
       <!-- 分析记录 -->
       <div class="sidebar-section">
         <div class="sidebar-header">
@@ -2796,22 +2973,17 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
           <el-button type="text" size="small" icon="delete" class="delete-btn" @click="deleteAllAnalysisRecords">
           </el-button>
         </div>
-        
+
         <!-- 当前选中项目 -->
         <div v-if="expandedProject" class="selected-project-info">
           当前项目: {{ expandedProject }}
         </div>
-        
+
         <!-- 记录列表 -->
         <div class="analysis-records">
           <template v-if="filteredAnalysisRecords.length > 0">
-            <div 
-              v-for="record in filteredAnalysisRecords" 
-              :key="record.id"
-              class="record-item"
-              :class="{ 'selected-record': selectedRecordId === record.id }"
-              @click="viewAnalysisRecord(record)"
-            >
+            <div v-for="record in filteredAnalysisRecords" :key="record.id" class="record-item"
+              :class="{ 'selected-record': selectedRecordId === record.id }" @click="viewAnalysisRecord(record)">
               <div class="record-title">{{ record.title }}</div>
               <div class="record-info">
                 <span class="record-date">{{ record.date }}</span>
@@ -2825,17 +2997,21 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
               </div>
               <div class="record-actions">
                 <!-- 状态按钮：根据记录状态显示不同按钮和功能 -->
-                <el-button 
-                  type="text" 
-                  @click.stop="handleStatusAction(record)"
-                  :title="getStatusButtonTitle(record)"
-                >
-                  <el-icon v-if="record.status === 'processing'"><VideoPause /></el-icon>
-                  <el-icon v-else-if="record.status === 'paused'"><CaretRight /></el-icon>
-                  <el-icon v-else><View /></el-icon>
+                <el-button type="text" @click.stop="handleStatusAction(record)" :title="getStatusButtonTitle(record)">
+                  <el-icon v-if="record.status === 'processing'">
+                    <VideoPause />
+                  </el-icon>
+                  <el-icon v-else-if="record.status === 'paused'">
+                    <CaretRight />
+                  </el-icon>
+                  <el-icon v-else>
+                    <View />
+                  </el-icon>
                 </el-button>
                 <el-button type="text" @click.stop="deleteAnalysisRecord(record)" title="删除">
-                  <el-icon><Delete /></el-icon>
+                  <el-icon>
+                    <Delete />
+                  </el-icon>
                 </el-button>
               </div>
             </div>
@@ -2846,7 +3022,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
         </div>
       </div>
     </div>
-    
+
     <!-- 主内容区 -->
     <div class="main-content">
       <!-- 页面头部 -->
@@ -2854,11 +3030,15 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
         <div class="page-header-title">南京3月销售订单分析</div>
         <div class="header-actions">
           <el-button type="primary" @click="reAnalyze">
-            <el-icon><Refresh /></el-icon>
+            <el-icon>
+              <Refresh />
+            </el-icon>
             重新分析
           </el-button>
           <el-button type="primary" @click="exportData">
-            <el-icon><Download /></el-icon>
+            <el-icon>
+              <Download />
+            </el-icon>
             导出
           </el-button>
         </div>
@@ -2879,8 +3059,8 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
           </div>
         </div>
         <!-- 实际表格内容 -->
-        <el-table v-else :data="hitRateData" border style="width: 100%">
-          <el-table-column prop="dateType" label="日期类型" width="120" fixed="left"/>
+        <el-table v-else :data="paginatedHitRateData" border style="width: 100%">
+          <el-table-column prop="dateType" label="日期类型" width="120" fixed="left" />
           <el-table-column prop="date" label="日期" width="120" />
           <el-table-column prop="timeMode" label="时效模式" width="100" />
           <el-table-column prop="totalOrders" label="全天总订单行" width="120" />
@@ -2897,55 +3077,67 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
       <!-- 分析选项卡 -->
       <div class="tab-section">
         <div class="tab-header">
-          <div 
-            v-for="(tab, index) in [
-              { key: 'dailyEIQ', label: '每日EIQ分析' },
-              { key: 'periodEIQ', label: '每时段EIQ分析' },
-              { key: 'orderTypeEIQ', label: '订单结构分析' },
-              { key: 'EAnalysis', label: 'EI分析' },
-              { key: 'QAnalysis', label: 'EQ分析' },
-              { key: 'more', label: '更多', isDropdown: true }
-            ]" 
-            :key="index"
-            :class="['tab-item', isActiveTab(tab) ? 'active' : '']"
-            @click="!tab.isDropdown && handleTabChange(tab.key)"
-          >
+          <div v-for="(tab, index) in [
+            { key: 'dailyEIQ', label: '每日EIQ分析' },
+            { key: 'periodEIQ', label: '每时段EIQ分析' },
+            { key: 'orderTypeEIQ', label: '订单结构分析' },
+            { key: 'EAnalysis', label: 'EI分析' },
+            { key: 'QAnalysis', label: 'EQ分析' },
+            { key: 'more', label: '更多', isDropdown: true }
+          ]" :key="index" :class="['tab-item', isActiveTab(tab) ? 'active' : '']"
+            @click="!tab.isDropdown && handleTabChange(tab.key)">
             <template v-if="!tab.isDropdown">
               {{ tab.label }}
             </template>
             <template v-else>
               <el-dropdown @command="handleTabChange">
                 <span class="more-button">
-                  {{ isMoreSubmenuActive ? currentMoreTabLabel : tab.label }} <el-icon><ArrowDown /></el-icon>
+                  {{ isMoreSubmenuActive ? currentMoreTabLabel : tab.label }} <el-icon>
+                    <ArrowDown />
+                  </el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="singleProductAnalysis">
-                      <el-icon><Goods /></el-icon>
+                      <el-icon>
+                        <Goods />
+                      </el-icon>
                       单品分析
                     </el-dropdown-item>
                     <el-dropdown-item command="salesMovementAnalysis">
-                      <el-icon><TrendCharts /></el-icon>
+                      <el-icon>
+                        <TrendCharts />
+                      </el-icon>
                       动销分析
                     </el-dropdown-item>
                     <el-dropdown-item command="hitRateAnalysisConclusion">
-                      <el-icon><Aim /></el-icon>
+                      <el-icon>
+                        <Aim />
+                      </el-icon>
                       命中率分析结论
                     </el-dropdown-item>
                     <el-dropdown-item command="overallHitRate">
-                      <el-icon><DataLine /></el-icon>
+                      <el-icon>
+                        <DataLine />
+                      </el-icon>
                       整体命中率
                     </el-dropdown-item>
                     <el-dropdown-item command="overallHitRateDetail">
-                      <el-icon><List /></el-icon>
+                      <el-icon>
+                        <List />
+                      </el-icon>
                       整体命中率明细
                     </el-dropdown-item>
                     <el-dropdown-item command="workstationHitRate">
-                      <el-icon><Monitor /></el-icon>
+                      <el-icon>
+                        <Monitor />
+                      </el-icon>
                       工作站命中率
                     </el-dropdown-item>
                     <el-dropdown-item command="workstationHitRateDetail">
-                      <el-icon><Document /></el-icon>
+                      <el-icon>
+                        <Document />
+                      </el-icon>
                       工作站命中率明细
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -2957,44 +3149,43 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 
         <!-- 控制面板区域 - 包含日期选择器、视图切换和导出按钮 -->
         <div class="control-panel">
-          
+
           <div class="control-panel-content">
             <template v-if="activeTab === 'periodEIQ'">
-                <div class="date-picker-container" v-if=" activeTab === 'periodEIQ'">
-            <span class="filter-label">选择日期：</span>
-            <el-date-picker
-              v-model="selectedDate"
-              type="date"
-              placeholder="选择日期"
-              format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD"
-              @change="handleDateChange"
-              style="width: 160px;"
-            />
-          </div>
-                
+              <div class="date-picker-container" v-if="activeTab === 'periodEIQ'">
+                <span class="filter-label">选择日期：</span>
+                <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD" @change="handleDateChange" style="width: 160px;" />
+              </div>
+
               <div class="control-panel-content-item">
-                <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)" size="small">
+                <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)"
+                  size="small">
                   <el-radio-button label="table">表格视图</el-radio-button>
                   <el-radio-button label="chart">图表视图</el-radio-button>
                 </el-radio-group>
                 <el-button type="primary" size="small" @click="exportData">
-                  <el-icon><Download /></el-icon>
+                  <el-icon>
+                    <Download />
+                  </el-icon>
                   导出数据
                 </el-button>
               </div>
             </template>
             <template v-else>
-                <div class="action-buttons">
-              <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)" size="small">
-                <el-radio-button label="table">表格视图</el-radio-button>
-                <el-radio-button label="chart">图表视图</el-radio-button>
-              </el-radio-group>
-              <el-button type="primary" size="small" @click="exportData">
-                <el-icon><Download /></el-icon>
-                导出数据
-              </el-button>
-            </div>
+              <div class="action-buttons">
+                <el-radio-group v-model="viewMode" @change="(mode: 'table' | 'chart') => switchViewMode(mode)"
+                  size="small">
+                  <el-radio-button label="table">表格视图</el-radio-button>
+                  <el-radio-button label="chart">图表视图</el-radio-button>
+                </el-radio-group>
+                <el-button type="primary" size="small" @click="exportData">
+                  <el-icon>
+                    <Download />
+                  </el-icon>
+                  导出数据
+                </el-button>
+              </div>
             </template>
           </div>
         </div>
@@ -3020,138 +3211,161 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
                       <div class="skeleton-row" v-for="i in 8" :key="i"></div>
                     </div>
                   </div>
-                  
+
                   <!-- 实际表格内容 -->
                   <template v-else>
-                    <el-table v-if="activeTab === 'dailyEIQ'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
-                      <el-table-column prop="orderType" label="订单类型" min-width="120" />
-                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                      <el-table-column prop="unitPallet" label="单均行" min-width="100" />
-                      <el-table-column prop="unitPiece" label="单均个" min-width="100" />
-                      <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
-                    </el-table>
-                    
-                    <el-table v-else-if="activeTab === 'periodEIQ'" :data="periodEIQData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="time" label="时间" min-width="100" />
-                      <el-table-column prop="orderType" label="订单类型" min-width="100" />
-                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                      <el-table-column prop="unitLine" label="单均行" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 单品分析 -->
-                    <el-table v-else-if="activeTab === 'singleProductAnalysis'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="商品编码" min-width="120" />
-                      <el-table-column prop="quantity" label="商品名称" min-width="150" />
-                      <el-table-column prop="orderCount" label="单位" min-width="80" />
-                      <el-table-column prop="demandCount" label="销售数量" min-width="100" />
-                      <el-table-column prop="volume" label="销售频次" min-width="100" />
-                      <el-table-column prop="unitPallet" label="销售占比" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 动销分析 -->
-                    <el-table v-else-if="activeTab === 'salesMovementAnalysis'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="动销率" min-width="100" />
-                      <el-table-column prop="quantity" label="动销频次" min-width="100" />
-                      <el-table-column prop="orderCount" label="商品数量" min-width="100" />
-                      <el-table-column prop="demandCount" label="滞销商品" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 命中率分析结论 -->
-                    <el-table v-else-if="activeTab === 'hitRateAnalysisConclusion'" :data="hitRateData" border style="width: 100%">
-                      <el-table-column prop="dateType" label="日期类型" min-width="120" fixed="left"/>
-                      <el-table-column prop="date" label="日期" min-width="120" />
-                      <el-table-column prop="timeMode" label="时效模式" min-width="100" />
-                      <el-table-column prop="totalOrders" label="全天总订单行" min-width="120" />
-                      <el-table-column prop="totalContainerRuns" label="全天总容器搬运次数" min-width="160" />
-                      <el-table-column prop="avgHitRate" label="平均命中率" min-width="120" />
-                    </el-table>
-                    
-                    <!-- EI分析表格 -->
-                    <el-table v-else-if="activeTab === 'EAnalysis'" :data="eiAnalysisData" border style="width: 100%">
-                      <el-table-column prop="id" label="编号" min-width="100" fixed="left"/>
-                      <el-table-column prop="orderLines" label="订单行数" min-width="120" />
-                      <el-table-column prop="orderCount" label="单据数量" min-width="120" />
-                      <el-table-column prop="percentage" label="单据数量占比" min-width="150">
-                        <template #default="scope">
-                          {{ (scope.row.percentage * 100).toFixed(8) }}%
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                    
-                    <!-- EQ分析表格 -->
-                    <el-table v-else-if="activeTab === 'QAnalysis'" :data="eiAnalysisData" border style="width: 100%">
-                      <el-table-column prop="id" label="编号" min-width="100" fixed="left"/>
-                      <el-table-column prop="orderLines" label="订单需求数量" min-width="120" />
-                      <el-table-column prop="orderCount" label="单据数量" min-width="120" />
-                      <el-table-column prop="percentage" label="单据数量占比" min-width="150">
-                        <template #default="scope">
-                          {{ (scope.row.percentage * 100).toFixed(8) }}%
-                        </template>
-                      </el-table-column>
-                    </el-table>
-                    
-                    <!-- 整体命中率 -->
-                    <el-table v-else-if="activeTab === 'overallHitRate'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="时段" min-width="100" />
-                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单数" min-width="100" />
-                      <el-table-column prop="demandCount" label="命中率" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 整体命中率明细 -->
-                    <el-table v-else-if="activeTab === 'overallHitRateDetail'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="时段" min-width="100" />
-                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单号" min-width="150" />
-                      <el-table-column prop="demandCount" label="商品编码" min-width="120" />
-                      <el-table-column prop="volume" label="商品名称" min-width="180" />
-                      <el-table-column prop="unitPallet" label="命中率" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 工作站命中率 -->
-                    <el-table v-else-if="activeTab === 'workstationHitRate'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="工作站" min-width="120" />
-                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单数" min-width="100" />
-                      <el-table-column prop="demandCount" label="命中率" min-width="100" />
-                    </el-table>
-                    
-                    <!-- 工作站命中率明细 -->
-                    <el-table v-else-if="activeTab === 'workstationHitRateDetail'" :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="120" fixed="left"/>
-                      <el-table-column prop="orderType" label="工作站" min-width="120" />
-                      <el-table-column prop="quantity" label="任务类型" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单号" min-width="150" />
-                      <el-table-column prop="demandCount" label="商品编码" min-width="120" />
-                      <el-table-column prop="volume" label="商品名称" min-width="180" />
-                      <el-table-column prop="unitPallet" label="命中率" min-width="100" />
-                    </el-table>
-                    
-                    <el-table v-else :data="orderDetailData" border style="width: 100%">
-                      <el-table-column prop="date" label="日期" min-width="150" fixed="left"/>
-                      <el-table-column prop="orderType" label="订单类型" min-width="120" />
-                      <el-table-column prop="quantity" label="单据数量" min-width="100" />
-                      <el-table-column prop="orderCount" label="订单行数" min-width="100" />
-                      <el-table-column prop="demandCount" label="需求数量" min-width="100" />
-                      <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
-                      <el-table-column prop="unitPallet" label="单均行" min-width="100" />
-                      <el-table-column prop="unitPiece" label="单均个" min-width="100" />
-                      <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
-                    </el-table>
+                    <div class="table_container">
+                      <el-table v-if="activeTab === 'dailyEIQ'" :data="paginatedCurrentActiveTableData" border
+                        style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="150" fixed="left" />
+                        <el-table-column prop="orderType" label="订单类型" min-width="120" />
+                        <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                        <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                        <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                        <el-table-column prop="unitPallet" label="单均行" min-width="100" />
+                        <el-table-column prop="unitPiece" label="单均个" min-width="100" />
+                        <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
+                      </el-table>
+
+                      <el-table v-else-if="activeTab === 'periodEIQ'" :data="paginatedCurrentActiveTableData" border
+                        style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="time" label="时间" min-width="100" />
+                        <el-table-column prop="orderType" label="订单类型" min-width="100" />
+                        <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                        <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                        <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                        <el-table-column prop="unitLine" label="单均行" min-width="100" />
+                      </el-table>
+
+                      <!-- 单品分析 -->
+                      <el-table v-else-if="activeTab === 'singleProductAnalysis'"
+                        :data="paginatedCurrentActiveTableData" border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="商品编码" min-width="120" />
+                        <el-table-column prop="quantity" label="商品名称" min-width="150" />
+                        <el-table-column prop="orderCount" label="单位" min-width="80" />
+                        <el-table-column prop="demandCount" label="销售数量" min-width="100" />
+                        <el-table-column prop="volume" label="销售频次" min-width="100" />
+                        <el-table-column prop="unitPallet" label="销售占比" min-width="100" />
+                      </el-table>
+
+                      <!-- 动销分析 -->
+                      <el-table v-else-if="activeTab === 'salesMovementAnalysis'"
+                        :data="paginatedCurrentActiveTableData" border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="动销率" min-width="100" />
+                        <el-table-column prop="quantity" label="动销频次" min-width="100" />
+                        <el-table-column prop="orderCount" label="商品数量" min-width="100" />
+                        <el-table-column prop="demandCount" label="滞销商品" min-width="100" />
+                      </el-table>
+
+                      <!-- 命中率分析结论 -->
+                      <el-table v-else-if="activeTab === 'hitRateAnalysisConclusion'"
+                        :data="paginatedCurrentActiveTableData" border style="width: 100%">
+                        <el-table-column prop="dateType" label="日期类型" min-width="120" fixed="left" />
+                        <el-table-column prop="date" label="日期" min-width="120" />
+                        <el-table-column prop="timeMode" label="时效模式" min-width="100" />
+                        <el-table-column prop="totalOrders" label="全天总订单行" min-width="120" />
+                        <el-table-column prop="totalContainerRuns" label="全天总容器搬运次数" min-width="160" />
+                        <el-table-column prop="avgHitRate" label="平均命中率" min-width="120" />
+                      </el-table>
+
+                      <!-- EI分析表格 -->
+                      <el-table v-else-if="activeTab === 'EAnalysis'" :data="paginatedCurrentActiveTableData" border
+                        style="width: 100%">
+                        <el-table-column prop="id" label="编号" min-width="100" fixed="left" />
+                        <el-table-column prop="orderLines" label="订单行数" min-width="120" />
+                        <el-table-column prop="orderCount" label="单据数量" min-width="120" />
+                        <el-table-column prop="percentage" label="单据数量占比" min-width="150">
+                          <template #default="scope">
+                            {{ (scope.row.percentage * 100).toFixed(8) }}%
+                          </template>
+                        </el-table-column>
+                      </el-table>
+
+                      <!-- EQ分析表格 -->
+                      <el-table v-else-if="activeTab === 'QAnalysis'" :data="paginatedCurrentActiveTableData" border
+                        style="width: 100%">
+                        <el-table-column prop="id" label="编号" min-width="100" fixed="left" />
+                        <el-table-column prop="orderLines" label="订单需求数量" min-width="120" />
+                        <el-table-column prop="orderCount" label="单据数量" min-width="120" />
+                        <el-table-column prop="percentage" label="单据数量占比" min-width="150">
+                          <template #default="scope">
+                            {{ (scope.row.percentage * 100).toFixed(8) }}%
+                          </template>
+                        </el-table-column>
+                      </el-table>
+
+                      <!-- 整体命中率 -->
+                      <el-table v-else-if="activeTab === 'overallHitRate'" :data="paginatedCurrentActiveTableData"
+                        border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="时段" min-width="100" />
+                        <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单数" min-width="100" />
+                        <el-table-column prop="demandCount" label="命中率" min-width="100" />
+                      </el-table>
+
+                      <!-- 整体命中率明细 -->
+                      <el-table v-else-if="activeTab === 'overallHitRateDetail'" :data="paginatedCurrentActiveTableData"
+                        border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="时段" min-width="100" />
+                        <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单号" min-width="150" />
+                        <el-table-column prop="demandCount" label="商品编码" min-width="120" />
+                        <el-table-column prop="volume" label="商品名称" min-width="180" />
+                        <el-table-column prop="unitPallet" label="命中率" min-width="100" />
+                      </el-table>
+
+                      <!-- 工作站命中率 -->
+                      <el-table v-else-if="activeTab === 'workstationHitRate'" :data="paginatedCurrentActiveTableData"
+                        border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="工作站" min-width="120" />
+                        <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单数" min-width="100" />
+                        <el-table-column prop="demandCount" label="命中率" min-width="100" />
+                      </el-table>
+
+                      <!-- 工作站命中率明细 -->
+                      <el-table v-else-if="activeTab === 'workstationHitRateDetail'"
+                        :data="paginatedCurrentActiveTableData" border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="120" fixed="left" />
+                        <el-table-column prop="orderType" label="工作站" min-width="120" />
+                        <el-table-column prop="quantity" label="任务类型" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单号" min-width="150" />
+                        <el-table-column prop="demandCount" label="商品编码" min-width="120" />
+                        <el-table-column prop="volume" label="商品名称" min-width="180" />
+                        <el-table-column prop="unitPallet" label="命中率" min-width="100" />
+                      </el-table>
+
+                      <el-table v-else :data="paginatedCurrentActiveTableData" border style="width: 100%">
+                        <el-table-column prop="date" label="日期" min-width="150" fixed="left" />
+                        <el-table-column prop="orderType" label="订单类型" min-width="120" />
+                        <el-table-column prop="quantity" label="单据数量" min-width="100" />
+                        <el-table-column prop="orderCount" label="订单行数" min-width="100" />
+                        <el-table-column prop="demandCount" label="需求数量" min-width="100" />
+                        <el-table-column prop="volume" label="发货体积(cm³)" min-width="150" />
+                        <el-table-column prop="unitPallet" label="单均行" min-width="100" />
+                        <el-table-column prop="unitPiece" label="单均个" min-width="100" />
+                        <el-table-column prop="palletToPiece" label="行均个" min-width="100" />
+                      </el-table>
+                    </div>
                   </template>
+                  <div>
+                    <el-pagination
+                      v-if="activeTab && paginationStates[activeTab] && paginationStates[activeTab].total > 0 && !showSkeletonScreen"
+                      small background layout="total, sizes, prev, pager, next, jumper" :page-sizes="DEFAULT_PAGE_SIZES"
+                      :page-size="paginationStates[activeTab].pageSize"
+                      :current-page="paginationStates[activeTab].currentPage" :total="paginationStates[activeTab].total"
+                      @size-change="(size: number) => handleSizeChange(size, activeTab)"
+                      @current-change="(page: number) => handleCurrentChange(page, activeTab)"
+                      style="height: 40px; display: flex; align-items: center; margin-top: 15px; justify-content: flex-end;" />
+                  </div>
                 </div>
 
                 <!-- 图表视图 -->
@@ -3167,7 +3381,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
                       <div class="skeleton-chart-body"></div>
                     </div>
                   </div>
-                  
+
                   <!-- 实际图表内容 -->
                   <template v-else>
                     <div v-if="activeTab === 'dailyEIQ' || activeTab === 'periodEIQ'" class="filter-info">
@@ -3200,13 +3414,20 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
                         <div v-else-if="activeTab === 'EAnalysis'" id="chart-EAnalysis" class="chart-full"></div>
                         <div v-else-if="activeTab === 'QAnalysis'" id="chart-QAnalysis" class="chart-full"></div>
                         <!-- 新增选项卡的图表容器 -->
-                        <div v-else-if="activeTab === 'singleProductAnalysis'" id="chart-singleProductAnalysis" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'salesMovementAnalysis'" id="chart-salesMovementAnalysis" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'hitRateAnalysisConclusion'" id="chart-hitRateAnalysisConclusion" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'overallHitRate'" id="chart-overallHitRate" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'overallHitRateDetail'" id="chart-overallHitRateDetail" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'workstationHitRate'" id="chart-workstationHitRate" class="chart-full"></div>
-                        <div v-else-if="activeTab === 'workstationHitRateDetail'" id="chart-workstationHitRateDetail" class="chart-full"></div>
+                        <div v-else-if="activeTab === 'singleProductAnalysis'" id="chart-singleProductAnalysis"
+                          class="chart-full"></div>
+                        <div v-else-if="activeTab === 'salesMovementAnalysis'" id="chart-salesMovementAnalysis"
+                          class="chart-full"></div>
+                        <div v-else-if="activeTab === 'hitRateAnalysisConclusion'" id="chart-hitRateAnalysisConclusion"
+                          class="chart-full"></div>
+                        <div v-else-if="activeTab === 'overallHitRate'" id="chart-overallHitRate" class="chart-full">
+                        </div>
+                        <div v-else-if="activeTab === 'overallHitRateDetail'" id="chart-overallHitRateDetail"
+                          class="chart-full"></div>
+                        <div v-else-if="activeTab === 'workstationHitRate'" id="chart-workstationHitRate"
+                          class="chart-full"></div>
+                        <div v-else-if="activeTab === 'workstationHitRateDetail'" id="chart-workstationHitRateDetail"
+                          class="chart-full"></div>
                         <div v-else id="chart-default" class="chart-full"></div>
                       </div>
                     </div>
@@ -3219,33 +3440,16 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
       </div>
     </div>
   </div>
-  
+
   <!-- 新建分析弹窗 -->
-  <el-dialog
-    v-model="showAnalysisDialog"
-    title="新建分析"
-    width="600px"
-    :close-on-click-modal="false"
-    :show-close="true"
-  >
-    <el-form
-      ref="analysisFormRef"
-      :model="analysisForm"
-      :rules="analysisDialogRules"
-      label-width="80px"
-      status-icon
-    >
+  <el-dialog v-model="showAnalysisDialog" title="新建分析" width="600px" :close-on-click-modal="false" :show-close="true">
+    <el-form ref="analysisFormRef" :model="analysisForm" :rules="analysisDialogRules" label-width="80px" status-icon>
       <el-form-item label="分析名称" prop="name">
         <el-input v-model="analysisForm.name" placeholder="请输入分析名称"></el-input>
       </el-form-item>
       <el-form-item label="选择项目" prop="project">
         <el-select v-model="analysisForm.project" placeholder="请选择项目" style="width: 100%">
-          <el-option
-            v-for="item in projectList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.name"
-          >
+          <el-option v-for="item in projectList" :key="item.id" :label="item.name" :value="item.name">
           </el-option>
         </el-select>
       </el-form-item>
@@ -3255,20 +3459,20 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
           <el-radio label="2">选择特定文件分析</el-radio>
         </el-radio-group>
       </el-form-item>
-      
+
       <!-- 选择文件区域，只有当选择"选择特定文件分析"时显示 -->
-  
-        <div class="file-selection-container" v-if="analysisForm.analysisType === '2'">
-          <div class="file-selection-header">选择文件</div>
-          <div class="file-selection-list">
-            <el-checkbox-group v-model="analysisForm.selectedFiles">
-              <div v-for="file in fileList" :key="file.id" class="file-item">
-                <el-checkbox :label="file.name">{{ file.name }}</el-checkbox>
-              </div>
-            </el-checkbox-group>
-          </div>
+
+      <div class="file-selection-container" v-if="analysisForm.analysisType === '2'">
+        <div class="file-selection-header">选择文件</div>
+        <div class="file-selection-list">
+          <el-checkbox-group v-model="analysisForm.selectedFiles">
+            <div v-for="file in fileList" :key="file.id" class="file-item">
+              <el-checkbox :label="file.name">{{ file.name }}</el-checkbox>
+            </div>
+          </el-checkbox-group>
         </div>
-     
+      </div>
+
     </el-form>
     <template #footer>
       <div class="dialog-footer">
@@ -3401,9 +3605,11 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   0% {
     box-shadow: 0 0 0 0 rgba(230, 162, 60, 0.7);
   }
+
   70% {
     box-shadow: 0 0 0 5px rgba(230, 162, 60, 0);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(230, 162, 60, 0);
   }
@@ -3420,9 +3626,17 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 }
 
 @keyframes blink {
-  0% { opacity: 0.2; }
-  50% { opacity: 1; }
-  100% { opacity: 0.2; }
+  0% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
 }
 
 .record-actions {
@@ -3522,6 +3736,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   from {
     transform: scaleX(0);
   }
+
   to {
     transform: scaleX(1);
   }
@@ -3572,15 +3787,16 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 .control-panel-content {
   width: 100%;
   display: flex;
-    justify-content: space-between;
+  justify-content: space-between;
 }
 
 .control-panel-content-item {
-    display: flex;
-    justify-content: space-around;
+  display: flex;
+  justify-content: space-around;
 }
-.control-panel-content-item div{
-    margin-right: 10px;
+
+.control-panel-content-item div {
+  margin-right: 10px;
 }
 
 .date-picker-container {
@@ -3599,7 +3815,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   gap: 10px;
   align-items: center;
   justify-content: space-between;
-    width: 100%;
+  width: 100%;
 }
 
 .tab-content {
@@ -3662,9 +3878,17 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 }
 
 @keyframes blink {
-  0% { opacity: 0.2; }
-  50% { opacity: 1; }
-  100% { opacity: 0.2; }
+  0% {
+    opacity: 0.2;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.2;
+  }
 }
 
 /* 修改网格布局样式 */
@@ -3716,8 +3940,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   transform: translateY(-20px);
 }
 
-视图切换动画
-.fade-transform-enter-active,
+视图切换动画 .fade-transform-enter-active,
 .fade-transform-leave-active {
   transition: all 0.5s;
 }
@@ -3733,7 +3956,8 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 }
 
 /* 确保动画过程中容器高度保持一致并且容器始终可见 */
-.chart-view, .table-view {
+.chart-view,
+.table-view {
   min-height: 500px;
   position: relative;
 }
@@ -3788,6 +4012,7 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
     opacity: 0;
     transform: translateX(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -3978,8 +4203,13 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .skeleton-table {
@@ -4036,20 +4266,26 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   top: 0;
   width: 100%;
   height: 100%;
-  background: repeating-linear-gradient(
-    45deg,
-    #f0f0f0,
-    #f0f0f0 10px,
-    #f5f5f5 10px,
-    #f5f5f5 20px
-  );
+  background: repeating-linear-gradient(45deg,
+      #f0f0f0,
+      #f0f0f0 10px,
+      #f5f5f5 10px,
+      #f5f5f5 20px);
   opacity: 0.4;
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .skeleton-table-container {
@@ -4085,5 +4321,9 @@ const getStatusButtonTitle = (record: AnalysisRecord) => {
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-right: 15px;
+}
+
+.table_container .el-table {
+  height: 460px;
 }
 </style>

@@ -1,0 +1,1401 @@
+diff --git a/src/components/Sidebar.vue b/src/components/Sidebar.vue
+index c13e9f7..ed2c5f8 100644
+--- a/src/components/Sidebar.vue
++++ b/src/components/Sidebar.vue
+@@ -41,6 +41,29 @@
+       </template>
+     </el-dialog>
+ 
++    <!-- 批量删除文件确认对话框 (对应清单步骤 18) -->
++    <el-dialog
++      v-model="batchDeleteConfirmVisible"
++      title="确认批量删除"
++      width="30%"
++      :close-on-click-modal="false"
++      class="batch-delete-confirm-dialog" 
++    >
++      <div class="delete-confirm-content">
++        <p v-if="projectForBatchDeleteId !== null">
++          确定要删除选中的 {{ selectedFileCount(projectForBatchDeleteId).value }} 个文件吗？该操作无法撤销。
++        </p>
++      </div>
++      <template #footer>
++        <span class="dialog-footer">
++          <el-button @click="batchDeleteConfirmVisible = false">取消</el-button>
++          <el-button type="danger" @click="confirmBatchDeleteFiles">
++            确认删除
++          </el-button>
++        </span>
++      </template>
++    </el-dialog>
++
+     <!-- 文件上传对话框 -->
+     <FileUploadModal
+       v-model:visible="uploadDialogVisible"
+@@ -92,16 +115,18 @@
+             <div v-show="project.filesVisible" class="file-drawer">
+               <div class="file-list-header">
+                 <el-text size="small" type="info">文件列表</el-text>
+-                <el-button
+-                  type="success"
+-                  plain
+-                  size="small"
+-                  :icon="Upload"
+-                  class="upload-btn"
+-                  @click.stop="openUploadDialog(project.id)"
+-                >
+-                  上传
+-                </el-button>
++                <div>
++                  <el-button
++                    type="success"
++                    plain
++                    size="small"
++                    :icon="Upload"
++                    class="upload-btn"
++                    @click.stop="openUploadDialog(project.id)"
++                  >
++                    上传
++                  </el-button>
++                </div>
+               </div>
+               <div
+                 v-for="file in project.files"
+@@ -112,6 +137,12 @@
+                 @click.stop="setActiveFile(file.id)"
+               >
+                 <div class="file-info">
++                  <el-checkbox 
++                    :model-value="selectedFiles[project.id]?.has(file.id)"
++                    @change="toggleFileSelection(project.id, file.id)"
++                    @click.stop 
++                    class="file-checkbox"
++                  />
+                   <el-icon class="file-icon" color="#67C23A"><Document /></el-icon>
+                   <span class="file-name">{{ file.name }}</span>
+                 </div>
+@@ -119,6 +150,19 @@
+                   <span>{{ file.date }} | {{ file.size }}</span>
+                 </div>
+               </div>
++              <div class="file-list-actions">
++                  <el-button
++                    v-if="hasSelectedFiles(project.id).value"
++                    type="danger"
++                    plain
++                    size="small"
++                    :icon="Delete"
++                    class="batch-delete-btn"
++                    @click.stop="handleBatchDeleteFiles(project.id)"
++                  >
++                    批量删除
++                  </el-button>
++              </div>
+             </div>
+           </el-collapse-transition>
+         </div>
+@@ -128,7 +172,7 @@
+ </template>
+ 
+ <script setup lang="ts">
+-import { ref } from 'vue'
++import { ref, computed, watchEffect } from 'vue'
+ import {
+   Plus,
+   Folder,
+@@ -163,12 +207,29 @@ interface Project {
+   files: File[]
+ }
+ 
++interface NewProjectData {
++  name: string;
++  company: string;
++  location: string;
++}
++
++interface UpdateProjectData {
++  id: number;
++  name: string;
++  company: string;
++  location: string;
++}
++
++interface FileUploadData {
++  projectId: number;
++  fileName: string;
++}
++
+ const activeProjectId = ref(1)
+ const activeFileId = ref('file1')
+ const router = useRouter()
+ const projectStore = useProjectStore()
+ const viewStateStore = useViewStateStore()
+-// 从viewStateStore获取activeOrderDataType，以便后续判断当前标签页
+ const { activeOrderDataType } = storeToRefs(viewStateStore)
+ 
+ const projects = ref<Project[]>([
+@@ -210,16 +271,85 @@ const projects = ref<Project[]>([
+   }
+ ])
+ 
++const selectedFiles = ref<Record<number, Set<string>>>({});
++const batchDeleteConfirmVisible = ref(false)
++const projectForBatchDeleteId = ref<number | null>(null)
++
++watchEffect(() => {
++  projects.value.forEach(project => {
++    if (!selectedFiles.value[project.id]) {
++      selectedFiles.value[project.id] = new Set();
++    }
++  });
++});
++
++const hasSelectedFiles = (projectId: number) => computed(() => {
++  return selectedFiles.value[projectId] && selectedFiles.value[projectId].size > 0;
++});
++
++const selectedFileCount = (projectId: number | null) => computed(() => {
++  if (projectId === null || !selectedFiles.value[projectId]) {
++    return 0;
++  }
++  return selectedFiles.value[projectId].size;
++});
++
++const toggleFileSelection = (projectId: number, fileId: string) => {
++  if (!selectedFiles.value[projectId]) {
++    selectedFiles.value[projectId] = new Set();
++  }
++  const projectSelectedFiles = selectedFiles.value[projectId];
++  if (projectSelectedFiles.has(fileId)) {
++    projectSelectedFiles.delete(fileId);
++  } else {
++    projectSelectedFiles.add(fileId);
++  }
++};
++
++const handleBatchDeleteFiles = (projectId: number) => {
++  if (selectedFileCount(projectId).value === 0) {
++    ElMessage.warning('请至少选择一个文件进行删除。');
++    return;
++  }
++  projectForBatchDeleteId.value = projectId;
++  batchDeleteConfirmVisible.value = true;
++};
++
++const confirmBatchDeleteFiles = () => {
++  if (projectForBatchDeleteId.value === null) return;
++
++  const projectId = projectForBatchDeleteId.value;
++  const project = projects.value.find(p => p.id === projectId);
++
++  if (project && selectedFiles.value[projectId]) {
++    const filesToDeleteIdsSet = selectedFiles.value[projectId];
++    const numberOfFilesToDelete = filesToDeleteIdsSet.size; // 获取实际选中的文件数量
++
++    if (numberOfFilesToDelete > 0) {
++      project.files = project.files.filter(file => !filesToDeleteIdsSet.has(file.id));
++      ElMessage.success(`成功删除了 ${numberOfFilesToDelete} 个文件。`);
++    } else {
++      // 此情况理论上不应发生，因为批量删除按钮的显示依赖于 hasSelectedFiles
++      ElMessage.info('没有选中需要删除的文件。');
++    }
++    filesToDeleteIdsSet.clear(); // 清空当前项目的选中文件集合
++  }
++  batchDeleteConfirmVisible.value = false;
++  projectForBatchDeleteId.value = null;
++};
++
+ const toggleFiles = (projectId: number) => {
+   const project = projects.value.find(p => p.id === projectId)
+   if (project) {
+     project.filesVisible = !project.filesVisible
++    if (!project.filesVisible && selectedFiles.value[project.id]?.size > 0) {
++      selectedFiles.value[project.id].clear();
++    }
+   }
+ }
+ 
+ const setActiveProject = (projectId: number) => {
+   activeProjectId.value = projectId
+-  // Optionally collapse others and expand this one
+   projects.value.forEach(p => {
+       p.filesVisible = p.id === projectId;
+   });
+@@ -234,7 +364,6 @@ const setActiveFile = (fileId: string) => {
+       let mappedType: string | null = null
+       const fileNameLower = file.name.toLowerCase()
+ 
+-      // 根据文件名确定文件类型
+       if (fileNameLower.includes('销售出库订单')) {
+         mappedType = 'salesOrder'
+       } else if (fileNameLower.includes('物料主数据')) {
+@@ -245,7 +374,6 @@ const setActiveFile = (fileId: string) => {
+         mappedType = 'inventoryRecord'
+       }
+ 
+-      // 判断当前选中标签页与文件类型是否相同
+       if (mappedType && mappedType !== activeOrderDataType.value) {
+         console.log(`文件类型 ${mappedType} 与当前选中标签页 ${activeOrderDataType.value || '无'} 不一致，将自动切换标签页`)
+       } else if (mappedType && mappedType === activeOrderDataType.value) {
+@@ -254,42 +382,31 @@ const setActiveFile = (fileId: string) => {
+         console.log(`无法识别文件 ${file.name} 的类型，将使用默认类型`)
+       }
+ 
+-      // 无论是否一致，都设置activeOrderContext，这将触发OrderData.vue中的watch实现自动切换
+       viewStateStore.setActiveOrderContext(mappedType, file.name)
+ 
+       if (mappedType) {
+-        // 导航到OrderData视图，如果当前不在该视图
+         const currentRoute = router.currentRoute.value;
+         if (currentRoute.name !== 'OrderData') {
+           router.push({ name: 'OrderData' }); 
+         }
+       } else {
+-        // 如果文件类型无法识别，可以提供适当的反馈
+         ElMessage.warning('无法识别的文件类型');
+       }
+     }
+   }
+ }
+ 
+-// 新建项目对话框可见性
+ const newProjectVisible = ref(false)
+-
+-// 编辑项目对话框可见性
+ const editProjectVisible = ref(false)
+ const currentEditProject = ref<Project | null>(null)
+-
+-// 删除项目确认对话框可见性
+ const deleteConfirmVisible = ref(false)
+ const projectToDelete = ref<Project | null>(null)
+-
+-// 文件上传对话框可见性
+ const uploadDialogVisible = ref(false)
+ const currentUploadProjectId = ref<number | null>(null)
+ 
+-// 处理新建项目
+-const handleCreateProject = (projectData: any) => {
+-  const newProject = {
+-    id: projects.value.length + 1,
++const handleCreateProject = (projectData: NewProjectData) => {
++  const newProject: Project = {
++    id: projects.value.length > 0 ? Math.max(...projects.value.map(p => p.id)) + 1 : 1,
+     name: projectData.name,
+     company: projectData.company,
+     location: projectData.location,
+@@ -299,14 +416,12 @@ const handleCreateProject = (projectData: any) => {
+   projects.value.push(newProject)
+ }
+ 
+-// 处理编辑项目
+ const handleEditProject = (project: Project) => {
+   currentEditProject.value = { ...project }
+   editProjectVisible.value = true
+ }
+ 
+-// 处理更新项目
+-const handleUpdateProject = (projectData: any) => {
++const handleUpdateProject = (projectData: UpdateProjectData) => {
+   const index = projects.value.findIndex(p => p.id === projectData.id)
+   if (index !== -1) {
+     projects.value[index] = {
+@@ -318,39 +433,36 @@ const handleUpdateProject = (projectData: any) => {
+   }
+ }
+ 
+-// 处理删除项目
+ const handleDeleteProject = (project: Project) => {
+   projectToDelete.value = project
+   deleteConfirmVisible.value = true
+ }
+ 
+-// 确认删除项目
+ const confirmDeleteProject = () => {
+   if (projectToDelete.value) {
+-    const index = projects.value.findIndex(p => p.id === projectToDelete.value!.id)
++    const deletedProjectId = projectToDelete.value.id;
++    const index = projects.value.findIndex(p => p.id === deletedProjectId)
+     if (index !== -1) {
+       projects.value.splice(index, 1)
+       
+-      // 如果删除的是当前活动项目，则重置活动项目
+-      if (activeProjectId.value === projectToDelete.value.id) {
++      if (activeProjectId.value === deletedProjectId) {
+         activeProjectId.value = projects.value.length > 0 ? projects.value[0].id : 0
+       }
++      if (selectedFiles.value[deletedProjectId]) {
++        delete selectedFiles.value[deletedProjectId];
++      }
+     }
+     deleteConfirmVisible.value = false
+     projectToDelete.value = null
+   }
+ }
+ 
+-// 打开文件上传对话框
+ const openUploadDialog = (projectId: number) => {
+-  // 获取当前项目名称
+   const project = projects.value.find(p => p.id === projectId);
+   if (!project) return;
+   
+-  // 使用 Pinia store 存储项目信息
+   projectStore.setCurrentProject(projectId, project.name);
+   
+-  // 同时将项目信息存储到 sessionStorage
+   sessionStorage.setItem('currentProject', JSON.stringify({
+     id: project.id,
+     name: project.name,
+@@ -358,16 +470,12 @@ const openUploadDialog = (projectId: number) => {
+     location: project.location
+   }));
+   
+-  // 导航到文件导入页面，不再使用查询参数
+   router.push({
+     name: 'FileImport'
+   });
+ }
+ 
+-// 处理文件上传
+-const handleFileUpload = (fileData: any) => {
+-  // 这里实际项目中应该有文件上传的API调用
+-  // 这里仅做模拟展示
++const handleFileUpload = (fileData: FileUploadData) => {
+   const today = new Date()
+   const dateStr = today.toISOString().split('T')[0]
+   const newFile = {
+@@ -425,7 +533,7 @@ const handleFileUpload = (fileData: any) => {
+     cursor: pointer;
+     border: 1px solid var(--el-border-color-light);
+     transition: all 0.2s ease-in-out;
+-    border-left: 4px solid transparent; // For active state
++    border-left: 4px solid transparent;
+ 
+     &.active {
+        border-left-color: var(--el-color-primary);
+@@ -457,7 +565,7 @@ const handleFileUpload = (fileData: any) => {
+       white-space: nowrap;
+       overflow: hidden;
+       text-overflow: ellipsis;
+-      max-width: 150px; // Adjust as needed
++      max-width: 150px;
+       display: inline-block;
+     }
+ 
+@@ -483,7 +591,7 @@ const handleFileUpload = (fileData: any) => {
+       padding-left: 10px;
+       margin-top: 10px;
+       border-left: 2px solid var(--el-border-color-lighter);
+-      background-color: #fff; // Ensure background contrast
++      background-color: #fff;
+     }
+ 
+     .file-list-header {
+@@ -491,12 +599,24 @@ const handleFileUpload = (fileData: any) => {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+-       padding-right: 5px; // Space for button
++       padding-right: 5px;
+     }
++    
+     .upload-btn {
+         padding: 3px 8px;
+     }
+ 
++    .file-list-actions {
++      margin-top: 10px;
++      padding-right: 5px;
++      text-align: right;
++
++      .batch-delete-btn {
++        // Specific styles for the button in its new container, if needed.
++        // For now, it will inherit global batch-delete-btn styles or element-plus defaults.
++      }
++    }
++
+     .file-item {
+       padding: 6px 8px;
+       margin-bottom: 6px;
+@@ -532,7 +652,11 @@ const handleFileUpload = (fileData: any) => {
+       .file-meta {
+           font-size: 0.75rem;
+           color: var(--el-text-color-secondary);
+-          padding-left: 22px; // Align with file name
++          padding-left: 22px;
++      }
++
++      .file-checkbox {
++        margin-right: 8px;
+       }
+     }
+   }
+diff --git a/src/stores/viewState.ts b/src/stores/viewState.ts
+index 7e15a6e..de29f12 100644
+--- a/src/stores/viewState.ts
++++ b/src/stores/viewState.ts
+@@ -1,6 +1,55 @@
+ import { defineStore } from 'pinia'
+ import { ElMessage } from 'element-plus'
+ 
++// 定义数据项接口
++export interface SalesOrderItem {
++  id: string;
++  sku: string;
++  orderType: string;
++  projectItem: string;
++  orderDate: string;
++  materialCode: string;
++  quantity: number;
++  customer: string;
++  amount: number;
++}
++
++export interface MaterialDataItem {
++  materialCode: string;
++  materialName: string;
++  specification: string;
++  category: string;
++  unit: string;
++  price: number;
++  inventory: number;
++}
++
++export interface InboundOrderItem {
++  orderNumber: string;
++  relatedOrder: string;
++  orderType: string;
++  supplierName: string;
++  orderDate: string;
++  plannedDate: string;
++  actualDate: string;
++  totalAmount: number;
++  itemCount: number;
++  warehouseName: string;
++  status: string;
++}
++
++export interface InventoryRecordItem {
++  id: string;
++  sku: string;
++  materialName: string;
++  warehouse: string;
++  containerId: string;
++  quantity: number;
++  lastUpdate: string;
++}
++
++export type ApiDataItem = SalesOrderItem | MaterialDataItem | InboundOrderItem | InventoryRecordItem;
++
+ // 辅助函数生成随机日期字符串
+ const randomDateStr = () => {
+   const year = 2023 + Math.floor(Math.random() * 3); // 2023-2025
+@@ -10,7 +59,7 @@ const randomDateStr = () => {
+ }
+ 
+ // 模拟后端API调用
+-const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<any[]> => {
++const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<ApiDataItem[]> => {
+   return new Promise((resolve) => {
+     setTimeout(() => {
+       if (!dataType || !fileName) {
+@@ -19,12 +68,12 @@ const fakeApiCall = (dataType: string | null, fileName: string | null): Promise<
+       }
+       console.log(`模拟API调用: 获取 ${fileName} (${dataType}) 的数据 (已更新字段)`);
+       ElMessage.success(`已加载文件: ${fileName} (${dataType}) 的数据 (含原始字段)`);
+-      
+-      let data: any[] = [];
+-      const recordCount = 2; // 生成两条模拟记录
++
++      const data: ApiDataItem[] = [];
++      const recordCount = 10; // 生成两条模拟记录
+ 
+       for (let i = 0; i < recordCount; i++) {
+-        const suffix = `_Rec${i+1}_(${fileName.substring(0,10)})`;
++        const suffix = `_Rec${i + 1}_(${fileName.substring(0, 10)})`;
+         switch (dataType) {
+           case 'salesOrder':
+             data.push({
+@@ -101,7 +150,7 @@ interface Project {
+ }
+ 
+ // 模拟获取项目和文件数据
+-const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
++const getProjectsAndFiles = (): Promise<{ projects: Project[] }> => {
+   return new Promise((resolve) => {
+     setTimeout(() => {
+       // 这里模拟了与 Sidebar.vue 中相同的项目和文件数据结构
+@@ -131,7 +180,7 @@ const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
+           ]
+         }
+       ];
+-      
++
+       resolve({ projects });
+     }, 300);
+   });
+@@ -140,7 +189,7 @@ const getProjectsAndFiles = (): Promise<{projects: Project[]}> => {
+ export const useViewStateStore = defineStore('viewState', {
+   state: () => ({
+     activeOrderDataType: null as string | null,
+-    activeOrderData: null as any[] | null,
++    activeOrderData: null as ApiDataItem[] | null,
+     activeOrderDataFileName: null as string | null,
+     isLoading: false as boolean,
+   }),
+@@ -156,7 +205,7 @@ export const useViewStateStore = defineStore('viewState', {
+     },
+     async fetchActiveOrderData() {
+       if (!this.activeOrderDataType || !this.activeOrderDataFileName) {
+-        this.activeOrderData = [] 
++        this.activeOrderData = []
+         return
+       }
+       this.isLoading = true
+@@ -166,39 +215,39 @@ export const useViewStateStore = defineStore('viewState', {
+       } catch (error) {
+         console.error('获取订单数据失败:', error)
+         ElMessage.error('获取订单数据失败');
+-        this.activeOrderData = [] 
++        this.activeOrderData = []
+       } finally {
+         this.isLoading = false
+       }
+     },
+     clearActiveOrderData() {
+       this.activeOrderData = null
+-      this.activeOrderDataType = null 
++      this.activeOrderDataType = null
+       this.activeOrderDataFileName = null
+     },
+     // 新增：加载第一个项目的第一个文件数据
+     async loadFirstProjectFirstFile(defaultType: string = 'salesOrder'): Promise<boolean> {
+       this.isLoading = true
+-      
++
+       try {
+         // 获取项目和文件数据
+         const { projects } = await getProjectsAndFiles()
+-        
++
+         // 如果没有项目，返回false
+         if (projects.length === 0) {
+           this.clearActiveOrderData()
+           return false
+         }
+-        
++
+         // 获取第一个项目
+         const firstProject = projects[0]
+-        
++
+         // 如果项目没有文件，返回false
+         if (!firstProject.files || firstProject.files.length === 0) {
+           this.clearActiveOrderData()
+           return false
+         }
+-        
++
+         // 文件类型映射
+         const fileNameMap: Record<string, string> = {
+           'salesOrder': '销售出库订单',
+@@ -206,11 +255,11 @@ export const useViewStateStore = defineStore('viewState', {
+           'inboundOrder': '入库单据',
+           'inventoryRecord': '库存记录'
+         }
+-        
++
+         // 尝试查找默认类型的文件
+         let targetFile: ProjectFile | null = null
+         let targetType = defaultType
+-        
++
+         // 先尝试查找默认类型的文件
+         for (const file of firstProject.files) {
+           if (file.name.toLowerCase().includes(fileNameMap[defaultType].toLowerCase())) {
+@@ -218,15 +267,15 @@ export const useViewStateStore = defineStore('viewState', {
+             break
+           }
+         }
+-        
++
+         // 如果没找到默认类型文件，就用第一个文件
+         if (!targetFile) {
+           targetFile = firstProject.files[0]
+-          
++
+           // 判断文件类型
+           const fileName = targetFile.name.toLowerCase()
+           let typeFound = false
+-          
++
+           for (const [type, keyword] of Object.entries(fileNameMap)) {
+             if (fileName.includes(keyword.toLowerCase())) {
+               targetType = type
+@@ -234,19 +283,19 @@ export const useViewStateStore = defineStore('viewState', {
+               break
+             }
+           }
+-          
++
+           if (!typeFound) {
+             // 如果无法判断类型，仍然使用默认类型
+             targetType = defaultType
+           }
+         }
+-        
++
+         // 设置激活的订单数据上下文并加载数据
+         console.log(`自动加载首个项目(${firstProject.name})的文件: ${targetFile.name}`)
+         this.setActiveOrderContext(targetType, targetFile.name)
+         // 注意：setActiveOrderContext 内部会调用 fetchActiveOrderData
+         return true
+-        
++
+       } catch (error) {
+         console.error('加载第一个项目的第一个文件数据失败:', error)
+         ElMessage.error('加载初始数据失败')
+diff --git a/src/styles/components/_views.scss b/src/styles/components/_views.scss
+index ae4313a..7b0814d 100644
+--- a/src/styles/components/_views.scss
++++ b/src/styles/components/_views.scss
+@@ -46,7 +46,7 @@
+ 
+ // 表格区域
+ .table-container {
+-  flex: 1;
++  // flex: 1;
+   overflow: auto;
+ }
+ 
+@@ -54,7 +54,7 @@
+ .pagination-container {
+   display: flex;
+   justify-content: flex-end;
+-  margin-top: $spacing-base;
++  // margin-top: $spacing-base;
+ }
+ 
+ // 卡片标题样式
+diff --git a/src/views/CleanoutResult.vue b/src/views/CleanoutResult.vue
+index 694b717..009f882 100644
+--- a/src/views/CleanoutResult.vue
++++ b/src/views/CleanoutResult.vue
+@@ -566,9 +566,6 @@ const filteredFileList = computed(() => {
+   background-color: #f56c6c;
+ }
+ 
+-.data-stats {
+-  
+-}
+ 
+ .stat-row {
+   display: flex;
+@@ -716,7 +713,7 @@ const filteredFileList = computed(() => {
+ .pagination-container {
+   display: flex;
+   justify-content: center;
+-  margin-top: 10px;
++  /* margin-top: 10px; */
+ }
+ .file-table-container {
+     height:calc(100% - 300px);
+diff --git a/src/views/FileImport.vue b/src/views/FileImport.vue
+index 47c9d20..35b8af0 100644
+--- a/src/views/FileImport.vue
++++ b/src/views/FileImport.vue
+@@ -983,6 +983,12 @@ onMounted(() => {
+   if (projectStore.currentFileType) { 
+     if (projectStore.currentFileType === '销售出库订单') {
+       fileTypeSelected.value = '销售出库订单';
++    } else if (projectStore.currentFileType === '物料主数据') {
++      fileTypeSelected.value = '物料主数据';
++    } else if (projectStore.currentFileType === '入库单据') {
++      fileTypeSelected.value = '入库单据';
++    } else if (projectStore.currentFileType === '库存记录') {
++      fileTypeSelected.value = '库存记录';
+     }
+     // 如果需要，可以为其他文件类型添加 else if
+     // 例如: else if (projectStore.currentFileType === '物料主数据') {
+diff --git a/src/views/InboundOrder.vue b/src/views/InboundOrder.vue
+index 0cee59d..debaee5 100644
+--- a/src/views/InboundOrder.vue
++++ b/src/views/InboundOrder.vue
+@@ -1,12 +1,18 @@
+ <script setup lang="ts">
+ import { computed, reactive } from 'vue'
+ import { ElMessage } from 'element-plus'
+-import { Search, Plus,Edit, Delete } from '@element-plus/icons-vue'
++import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
++import type { InboundOrderItem } from '../stores/viewState'
++import { useProjectStore } from '../stores/project'
++import { useRouter } from 'vue-router'  
+ 
+ const props = defineProps<{
+-  items: any[] | null,
++  items: InboundOrderItem[] | null,
+   isLoading: boolean
+ }>()
++const projectStore = useProjectStore()
++const router = useRouter()
++
+ const searchForm = reactive({
+   orderNumber: '',
+   // dateRange: [] // dateRange was not used in the template, removing for now
+@@ -23,17 +29,31 @@ const handleSearch = () => {
+   ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
+ }
+ const handleAddInboundOrder = () => {
+-  ElMessage.info('触发新增入库单据操作 (UI占位)');
++  const projectId = 0; // 占位项目ID
++  const projectName = '入库单据项目'; // 占位项目名称
++
++  projectStore.setCurrentProject(projectId, projectName);
++  projectStore.setFileType('入库单据');
++
++  // 根据 Sidebar.vue 的逻辑，也设置 sessionStorage
++  sessionStorage.setItem('currentProject', JSON.stringify({
++    id: projectId,
++    name: projectName,
++    company: '', // 根据需要填写或留空
++    location: '' // 根据需要填写或留空
++  }));
++
++  router.push({ name: 'FileImport' });
+ }
+ // const handleViewDetail = (row: any) => {
+ //   ElMessage.info(`查看入库单据详情：${row.orderNumber || row.id} (UI占位)`)
+ // }
+-const handleEdit = (row: any) => {
+-  ElMessage.info(`编辑入库单据：${row.orderNumber || row.id} (UI占位)`)
++const handleEdit = (row: InboundOrderItem) => {
++  ElMessage.info(`编辑入库单据：${row.orderNumber} (UI占位)`)
+ }
+ 
+-const handleDelete = (row: any) => {
+-  ElMessage.info(`删除入库单据：${row.orderNumber || row.id} (UI占位)`)
++const handleDelete = (row: InboundOrderItem) => {
++  ElMessage.info(`删除入库单据：${row.orderNumber} (UI占位)`)
+ }
+ </script>
+ 
+@@ -42,18 +62,13 @@ const handleDelete = (row: any) => {
+     <div class="action-bar" v-if="displayData.length > 0">
+       <el-form :inline="true" :model="searchForm" class="search-area">
+         <el-form-item label="单据编号">
+-          <el-input 
+-            v-model="searchForm.orderNumber" 
+-            placeholder="请输入单据编号" 
+-            clearable 
+-            @keyup.enter="handleSearch"
+-          />
++          <el-input v-model="searchForm.orderNumber" placeholder="请输入单据编号" clearable @keyup.enter="handleSearch" />
+         </el-form-item>
+         <el-form-item>
+           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+         </el-form-item>
+       </el-form>
+-      
++
+       <div class="operation-buttons">
+         <el-button clearable type="success" :icon="Plus" @click="handleAddInboundOrder">新增入库单据</el-button>
+       </div>
+@@ -61,17 +76,17 @@ const handleDelete = (row: any) => {
+     <div class="table-container">
+       <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无入库单据数据" />
+       <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+-        <el-table-column prop="orderNumber" label="入库单号" sortable width="160"/>
+-        <el-table-column prop="relatedOrder" label="关联单号" width="160"/>
+-        <el-table-column prop="orderType" label="单据类型" width="120"/>
+-        <el-table-column prop="supplierName" label="供应商" width="180"/>
+-        <el-table-column prop="orderDate" label="单据日期" sortable width="120"/>
+-        <el-table-column prop="plannedDate" label="计划入库日期" sortable width="140"/>
+-        <el-table-column prop="actualDate" label="实际入库日期" sortable width="140"/>
+-        <el-table-column prop="totalAmount" label="总金额" sortable width="120"/>
+-        <el-table-column prop="itemCount" label="物料种类" width="100"/>
+-        <el-table-column prop="warehouseName" label="入库仓库" width="120"/>
+-        <el-table-column prop="status" label="状态" sortable width="100"/>
++        <el-table-column prop="orderNumber" label="入库单号" sortable width="160" />
++        <el-table-column prop="relatedOrder" label="关联单号" width="160" />
++        <el-table-column prop="orderType" label="单据类型" width="120" />
++        <el-table-column prop="supplierName" label="供应商" width="180" />
++        <el-table-column prop="orderDate" label="单据日期" sortable width="120" />
++        <el-table-column prop="plannedDate" label="计划入库日期" sortable width="140" />
++        <el-table-column prop="actualDate" label="实际入库日期" sortable width="140" />
++        <el-table-column prop="totalAmount" label="总金额" sortable width="120" />
++        <el-table-column prop="itemCount" label="物料种类" width="100" />
++        <el-table-column prop="warehouseName" label="入库仓库" width="120" />
++        <el-table-column prop="status" label="状态" sortable width="100" />
+         <el-table-column label="操作" fixed="right" width="180">
+           <template #default="scope">
+             <el-button type="primary" size="small" :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+@@ -81,22 +96,33 @@ const handleDelete = (row: any) => {
+       </el-table>
+     </div>
+     <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
+-      <el-pagination
+-        background
+-        layout="prev, pager, next, jumper, ->, total"
+-        :total="displayData.length"
+-        :page-size="10"
+-        :current-page="1"
+-        @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)"
+-      />
++      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
++        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+     </div>
+   </div>
+ </template>
+ 
+ <style scoped lang="scss">
+-.view-container { height: 100%; display: flex; flex-direction: column; }
+-.table-container { flex-grow: 1; overflow: hidden; margin-bottom: 1rem; }
+-.pagination-container { display: flex; justify-content: flex-end; flex-shrink: 0; padding-top: 1rem; }
++.view-container {
++  height: 100%;
++  display: flex;
++  flex-direction: column;
++}
++
++.table-container {
++  height: 370px;
++  // flex-grow: 1;
++  overflow: hidden;
++  margin-bottom: 1rem;
++}
++
++.pagination-container {
++  display: flex;
++  justify-content: flex-end;
++  flex-shrink: 0;
++  /* padding-top: 1rem; */
++}
++
+ .action-bar {
+   display: flex;
+   justify-content: space-between;
+@@ -105,6 +131,7 @@ const handleDelete = (row: any) => {
+   gap: 1rem;
+   margin-bottom: 1rem;
+   flex-direction: row;
+-  flex-shrink: 0; /* Prevent action bar from shrinking */
++  flex-shrink: 0;
++  /* Prevent action bar from shrinking */
+ }
+-</style> 
+\ No newline at end of file
++</style>
+\ No newline at end of file
+diff --git a/src/views/InventoryRecord.vue b/src/views/InventoryRecord.vue
+index 5820b47..f195073 100644
+--- a/src/views/InventoryRecord.vue
++++ b/src/views/InventoryRecord.vue
+@@ -1,7 +1,9 @@
+ <script setup lang="ts">
+ import { computed, reactive } from 'vue'
+ import { ElMessage } from 'element-plus'
+-import { Search, Plus,Edit, Delete } from '@element-plus/icons-vue'
++import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
++import { useProjectStore } from '../stores/project'
++import { useRouter } from 'vue-router'
+ 
+ interface InventoryItem {
+   id: number | string;
+@@ -18,6 +20,9 @@ const props = defineProps<{
+   isLoading: boolean
+ }>()
+ 
++const projectStore = useProjectStore()
++const router = useRouter()
++
+ const searchForm = reactive({
+   code: '',
+   // dateRange: [] // dateRange was not used in the template, removing for now
+@@ -29,7 +34,21 @@ const handleSearch = () => {
+   ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
+ }
+ const handleAddInventoryRecord = () => {
+-  ElMessage.info('触发新增库存记录操作 (UI占位)');
++  const projectId = 0; // 占位项目ID
++  const projectName = '库存记录项目'; // 占位项目名称
++
++  projectStore.setCurrentProject(projectId, projectName);
++  projectStore.setFileType('库存记录');
++
++  // 根据 Sidebar.vue 的逻辑，也设置 sessionStorage
++  sessionStorage.setItem('currentProject', JSON.stringify({
++    id: projectId,
++    name: projectName,
++    company: '', // 根据需要填写或留空
++    location: '' // 根据需要填写或留空
++  }));
++
++  router.push({ name: 'FileImport' });
+ }
+ // const handleViewDetail = (row: any) => {
+ //   ElMessage.info(`查看库存记录详情：${row.id} (UI占位)`)
+@@ -48,18 +67,13 @@ const handleDelete = (row: InventoryItem) => {
+     <div class="action-bar" v-if="displayData.length > 0">
+       <el-form :inline="true" :model="searchForm" class="search-area">
+         <el-form-item label="">
+-          <el-input 
+-            v-model="searchForm.code" 
+-            placeholder="请输入库存记录号/SKU/容器号" 
+-            clearable 
+-            @keyup.enter="handleSearch"
+-          />
++          <el-input v-model="searchForm.code" placeholder="请输入库存记录号/SKU/容器号" clearable @keyup.enter="handleSearch" />
+         </el-form-item>
+         <el-form-item>
+           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+         </el-form-item>
+       </el-form>
+-      
++
+       <div class="operation-buttons">
+         <el-button clearable type="success" :icon="Plus" @click="handleAddInventoryRecord">新增库存记录</el-button>
+       </div>
+@@ -83,22 +97,33 @@ const handleDelete = (row: InventoryItem) => {
+       </el-table>
+     </div>
+     <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
+-      <el-pagination
+-        background
+-        layout="prev, pager, next, jumper, ->, total"
+-        :total="displayData.length"
+-        :page-size="10"
+-        :current-page="1"
+-        @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)"
+-      />
++      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
++        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+     </div>
+   </div>
+ </template>
+ 
+ <style scoped lang="scss">
+-.view-container { height: 100%; display: flex; flex-direction: column; }
+-.table-container { flex-grow: 1; overflow: hidden; margin-bottom: 1rem; }
+-.pagination-container { display: flex; justify-content: flex-end; flex-shrink: 0; padding-top: 1rem; }
++.view-container {
++  height: 100%;
++  display: flex;
++  flex-direction: column;
++}
++
++.table-container {
++  // flex-grow: 1;
++  height: 370px;
++  overflow: hidden;
++  margin-bottom: 1rem;
++}
++
++.pagination-container {
++  display: flex;
++  justify-content: flex-end;
++  flex-shrink: 0;
++  /* padding-top: 1rem; */
++}
++
+ .action-bar {
+   display: flex;
+   justify-content: space-between;
+@@ -107,6 +132,7 @@ const handleDelete = (row: InventoryItem) => {
+   gap: 1rem;
+   margin-bottom: 1rem;
+   flex-direction: row;
+-  flex-shrink: 0; /* Prevent action bar from shrinking */
++  flex-shrink: 0;
++  /* Prevent action bar from shrinking */
+ }
+-</style> 
+\ No newline at end of file
++</style>
+\ No newline at end of file
+diff --git a/src/views/MaterialData.vue b/src/views/MaterialData.vue
+index 12ca075..e6cb2bb 100644
+--- a/src/views/MaterialData.vue
++++ b/src/views/MaterialData.vue
+@@ -1,7 +1,9 @@
+ <script setup lang="ts">
+ import { computed, reactive } from 'vue'
+ import { ElMessage } from 'element-plus'
++import { useRouter } from 'vue-router'
+ import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
++import { useProjectStore } from '../stores/project'
+ 
+ interface MaterialItem {
+   id?: number | string;
+@@ -14,6 +16,7 @@ interface MaterialItem {
+   inventory: number;
+ }
+ 
++const router = useRouter()
+ const props = defineProps<{
+   items: MaterialItem[] | null,
+   isLoading: boolean
+@@ -23,7 +26,7 @@ const searchForm = reactive({
+   sku: '',
+   // dateRange: [] // dateRange was not used in the template, removing for now
+ })
+-
++const projectStore = useProjectStore()
+ // 处理搜索 - 此方法需要调整或移除，搜索应通知父组件
+ const handleSearch = () => {
+   // currentPage.value = 1;
+@@ -33,7 +36,21 @@ const handleSearch = () => {
+ const displayData = computed(() => props.items || [])
+ // 新增订单 - 暂时保留，但可能也需要提升
+ const handleAddMaterialData = () => {
+-  ElMessage.info('触发新增物料主数据操作 (UI占位)');
++  const projectId = 0; // 占位项目ID
++  const projectName = '物料主数据项目'; // 占位项目名称
++
++  projectStore.setCurrentProject(projectId, projectName);
++  projectStore.setFileType('物料主数据');
++
++  // 根据 Sidebar.vue 的逻辑，也设置 sessionStorage
++  sessionStorage.setItem('currentProject', JSON.stringify({
++    id: projectId,
++    name: projectName,
++    company: '', // 根据需要填写或留空
++    location: '' // 根据需要填写或留空
++  }));
++
++  router.push({ name: 'FileImport' });
+ }
+ // const handleViewDetail = (row: any) => {
+ //   ElMessage.info(`查看物料详情：${row.materialCode || row.id} (UI占位)`)
+@@ -53,18 +70,13 @@ const handleDelete = (row: MaterialItem) => {
+     <div class="action-bar" v-if="displayData.length > 0">
+       <el-form :inline="true" :model="searchForm" class="search-area">
+         <el-form-item label="物料编码">
+-          <el-input 
+-            v-model="searchForm.sku" 
+-            placeholder="请输入物料编码" 
+-            clearable 
+-            @keyup.enter="handleSearch"
+-          />
++          <el-input v-model="searchForm.sku" placeholder="请输入物料编码" clearable @keyup.enter="handleSearch" />
+         </el-form-item>
+         <el-form-item>
+           <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+         </el-form-item>
+       </el-form>
+-      
++
+       <div class="operation-buttons">
+         <el-button clearable type="success" :icon="Plus" @click="handleAddMaterialData">新增物料主数据</el-button>
+       </div>
+@@ -84,26 +96,34 @@ const handleDelete = (row: MaterialItem) => {
+             <!-- <el-button type="primary" size="small" link @click="handleViewDetail(scope.row)"> -->
+             <!-- 查看详情 -->
+             <!-- </el-button> -->
+-            <el-button type="primary" size="small" :icon="Edit" @click="handleEdit(scope.row)">编辑</el-button>
+-            <el-button type="danger" size="small" :icon="Delete" @click="handleDelete(scope.row)">删除</el-button>
++            <el-button 
++              type="primary" 
++              size="small" 
++              :icon="Edit" 
++              link
++              class="table-operation__button table-operation__button--edit" 
++              @click="handleEdit(scope.row)">编辑</el-button>
++            <el-button 
++              type="danger" 
++              size="small" 
++              :icon="Delete" 
++              link
++              class="table-operation__button table-operation__button--delete" 
++              @click="handleDelete(scope.row)">删除</el-button>
+           </template>
+         </el-table-column>
+       </el-table>
+     </div>
+     <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
+-      <el-pagination
+-        background
+-        layout="prev, pager, next, jumper, ->, total"
+-        :total="displayData.length"
+-        :page-size="10"
+-        :current-page="1"
+-        @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)"
+-      />
++      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
++        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+     </div>
+   </div>
+ </template>
+ 
+ <style scoped lang="scss">
++@use '@/styles/variables.scss' as *;
++
+ .action-bar {
+   display: flex;
+   justify-content: space-between;
+@@ -112,22 +132,48 @@ const handleDelete = (row: MaterialItem) => {
+   gap: 1rem;
+   margin-bottom: 1rem;
+   flex-direction: row;
+-  flex-shrink: 0; /* Prevent action bar from shrinking */
++  flex-shrink: 0;
++  /* Prevent action bar from shrinking */
+ }
++
+ .view-container {
+   height: 100%;
+   display: flex;
+   flex-direction: column;
+ }
++
+ .table-container {
+-  flex-grow: 1;
++  // flex-grow: 1;
++  height: 370px;
+   overflow: hidden;
+   margin-bottom: 1rem;
+ }
++
+ .pagination-container {
+   display: flex;
+   justify-content: flex-end;
+   flex-shrink: 0;
+-  padding-top: 1rem;
++  /* padding-top: 1rem; */
++}
++
++.table-operation {
++  &__button {
++    margin: 0 $spacing-extra-small;
++    font-weight: $font-weight-medium;
++    
++    &--edit {
++      color: $color-primary;
++      &:hover {
++        color: lighten($color-primary, 10%);
++      }
++    }
++    
++    &--delete {
++      color: $color-danger;
++      &:hover {
++        color: lighten($color-danger, 10%);
++      }
++    }
++  }
+ }
+-</style> 
+\ No newline at end of file
++</style>
+\ No newline at end of file
+diff --git a/src/views/OrderData.vue b/src/views/OrderData.vue
+index 2946b56..2064974 100644
+--- a/src/views/OrderData.vue
++++ b/src/views/OrderData.vue
+@@ -1,8 +1,10 @@
+ <script setup lang="ts">
+-import { ref, watch, onMounted } from 'vue'
++import { ref, watch, onMounted, computed } from 'vue'
+ import { Download, ArrowDown, Refresh, Document } from '@element-plus/icons-vue'
+ import { useViewStateStore } from '@/stores/viewState'
+ import { storeToRefs } from 'pinia'
++// 导入具体类型 - 确保这些名称与 viewState.ts 中导出的名称完全一致
++import type { SalesOrderItem, MaterialDataItem, InboundOrderItem, InventoryRecordItem } from '@/stores/viewState'
+ 
+ // 导入子视图组件
+ import SalesOrder from './SalesOrder.vue'
+@@ -14,6 +16,35 @@ import InventoryRecord from './InventoryRecord.vue'
+ const viewStateStore = useViewStateStore()
+ const { activeOrderDataType, activeOrderData, isLoading } = storeToRefs(viewStateStore)
+ 
++// 计算属性，用于为每个子组件提供正确类型的数据
++const salesOrderItemsFiltered = computed((): SalesOrderItem[] | null => {
++  if (activeOrderDataType.value === 'salesOrder' && activeOrderData.value) {
++    return activeOrderData.value as SalesOrderItem[]
++  }
++  return null
++})
++
++const materialDataItemsFiltered = computed((): MaterialDataItem[] | null => {
++  if (activeOrderDataType.value === 'materialData' && activeOrderData.value) {
++    return activeOrderData.value as MaterialDataItem[]
++  }
++  return null
++})
++
++const inboundOrderItemsFiltered = computed((): InboundOrderItem[] | null => {
++  if (activeOrderDataType.value === 'inboundOrder' && activeOrderData.value) {
++    return activeOrderData.value as InboundOrderItem[]
++  }
++  return null
++})
++
++const inventoryRecordItemsFiltered = computed((): InventoryRecordItem[] | null => {
++  if (activeOrderDataType.value === 'inventoryRecord' && activeOrderData.value) {
++    return activeOrderData.value as InventoryRecordItem[]
++  }
++  return null
++})
++
+ // 将 activeTabName 直接绑定到 activeOrderDataType
+ // 这确保了每次 activeOrderDataType 变化时，activeTabName 会同步更新
+ const activeTabName = ref(activeOrderDataType.value || 'salesOrder')
+@@ -91,16 +122,16 @@ const refreshData = () => {
+ 
+     <el-tabs v-model="activeTabName" class="data-tabs">
+       <el-tab-pane label="销售出库订单" name="salesOrder">
+-        <SalesOrder :items="activeOrderDataType === 'salesOrder' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
++        <SalesOrder :items="salesOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'salesOrder'" />
+       </el-tab-pane>
+       <el-tab-pane label="物料主数据" name="materialData">
+-        <MaterialData :items="activeOrderDataType === 'materialData' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
++        <MaterialData :items="materialDataItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'materialData'" />
+       </el-tab-pane>
+       <el-tab-pane label="入库单据" name="inboundOrder">
+-        <InboundOrder :items="activeOrderDataType === 'inboundOrder' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
++        <InboundOrder :items="inboundOrderItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inboundOrder'" />
+       </el-tab-pane>
+       <el-tab-pane label="库存记录" name="inventoryRecord">
+-        <InventoryRecord :items="activeOrderDataType === 'inventoryRecord' ? activeOrderData : null" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
++        <InventoryRecord :items="inventoryRecordItemsFiltered" :is-loading="isLoading && activeOrderDataType === 'inventoryRecord'" />
+       </el-tab-pane>
+     </el-tabs>
+   </el-card>
+diff --git a/src/views/SalesOrder.vue b/src/views/SalesOrder.vue
+index 75678fb..5d69b4f 100644
+--- a/src/views/SalesOrder.vue
++++ b/src/views/SalesOrder.vue
+@@ -16,9 +16,23 @@ interface InfoItem {
+   value: string | number | null;
+ }
+ 
++// 新增：定义订单项目接口
++interface OrderItem {
++  id: string | number;
++  customer: string;
++  amount: number;
++  orderDate: string;
++  sku: string;
++  orderType: string;
++  projectItem: string;
++  materialCode: string;
++  quantity: number;
++  // 根据实际情况，您可能需要添加更多属性或调整现有属性的类型
++}
++
+ // Define props
+ const props = defineProps<{
+-  items: any[] | null,
++  items: OrderItem[] | null,
+   isLoading: boolean
+ }>()
+ 
+@@ -69,7 +83,7 @@ const handleAddOrder = () => {
+ }
+ 
+ // 查看订单详情 - 暂时保留
+-const handleViewDetail = async (row: any) => {
++const handleViewDetail = async (row: OrderItem) => {
+   try {
+     // 显示加载状态
+     ElMessage.info(`正在获取订单 ${row.id} 的详情...`);
+@@ -410,12 +424,12 @@ const handlePrintOrderDetail = () => {
+           />
+         </el-form-item>
+         <el-form-item>
+-          <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
++          <el-button type="primary" :icon="Search" @click="handleSearch" class="search-area__button search-area__button--search">搜索</el-button>
+         </el-form-item>
+       </el-form>
+       
+       <div class="operation-buttons">
+-        <el-button clearable type="success" :icon="Plus" @click="handleAddOrder">新增订单</el-button>
++        <el-button clearable type="success" :icon="Plus" @click="handleAddOrder" class="operation-buttons__button operation-buttons__button--add">新增订单</el-button>
+       </div>
+     </div>
+ 
+@@ -537,6 +551,8 @@ const handlePrintOrderDetail = () => {
+ </template>
+ 
+ <style scoped lang="scss">
++@use '@/styles/variables.scss' as *;
++
+ .view-container {
+   height: 100%;
+   display: flex;
+@@ -559,17 +575,67 @@ const handlePrintOrderDetail = () => {
+   min-width: 300px;
+   display: flex; /* Align items in search area */
+   gap: 10px; /* Add gap between search form items */
++  
++  &__button {
++    &--search {
++      background-color: $color-primary;
++      border-color: $color-primary;
++      
++      &:hover, &:focus {
++        background-color: lighten($color-primary, 10%);
++        border-color: lighten($color-primary, 10%);
++      }
++      
++      &:active {
++        background-color: darken($color-primary, 10%);
++        border-color: darken($color-primary, 10%);
++      }
++    }
++  }
+ }
+ 
+ .operation-buttons {
+   display: flex;
+   gap: 0.5rem;
+   /* margin-top: 0px; */ /* Removed as el-form-item might handle alignment */
++  
++  &__button {
++    transition: all $transition-normal;
++    font-weight: $font-weight-medium;
++    
++    &--add {
++      background-color: $color-success;
++      border-color: $color-success;
++      padding: $spacing-small $spacing-base;
++      font-size: $font-size-base;
++      box-shadow: $shadow-light;
++      
++      &:hover, &:focus {
++        background-color: lighten($color-success, 10%);
++        border-color: lighten($color-success, 10%);
++        transform: translateY(-2px);
++        box-shadow: $shadow-hover;
++      }
++      
++      &:active {
++        background-color: darken($color-success, 10%);
++        border-color: darken($color-success, 10%);
++        transform: translateY(0);
++      }
++      
++      .el-icon {
++        margin-right: $spacing-small;
++        font-size: $font-size-medium;
++        vertical-align: middle;
++      }
++    }
++  }
+ }
+ 
+ .table-container {
+   margin-bottom: 1rem;
+-  flex-grow: 1; /* Allow table to take available space */
++  height: 370px;
++  // flex-grow: 1; /* Allow table to take available space */
+   overflow: hidden; /* Prevent table from overflowing container */
+ }
+ 
+@@ -577,7 +643,7 @@ const handlePrintOrderDetail = () => {
+   display: flex;
+   justify-content: flex-end;
+   flex-shrink: 0; /* Prevent pagination from shrinking */
+-  padding-top: 1rem; /* Add some space above pagination */
++  /* padding-top: 1rem; Add some space above pagination */
+ }
+ 
+ // 订单详情弹窗样式

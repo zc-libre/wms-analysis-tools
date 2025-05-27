@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { useProjectStore } from '../stores/project'
 import { useRouter } from 'vue-router'
+import { useViewStateStore } from '../stores/viewState'
 
 interface InventoryItem {
   id: number | string;
@@ -15,19 +16,20 @@ interface InventoryItem {
   lastUpdate: string;
 }
 
-const props = defineProps<{
-  items: InventoryItem[] | null,
-  isLoading: boolean
-}>()
-
 const projectStore = useProjectStore()
 const router = useRouter()
+const viewStateStore = useViewStateStore()
 
 const searchForm = reactive({
   code: '',
   // dateRange: [] // dateRange was not used in the template, removing for now
 })
-const displayData = computed(() => props.items || [])
+const displayData = computed(() => (viewStateStore.activeOrderData as InventoryItem[]) || [])
+const isLoading = computed(() => viewStateStore.isLoading)
+const currentPage = computed(() => viewStateStore.currentPage)
+const pageSize = computed(() => viewStateStore.pageSize)
+const totalItems = computed(() => viewStateStore.totalItems)
+
 const handleSearch = () => {
   // currentPage.value = 1;
   // fetchOrderData();
@@ -60,6 +62,14 @@ const handleEdit = (row: InventoryItem) => {
 const handleDelete = (row: InventoryItem) => {
   ElMessage.info(`删除库存记录：${row.id} (UI占位)`)
 }
+
+const handlePageChange = (newPage: number) => {
+  viewStateStore.setCurrentPage(newPage);
+}
+
+const handleSizeChange = (newPageSize: number) => {
+  viewStateStore.setPageSize(newPageSize);
+}
 </script>
 
 <template>
@@ -79,8 +89,8 @@ const handleDelete = (row: InventoryItem) => {
       </div>
     </div>
     <div class="table-container">
-      <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无库存记录数据" />
-      <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+      <el-empty v-if="!isLoading && (!displayData || displayData.length === 0)" description="暂无库存记录数据" />
+      <el-table v-else :data="displayData" v-loading="isLoading" stripe height="100%">
         <el-table-column prop="id" label="记录ID" sortable />
         <el-table-column prop="sku" label="SKU" sortable />
         <el-table-column prop="materialName" label="物料名称" sortable />
@@ -96,9 +106,16 @@ const handleDelete = (row: InventoryItem) => {
         </el-table-column>
       </el-table>
     </div>
-    <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
-      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
-        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+    <div v-if="!isLoading && displayData.length > 0" class="pagination-container">
+      <el-pagination 
+        background 
+        layout="sizes, prev, pager, next, jumper, ->, total" 
+        :total="totalItems" 
+        :page-size="pageSize"
+        :page-sizes="[50, 100, 200, 500, 1000]"
+        :current-page="currentPage" 
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange" />
     </div>
   </div>
 </template>

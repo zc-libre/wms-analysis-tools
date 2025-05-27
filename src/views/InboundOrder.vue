@@ -4,20 +4,22 @@ import { ElMessage } from 'element-plus'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import type { InboundOrderItem } from '../stores/viewState'
 import { useProjectStore } from '../stores/project'
-import { useRouter } from 'vue-router'  
+import { useRouter } from 'vue-router'
+import { useViewStateStore } from '../stores/viewState'
 
-const props = defineProps<{
-  items: InboundOrderItem[] | null,
-  isLoading: boolean
-}>()
 const projectStore = useProjectStore()
 const router = useRouter()
+const viewStateStore = useViewStateStore()
 
 const searchForm = reactive({
   orderNumber: '',
   // dateRange: [] // dateRange was not used in the template, removing for now
 })
-const displayData = computed(() => props.items || [])
+const displayData = computed(() => (viewStateStore.activeOrderData as InboundOrderItem[]) || [])
+const isLoading = computed(() => viewStateStore.isLoading)
+const currentPage = computed(() => viewStateStore.currentPage)
+const pageSize = computed(() => viewStateStore.pageSize)
+const totalItems = computed(() => viewStateStore.totalItems)
 
 // Removed: pageTitle, searchForm, statusOptions, columns, tableData, loading, total, currentPage, pageSize, 
 // fetchInboundOrderData, handleSearch, handleReset, handleCurrentChange, handleSizeChange, 
@@ -55,6 +57,14 @@ const handleEdit = (row: InboundOrderItem) => {
 const handleDelete = (row: InboundOrderItem) => {
   ElMessage.info(`删除入库单据：${row.orderNumber} (UI占位)`)
 }
+
+const handlePageChange = (newPage: number) => {
+  viewStateStore.setCurrentPage(newPage);
+}
+
+const handleSizeChange = (newPageSize: number) => {
+  viewStateStore.setPageSize(newPageSize);
+}
 </script>
 
 <template>
@@ -74,8 +84,8 @@ const handleDelete = (row: InboundOrderItem) => {
       </div>
     </div>
     <div class="table-container">
-      <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无入库单据数据" />
-      <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+      <el-empty v-if="!isLoading && (!displayData || displayData.length === 0)" description="暂无入库单据数据" />
+      <el-table v-else :data="displayData" v-loading="isLoading" stripe height="100%">
         <el-table-column prop="orderNumber" label="入库单号" sortable width="160" />
         <el-table-column prop="relatedOrder" label="关联单号" width="160" />
         <el-table-column prop="orderType" label="单据类型" width="120" />
@@ -95,9 +105,16 @@ const handleDelete = (row: InboundOrderItem) => {
         </el-table-column>
       </el-table>
     </div>
-    <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
-      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
-        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+    <div v-if="!isLoading && displayData.length > 0" class="pagination-container">
+      <el-pagination 
+        background 
+        layout="sizes, prev, pager, next, jumper, ->, total" 
+        :total="totalItems" 
+        :page-size="pageSize"
+        :page-sizes="[50, 100, 200, 500, 1000]"
+        :current-page="currentPage" 
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange" />
     </div>
   </div>
 </template>

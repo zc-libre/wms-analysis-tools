@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue'
 import { useProjectStore } from '../stores/project'
+import { useViewStateStore } from '../stores/viewState'
 
 interface MaterialItem {
   id?: number | string;
@@ -17,23 +18,26 @@ interface MaterialItem {
 }
 
 const router = useRouter()
-const props = defineProps<{
-  items: MaterialItem[] | null,
-  isLoading: boolean
-}>()
+const projectStore = useProjectStore()
+const viewStateStore = useViewStateStore()
+
 // 搜索条件 (UI占位)
 const searchForm = reactive({
   sku: '',
   // dateRange: [] // dateRange was not used in the template, removing for now
 })
-const projectStore = useProjectStore()
 // 处理搜索 - 此方法需要调整或移除，搜索应通知父组件
 const handleSearch = () => {
   // currentPage.value = 1;
   // fetchOrderData();
   ElMessage.info('搜索功能需要父组件配合实现，当前仅为UI占位。');
 }
-const displayData = computed(() => props.items || [])
+const displayData = computed(() => (viewStateStore.activeOrderData as MaterialItem[]) || [])
+const isLoading = computed(() => viewStateStore.isLoading)
+const currentPage = computed(() => viewStateStore.currentPage)
+const pageSize = computed(() => viewStateStore.pageSize)
+const totalItems = computed(() => viewStateStore.totalItems)
+
 // 新增订单 - 暂时保留，但可能也需要提升
 const handleAddMaterialData = () => {
   const projectId = 0; // 占位项目ID
@@ -63,6 +67,14 @@ const handleEdit = (row: MaterialItem) => {
 const handleDelete = (row: MaterialItem) => {
   ElMessage.info(`删除物料：${row.materialCode || row.id} (UI占位)`)
 }
+
+const handlePageChange = (newPage: number) => {
+  viewStateStore.setCurrentPage(newPage);
+}
+
+const handleSizeChange = (newPageSize: number) => {
+  viewStateStore.setPageSize(newPageSize);
+}
 </script>
 
 <template>
@@ -82,8 +94,8 @@ const handleDelete = (row: MaterialItem) => {
       </div>
     </div>
     <div class="table-container">
-      <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无物料主数据" />
-      <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+      <el-empty v-if="!isLoading && (!displayData || displayData.length === 0)" description="暂无物料主数据" />
+      <el-table v-else :data="displayData" v-loading="isLoading" stripe height="100%">
         <el-table-column prop="materialCode" label="物料编码" sortable />
         <el-table-column prop="materialName" label="物料名称" sortable />
         <el-table-column prop="specification" label="规格型号" />
@@ -114,9 +126,16 @@ const handleDelete = (row: MaterialItem) => {
         </el-table-column>
       </el-table>
     </div>
-    <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
-      <el-pagination background layout="prev, pager, next, jumper, ->, total" :total="displayData.length"
-        :page-size="10" :current-page="1" @current-change="(page: number) => ElMessage.info(`分页变化: ${page} (UI占位)`)" />
+    <div v-if="!isLoading && displayData.length > 0" class="pagination-container">
+      <el-pagination 
+        background 
+        layout="sizes, prev, pager, next, jumper, ->, total" 
+        :total="totalItems"
+        :page-size="pageSize" 
+        :page-sizes="[50, 100, 200, 500, 1000]"
+        :current-page="currentPage" 
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange" />
     </div>
   </div>
 </template>

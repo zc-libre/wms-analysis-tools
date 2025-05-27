@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Search, Plus, Document, Printer } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useProjectStore } from '../stores/project'
+import { useViewStateStore } from '../stores/viewState'
 
 // 定义材料信息接口
 interface MaterialInfo {
@@ -30,12 +31,6 @@ interface OrderItem {
   // 根据实际情况，您可能需要添加更多属性或调整现有属性的类型
 }
 
-// Define props
-const props = defineProps<{
-  items: OrderItem[] | null,
-  isLoading: boolean
-}>()
-
 // 搜索条件 (UI占位)
 const searchForm = reactive({
   orderNumber: '',
@@ -45,9 +40,14 @@ const searchForm = reactive({
 
 const router = useRouter()
 const projectStore = useProjectStore()
+const viewStateStore = useViewStateStore()
 
-// 计算属性，用于在模板中更方便地访问 items
-const displayData = computed(() => props.items || [])
+// 从 Store 获取状态
+const displayData = computed(() => viewStateStore.activeOrderData || [])
+const isLoading = computed(() => viewStateStore.isLoading)
+const currentPage = computed(() => viewStateStore.currentPage)
+const pageSize = computed(() => viewStateStore.pageSize)
+const totalItems = computed(() => viewStateStore.totalItems)
 
 // 获取销售出库订单数据 - 此方法不再由此组件负责
 /*
@@ -101,10 +101,12 @@ const handleViewDetail = async (row: OrderItem) => {
 }
 
 // 处理分页变化 - 此方法需要调整或移除，分页应由父组件或store处理
-const handlePageChange = (page: number) => {
-  // currentPage.value = page;
-  // fetchOrderData();
-  ElMessage.info(`分页变化: ${page} (功能需父组件配合，UI占位)`);
+const handlePageChange = (newPage: number) => {
+  viewStateStore.setCurrentPage(newPage);
+}
+
+const handleSizeChange = (newPageSize: number) => {
+  viewStateStore.setPageSize(newPageSize);
 }
 
 // 页面加载时获取数据 - 不再需要
@@ -434,8 +436,8 @@ const handlePrintOrderDetail = () => {
     </div>
 
     <div class="table-container">
-      <el-empty v-if="!props.isLoading && (!props.items || props.items.length === 0)" description="暂无销售出库订单数据" />
-      <el-table v-else :data="displayData" v-loading="props.isLoading" stripe height="100%">
+      <el-empty v-if="!isLoading && (!displayData || displayData.length === 0)" description="暂无销售出库订单数据" />
+      <el-table v-else :data="displayData" v-loading="isLoading" stripe height="100%">
         <el-table-column prop="id" label="单据编号" sortable width="160" />
         <el-table-column prop="customer" label="客户" sortable width="160" />
         <el-table-column prop="amount" label="金额" sortable />
@@ -455,14 +457,16 @@ const handlePrintOrderDetail = () => {
       </el-table>
     </div>
 
-    <div v-if="!props.isLoading && displayData.length > 0" class="pagination-container">
+    <div v-if="!isLoading && displayData.length > 0" class="pagination-container">
       <el-pagination
         background
-        layout="prev, pager, next, jumper, ->, total"
-        :total="displayData.length" 
-        :page-size="10" 
-        :current-page="1"
+        layout="sizes, prev, pager, next, jumper, ->, total"
+        :total="totalItems" 
+        :page-size="pageSize" 
+        :page-sizes="[50, 100, 200, 500, 1000]"
+        :current-page="currentPage"
         @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
     
